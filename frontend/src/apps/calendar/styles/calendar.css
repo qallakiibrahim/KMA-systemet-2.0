@@ -1,0 +1,321 @@
+.calendar-container {
+  padding: 1rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.calendar-header h1 {
+  margin: 0;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot.todo { background-color: var(--primary-color); }
+.dot.in-progress { background-color: var(--warning-color); }
+.dot.done { background-color: var(--success-color); }
+
+.calendar-wrapper {
+  flex: 1;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: 600px;
+}
+
+/* React Big Calendar Overrides */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .rbc-toolbar {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+.rbc-toolbar .rbc-toolbar-label {
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rbc-toolbar .rbc-btn-group {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  justify-content: center;
+  margin: 0;
+}
+
+.rbc-toolbar button {
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  border-radius: 0;
+}
+
+.rbc-toolbar .rbc-btn-group button:first-child {
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+}
+
+.rbc-toolbar .rbc-btn-group button:last-child {
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+.rbc-toolbar button:active,
+.rbc-toolbar button.rbc-active {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: none;
+}
+
+.rbc-toolbar button:hover {
+  background-color: var(--bg-hover);
+}
+
+.rbc-event {
+  padding: 2px 5px;
+}
+
+.rbc-today {
+  background-color: var(--bg-secondary);
+}
+
+.rbc-month-view,
+.rbc-time-view,
+.rbc-day-bg,
+.rbc-month-row,
+.rbc-time-header-content,
+.rbc-time-content,
+.rbc-timeslot-group {
+  border-color: var(--border-color);
+}
+
+.rbc-header {
+  border-color: var(--border-color);
+  padding: 8px 0;
+  font-weight: 600;
+  background-color: var(--bg-secondary);
+}
+
+.rbc-off-range-bg {
+  background-color: var(--bg-secondary);
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  padding: 2rem;
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 500px;
+  box-sizing: border-box;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.event-form {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-secondary {
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: var(--bg-primary);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-direction: row !important;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.checkbox-group label {
+  margin: 0;
+}
+
+/* Removed dark mode overrides as they are handled by global variables */
+
+@media (max-width: 768px) {
+  .calendar-container {
+    padding: 1rem;
+  }
+
+  .calendar-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .calendar-legend {
+    flex-wrap: wrap;
+  }
+
+  .calendar-wrapper {
+    padding: 1rem;
+    min-height: 500px;
+  }
+
+  .modal-content {
+    max-height: 95vh;
+    margin: 1rem;
+    width: calc(100% - 2rem);
+    overflow-y: auto;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+

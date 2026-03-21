@@ -1,0 +1,66 @@
+.admin-panel-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.user-list {
+  margin-top: 1rem;
+  background-color: var(--bg-primary);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+}
+
+.user-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.user-item:last-child {
+  border-bottom: none;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.user-email {
+  font-weight: 500;
+}
+
+.user-role {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.user-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .admin-panel-container {
+    padding: 1rem;
+  }
+  
+  .user-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .user-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

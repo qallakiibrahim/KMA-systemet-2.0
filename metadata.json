@@ -1,0 +1,8 @@
+{
+  "name": "KMA Management System",
+  "description": "A professional platform for Quality, Environment, and Occupational Health & Safety management.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}

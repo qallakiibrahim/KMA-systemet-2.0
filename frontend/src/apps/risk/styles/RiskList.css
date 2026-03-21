@@ -1,0 +1,253 @@
+:root {
+  --bg-dashboard: var(--bg-app);
+  --bg-card: var(--bg-primary);
+  --ink: var(--text-primary);
+  --line: var(--border-color);
+  --f-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
+  --f-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  --level-low: var(--primary-color);
+  --level-medium: var(--warning-color);
+  --level-high: var(--danger-hover);
+  --level-critical: var(--danger-color);
+}
+
+.risk-dashboard {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: var(--f-sans);
+  background-color: var(--bg-dashboard);
+  min-height: 100vh;
+}
+
+.dashboard-header h1 {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 2.25rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+}
+
+.dashboard-header .subtitle {
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.kanban-column {
+  background-color: transparent;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.column-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--line);
+  background-color: var(--bg-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.column-title h2 {
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+.column-count {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  background: var(--ink);
+  color: var(--bg-primary);
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+}
+
+.column-content {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.risk-card-mini {
+  background-color: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.2s ease;
+  border-left: 4px solid transparent;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow: hidden;
+}
+
+.risk-card-mini:hover {
+  border-color: var(--ink);
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.05);
+  transform: translate(-2px, -2px);
+}
+
+.risk-card-mini.border-level-low { border-left-color: var(--level-low); }
+.risk-card-mini.border-level-medium { border-left-color: var(--level-medium); }
+.risk-card-mini.border-level-high { border-left-color: var(--level-high); }
+.risk-card-mini.border-level-critical { border-left-color: var(--level-critical); }
+
+.card-title-mini {
+  font-family: var(--f-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.card-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kanban-card-id {
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.risk-badge-mini {
+  font-family: var(--f-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+
+.risk-badge-mini.level-low { color: var(--level-low); background: transparent; }
+.risk-badge-mini.level-medium { color: var(--level-medium); background: transparent; }
+.risk-badge-mini.level-high { color: var(--level-high); background: transparent; }
+.risk-badge-mini.level-critical { color: var(--level-critical); background: transparent; }
+
+.category-mini {
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.card-right-side {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-select-mini {
+  font-family: var(--f-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--line);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.btn-icon-mini {
+  opacity: 0.3;
+  transition: opacity 0.2s;
+  color: var(--text-primary);
+}
+
+.risk-card-mini:hover .btn-icon-mini {
+  opacity: 1;
+}
+
+/* Modal Styling - Clean Utility */
+.modal-content {
+  border-radius: 1rem;
+  border: 1px solid var(--ink);
+  box-shadow: 10px 10px 0px rgba(0,0,0,0.1);
+  background-color: var(--bg-primary);
+}
+
+.modal-header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--line);
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--bg-primary);
+  border-radius: 0.5rem;
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--text-secondary);
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+}
+
+.form-group label {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  border-radius: 0.5rem;
+  border: 1px solid var(--line);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--ink);
+  box-shadow: none;
+}

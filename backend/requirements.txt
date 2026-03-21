@@ -1,0 +1,9 @@
+django
+djangorestframework
+django-cors-headers
+requests
+python-dotenv
+celery
+django-celery-beat
+django-filter
+google-genai

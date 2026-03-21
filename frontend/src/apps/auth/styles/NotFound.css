@@ -1,0 +1,30 @@
+.notfound-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+  background-color: var(--bg-app);
+}
+
+.notfound-container h1 {
+  font-size: 6rem;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.notfound-container p {
+  color: var(--text-secondary);
+}
+
+.back-btn {
+  margin-top: 2rem;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.back-btn:hover {
+  text-decoration: underline;
+}
