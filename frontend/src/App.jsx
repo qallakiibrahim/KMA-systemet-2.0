@@ -5,7 +5,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import AppRoutes from './routes';
 import Sidebar from './shared/components/Sidebar';
 import Header from './shared/components/Header';
-import AIAssistant from './shared/components/AIAssistant';
 import DeadlineChecker from './shared/components/DeadlineChecker';
 import { useAuth } from './shared/api/AuthContext';
 import './App.css';
@@ -24,7 +23,6 @@ function App() {
             <AppRoutes />
           </main>
         </div>
-        {user && <AIAssistant />}
         {user && <DeadlineChecker />}
       </div>
       <ToastContainer position="bottom-left" />
