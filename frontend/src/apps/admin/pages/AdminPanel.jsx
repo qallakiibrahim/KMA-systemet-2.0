@@ -1,16 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive, X } from 'lucide-react';
+import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive, X, Info } from 'lucide-react';
 import { getUsers, updateUser } from '../api/users';
-import { getCompanies } from '../../company/api/company';
+import { getCompanies, createCompany } from '../../company/api/company';
 import '../styles/AdminPanel.css';
-
-// Mock data for companies to show the concept
-const MOCK_COMPANIES = [
-  { id: 1, name: 'Acme Corp AB', orgNr: '556123-4567', plan: 'Premium', status: 'active', users: 45, expiresAt: null },
-  { id: 2, name: 'TechStart Sweden', orgNr: '556987-6543', plan: 'Trial', status: 'trial', users: 12, expiresAt: '2026-04-05' },
-  { id: 3, name: 'Bygg & Konstruktion', orgNr: '556111-2222', plan: 'Basic', status: 'active', users: 8, expiresAt: null },
-  { id: 4, name: 'Testbolaget AB', orgNr: '556999-8888', plan: 'Trial', status: 'expired', users: 3, expiresAt: '2026-03-10' },
-];
 
 const AdminPanel = () => {
   const [users, setUsers] = useState([]);
@@ -22,6 +14,11 @@ const AdminPanel = () => {
   // Modal state
   const [editingUser, setEditingUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+  const [newCompany, setNewCompany] = useState({ name: '', org_nr: '', plan: 'Trial' });
+  
+  const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -97,6 +94,32 @@ const AdminPanel = () => {
     }
   };
 
+  const handleCreateCompany = async () => {
+    if (!newCompany.name) return alert('Företagsnamn är obligatoriskt');
+    
+    try {
+      // Om det är en trial, sätt utgångsdatum till 14 dagar framåt
+      const expiresAt = newCompany.plan === 'Trial' 
+        ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() 
+        : null;
+
+      const created = await createCompany({
+        name: newCompany.name,
+        org_nr: newCompany.org_nr,
+        plan: newCompany.plan,
+        status: newCompany.plan === 'Trial' ? 'trial' : 'active',
+        expires_at: expiresAt
+      });
+      
+      setCompanies([...companies, created]);
+      setIsCompanyModalOpen(false);
+      setNewCompany({ name: '', org_nr: '', plan: 'Trial' });
+    } catch (error) {
+      console.error('Failed to create company', error);
+      alert('Kunde inte skapa företaget.');
+    }
+  };
+
   return (
     <div className="admin-panel-container">
       <div className="admin-header">
@@ -106,10 +129,14 @@ const AdminPanel = () => {
         </div>
         <div className="admin-actions">
           {activeTab === 'companies' && (
-            <button className="btn-primary"><Plus size={18} /> Nytt Företag</button>
+            <button className="btn-primary" onClick={() => setIsCompanyModalOpen(true)}>
+              <Plus size={18} /> Nytt Företag
+            </button>
           )}
           {activeTab === 'users' && (
-            <button className="btn-primary"><Plus size={18} /> Ny Användare</button>
+            <button className="btn-primary" onClick={() => setIsUserInfoModalOpen(true)}>
+              <Plus size={18} /> Ny Användare
+            </button>
           )}
         </div>
       </div>
@@ -313,6 +340,20 @@ const AdminPanel = () => {
               </div>
               
               <div className="form-group mt-4">
+                <label>Koppla till Företag</label>
+                <select 
+                  className="form-control" 
+                  value={editingUser.company_id || ''} 
+                  onChange={(e) => setEditingUser({...editingUser, company_id: e.target.value || null})}
+                >
+                  <option value="">-- Inget företag valt --</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group mt-4">
                 <label>Granulära Behörigheter</label>
                 <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>Välj vilka specifika åtgärder användaren får göra i systemet.</p>
                 
@@ -339,6 +380,84 @@ const AdminPanel = () => {
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Avbryt</button>
               <button className="btn-primary" onClick={handleSaveUser}>Spara ändringar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Company Modal */}
+      {isCompanyModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h2>Skapa Nytt Företag</h2>
+              <button className="icon-btn" onClick={() => setIsCompanyModalOpen(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Företagsnamn *</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={newCompany.name}
+                  onChange={(e) => setNewCompany({...newCompany, name: e.target.value})}
+                  placeholder="T.ex. Acme Corp AB"
+                />
+              </div>
+              <div className="form-group mt-3">
+                <label>Organisationsnummer</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={newCompany.org_nr}
+                  onChange={(e) => setNewCompany({...newCompany, org_nr: e.target.value})}
+                  placeholder="XXXXXX-XXXX"
+                />
+              </div>
+              <div className="form-group mt-3">
+                <label>Licensplan</label>
+                <select 
+                  className="form-control" 
+                  value={newCompany.plan}
+                  onChange={(e) => setNewCompany({...newCompany, plan: e.target.value})}
+                >
+                  <option value="Trial">Testversion (14 dagar)</option>
+                  <option value="Basic">Basic</option>
+                  <option value="Premium">Premium</option>
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setIsCompanyModalOpen(false)}>Avbryt</button>
+              <button className="btn-primary" onClick={handleCreateCompany}>Skapa Företag</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Info Modal */}
+      {isUserInfoModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h2>Lägg till Användare</h2>
+              <button className="icon-btn" onClick={() => setIsUserInfoModalOpen(false)}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="info-card" style={{ marginTop: 0 }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Info size={20} /> Hur användare läggs till
+                </h3>
+                <p>Av säkerhetsskäl skapas användare automatiskt första gången de loggar in i systemet med sitt Google-konto.</p>
+                <ol style={{ paddingLeft: '1.5rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>
+                  <li style={{ marginBottom: '0.5rem' }}>Be användaren gå till systemets inloggningssida och logga in.</li>
+                  <li style={{ marginBottom: '0.5rem' }}>När de loggat in dyker de upp i listan här bakom.</li>
+                  <li>Klicka på <strong>Hantera</strong> för att koppla dem till rätt företag och ge dem rätt behörigheter.</li>
+                </ol>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={() => setIsUserInfoModalOpen(false)}>Jag förstår</button>
             </div>
           </div>
         </div>
