@@ -50,7 +50,7 @@ const AvvikelseList = () => {
   const fileInputRef = useRef(null);
   const followUpFileInputRef = useRef(null);
 
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const location = useLocation();
 
   const fetchAvvikelser = async () => {
@@ -230,6 +230,7 @@ const AvvikelseList = () => {
         status: formData.status,
         deadline: formData.deadline || null,
         author_uid: currentUser?.id || 'anonymous',
+        company_id: userProfile?.company_id || null,
         attachments: formData.attachments || []
       };
       

@@ -6,19 +6,53 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const fetchUserProfile = async (userId) => {
+    if (!userId) {
+      setUserProfile(null);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching user profile:', error);
+      } else {
+        setUserProfile(data);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching profile:', err);
+    }
+  };
 
   useEffect(() => {
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchUserProfile(currentUser.id).then(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
     });
 
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchUserProfile(currentUser.id).then(() => setLoading(false));
+      } else {
+        setUserProfile(null);
+        setLoading(false);
+      }
     });
 
     // Refresh session when window gains focus (e.g. after popup closes)
@@ -26,6 +60,7 @@ export const AuthProvider = ({ children }) => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
           setUser(session.user);
+          fetchUserProfile(session.user.id);
         }
       });
     };
@@ -87,7 +122,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => supabase.auth.signOut();
 
   return (
-    <AuthContext.Provider value={{ user, currentUser: user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, currentUser: user, userProfile, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

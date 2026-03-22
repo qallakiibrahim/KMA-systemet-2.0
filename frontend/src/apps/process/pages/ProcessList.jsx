@@ -48,7 +48,7 @@ const ProcessListContent = () => {
   
   const [defaultViewport, setDefaultViewport] = useState({ x: 0, y: 0, zoom: 1 });
   
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const { getViewport } = useReactFlow();
 
   const fetchProcesses = async () => {
@@ -148,7 +148,8 @@ const ProcessListContent = () => {
         title,
         description: '',
         status: 'active',
-        created_by: currentUser?.id
+        created_by: currentUser?.id,
+        company_id: userProfile?.company_id || null
       });
 
       const newNode = {
@@ -193,6 +194,7 @@ const ProcessListContent = () => {
           description: 'Systemets övergripande processkarta',
           status: 'active',
           created_by: currentUser?.id,
+          company_id: userProfile?.company_id || null,
           ...mapData
         });
         setProcesses([created, ...processes]);

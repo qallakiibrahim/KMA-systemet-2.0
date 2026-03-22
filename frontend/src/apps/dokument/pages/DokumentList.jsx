@@ -49,7 +49,7 @@ const DokumentList = () => {
     file_type: '',
     file_size: 0
   });
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
 
   const fetchDokuments = async () => {
     try {
@@ -150,7 +150,8 @@ const DokumentList = () => {
       } else {
         const newDoc = {
           ...formData,
-          creator_uid: currentUser?.id || null
+          creator_uid: currentUser?.id || null,
+          company_id: userProfile?.company_id || null
         };
         const created = await createDokument(newDoc);
         setDokuments([created, ...dokuments]);

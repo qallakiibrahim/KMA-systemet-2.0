@@ -44,7 +44,7 @@ const CalendarPage = () => {
     all_day: false,
     recurrence: 'none'
   });
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -233,7 +233,8 @@ const CalendarPage = () => {
         // Create new event
         const newEvent = {
           ...formData,
-          created_by: currentUser?.id || 'anonymous'
+          created_by: currentUser?.id || 'anonymous',
+          company_id: userProfile?.company_id || null
         };
         const created = await createEvent(newEvent);
         setCalendarEvents([...calendarEvents, created]);

@@ -21,7 +21,7 @@ const RiskList = () => {
     category: 'general',
     deadline: ''
   });
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const location = useLocation();
 
   const fetchRisker = async () => {
@@ -63,7 +63,8 @@ const RiskList = () => {
         impact: parseInt(formData.impact),
         risk_score: parseInt(formData.likelihood) * parseInt(formData.impact),
         deadline: formData.deadline || null,
-        owner_id: currentUser?.id || 'anonymous'
+        owner_id: currentUser?.id || 'anonymous',
+        company_id: userProfile?.company_id || null
       };
       
       if (selectedRisk) {

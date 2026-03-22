@@ -8,7 +8,7 @@ import { sendEmailNotification } from './sendEmailNotification';
 export const useTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
 
   const fetchTasks = async () => {
     if (!user) {
@@ -38,6 +38,7 @@ export const useTasks = () => {
       const newTask = {
         ...taskData,
         created_by: user.id,
+        company_id: userProfile?.company_id || null,
         status: taskData.status || 'todo'
       };
       const created = await createTask(newTask);
