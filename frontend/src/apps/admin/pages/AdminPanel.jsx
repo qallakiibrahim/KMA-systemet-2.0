@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive } from 'lucide-react';
 import { getUsers } from '../api/users';
 import '../styles/AdminPanel.css';
 
@@ -40,6 +40,24 @@ const AdminPanel = () => {
       case 'expired': return <span className="status-badge danger"><XCircle size={14} /> Utgången</span>;
       default: return <span className="status-badge neutral">{status}</span>;
     }
+  };
+
+  // Helper to mock permissions based on role
+  const renderPermissions = (role) => {
+    if (role === 'admin') {
+      return (
+        <div className="permission-tags">
+          <span className="perm-tag"><Edit2 size={12} /> Read/Write</span>
+          <span className="perm-tag approve"><CheckSquare size={12} /> Approve</span>
+          <span className="perm-tag archive"><Archive size={12} /> Archive</span>
+        </div>
+      );
+    }
+    return (
+      <div className="permission-tags">
+        <span className="perm-tag"><Edit2 size={12} /> Read/Write</span>
+      </div>
+    );
   };
 
   return (
@@ -184,26 +202,31 @@ const AdminPanel = () => {
                 <thead>
                   <tr>
                     <th>Användare</th>
-                    <th>E-post</th>
                     <th>Företag</th>
-                    <th>Roll</th>
+                    <th>Huvudroll</th>
+                    <th>Behörigheter</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u) => (
                     <tr key={u.id}>
-                      <td className="font-medium">{u.username || 'Okänd'}</td>
-                      <td>{u.email}</td>
+                      <td>
+                        <div className="font-medium">{u.username || 'Okänd'}</div>
+                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>{u.email}</div>
+                      </td>
                       <td className="text-muted">Acme Corp AB</td>
                       <td>
                         <span className={`role-badge ${u.role === 'admin' ? 'admin' : 'user'}`}>
                           {u.role === 'admin' ? <Shield size={12} /> : null}
-                          {u.role}
+                          {u.role === 'admin' ? 'Företagsadmin' : 'Användare'}
                         </span>
                       </td>
+                      <td>
+                        {renderPermissions(u.role)}
+                      </td>
                       <td className="actions-cell">
-                        <button className="btn-secondary btn-sm">Redigera</button>
+                        <button className="btn-secondary btn-sm">Hantera</button>
                       </td>
                     </tr>
                   ))}
