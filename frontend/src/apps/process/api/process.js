@@ -19,7 +19,10 @@ export const createProcess = async (data) => {
     .select()
     .single();
     
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase createProcess error:', error);
+    throw error;
+  }
   return inserted;
 };
 
@@ -31,7 +34,10 @@ export const updateProcess = async (id, data) => {
     .select()
     .single();
     
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase updateProcess error:', error);
+    throw error;
+  }
   return updated;
 };
 

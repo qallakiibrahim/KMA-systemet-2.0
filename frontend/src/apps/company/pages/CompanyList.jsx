@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getCompanies, createCompany, updateCompany, deleteCompany } from '../api/company';
-import { Plus, Trash2, X, Building, Mail, Phone, Globe, MapPin } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Building, Mail, Phone, Globe, MapPin, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../styles/CompanyList.css';
 
@@ -8,6 +8,8 @@ const CompanyList = () => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({ 
     name: '', 
     org_number: '', 
@@ -41,20 +43,51 @@ const CompanyList = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const created = await createCompany(formData);
-      setCompanies([created, ...companies]);
-      setIsModalOpen(false);
+  const openModal = (company = null) => {
+    if (company) {
+      setEditingCompany(company);
+      setFormData({
+        name: company.name || '',
+        org_number: company.org_number || '',
+        address: company.address || '',
+        city: company.city || '',
+        zip_code: company.zip_code || '',
+        country: company.country || '',
+        phone: company.phone || '',
+        email: company.email || '',
+        website: company.website || ''
+      });
+    } else {
+      setEditingCompany(null);
       setFormData({ 
         name: '', org_number: '', address: '', city: '', zip_code: '', 
         country: '', phone: '', email: '', website: '' 
       });
-      toast.success('Företag skapat!');
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingCompany) {
+        const updated = await updateCompany(editingCompany.id, formData);
+        setCompanies(companies.map(c => c.id === editingCompany.id ? updated : c));
+        toast.success('Företag uppdaterat!');
+      } else {
+        const created = await createCompany(formData);
+        setCompanies([created, ...companies]);
+        toast.success('Företag skapat!');
+      }
+      setIsModalOpen(false);
+      setEditingCompany(null);
+      setFormData({ 
+        name: '', org_number: '', address: '', city: '', zip_code: '', 
+        country: '', phone: '', email: '', website: '' 
+      });
     } catch (error) {
-      console.error('Failed to create company', error);
-      toast.error('Kunde inte skapa företag');
+      console.error('Failed to save company', error);
+      toast.error('Kunde inte spara företag');
     }
   };
 
@@ -71,6 +104,12 @@ const CompanyList = () => {
     }
   };
 
+  const filteredCompanies = companies.filter(c => 
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.org_nr?.includes(searchTerm)
+  );
+
   if (loading) return <div className="loading-spinner">Laddar företag...</div>;
 
   return (
@@ -80,21 +119,32 @@ const CompanyList = () => {
           <h1>Företag</h1>
           <p className="subtitle">Hantera företag och organisationer</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          <span>Lägg till Företag</span>
-        </button>
+        <div className="header-actions">
+          <div className="search-bar">
+            <Search size={18} />
+            <input 
+              type="text" 
+              placeholder="Sök företag..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button className="btn-primary" onClick={() => openModal()}>
+            <Plus size={20} />
+            <span>Lägg till Företag</span>
+          </button>
+        </div>
       </div>
 
       <div className="company-grid">
-        {companies.length === 0 ? (
+        {filteredCompanies.length === 0 ? (
           <div className="empty-state">
             <Building size={48} className="empty-icon" />
             <h3>Inga företag hittades</h3>
-            <p>Det finns inga registrerade företag för tillfället.</p>
+            <p>{searchTerm ? 'Inga företag matchar din sökning.' : 'Det finns inga registrerade företag för tillfället.'}</p>
           </div>
         ) : (
-          companies.map((c) => (
+          filteredCompanies.map((c) => (
             <div key={c.id} className="company-card">
               <div className="card-header">
                 <div className="card-title-group">
@@ -142,6 +192,9 @@ const CompanyList = () => {
                   <span className="date">Tillagd {new Date(c.created_at || new Date()).toLocaleDateString('sv-SE')}</span>
                 </div>
                 <div className="card-actions">
+                  <button className="btn-icon" onClick={() => openModal(c)} title="Redigera">
+                    <Edit2 size={18} />
+                  </button>
                   <button className="btn-icon delete" onClick={() => handleDelete(c.id)} title="Radera">
                     <Trash2 size={18} />
                   </button>
@@ -156,7 +209,7 @@ const CompanyList = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>Lägg till nytt företag</h2>
+              <h2>{editingCompany ? 'Redigera företag' : 'Lägg till nytt företag'}</h2>
               <button className="close-btn" onClick={() => setIsModalOpen(false)}>
                 <X size={24} />
               </button>
@@ -267,7 +320,7 @@ const CompanyList = () => {
                   Avbryt
                 </button>
                 <button type="submit" className="btn-primary">
-                  Spara Företag
+                  {editingCompany ? 'Uppdatera Företag' : 'Spara Företag'}
                 </button>
               </div>
             </form>

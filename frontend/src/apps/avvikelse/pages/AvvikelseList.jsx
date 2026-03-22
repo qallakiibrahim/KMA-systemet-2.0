@@ -36,7 +36,7 @@ const AvvikelseList = () => {
   });
   const [followUpData, setFollowUpData] = useState({
     kortsiktiga: '',
-    rotosak: '',
+    rotorsak: '',
     varfor1: '',
     varfor2: '',
     varfor3: '',
@@ -145,21 +145,32 @@ const AvvikelseList = () => {
       return;
     }
     
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('Gemini API key is missing from process.env');
+      toast.error('AI-tjänsten kunde inte startas (saknar API-nyckel).');
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `Skriv en professionell, sammanhängande och tydlig problembeskrivning baserat på följande 5W2H-fakta. Gör det till en löpande text som är lätt att läsa för ledningen.\n\nVem: ${vem}\nVad: ${vad}\nNär: ${nar}\nVar: ${varField}\nVarför: ${varfor}\nHur: ${hur}\nHur mycket: ${hur_mycket}`;
+      const ai = new GoogleGenAI({ apiKey });
+      const prompt = `Skriv en professionell, sammanhängande och tydlig problembeskrivning baserat på följande 5W2H-fakta. Gör det till en löpande text som är lätt att läsa för ledningen. Svara på svenska.\n\nVem: ${vem}\nVad: ${vad}\nNär: ${nar}\nVar: ${varField}\nVarför: ${varfor}\nHur: ${hur}\nHur mycket: ${hur_mycket}`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: prompt
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
       });
       
-      setFormData(prev => ({ ...prev, beskrivning: response.text }));
-      toast.success('Problembeskrivning genererad!');
+      if (response && response.text) {
+        setFormData(prev => ({ ...prev, beskrivning: response.text }));
+        toast.success('Problembeskrivning genererad!');
+      } else {
+        throw new Error('Inget text-svar från AI-modellen');
+      }
     } catch (error) {
-      console.error('AI Error:', error);
-      toast.error('Kunde inte generera beskrivning');
+      console.error('AI Error (Beskrivning):', error);
+      toast.error(`AI-fel: ${error.message || 'Kunde inte generera text'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -172,21 +183,32 @@ const AvvikelseList = () => {
       return;
     }
     
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('Gemini API key is missing from process.env');
+      toast.error('AI-tjänsten kunde inte startas (saknar API-nyckel).');
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `Analysera följande "5 Varför"-svar gällande en avvikelse och sammanfatta den underliggande rotorsaken på ett professionellt och tydligt sätt (max 3-4 meningar).\n\nProblem: ${selectedAvvikelse?.titel}\n\n1. Varför? ${varfor1}\n2. Varför? ${varfor2}\n3. Varför? ${varfor3}\n4. Varför? ${varfor4}\n5. Varför? ${varfor5}`;
+      const ai = new GoogleGenAI({ apiKey });
+      const prompt = `Analysera följande "5 Varför"-svar gällande en avvikelse och sammanfatta den underliggande rotorsaken på ett professionellt och tydligt sätt (max 3-4 meningar). Svara på svenska.\n\nProblem: ${selectedAvvikelse?.titel || 'Okänt problem'}\n\n1. Varför? ${varfor1}\n2. Varför? ${varfor2 || '-'}\n3. Varför? ${varfor3 || '-'}\n4. Varför? ${varfor4 || '-'}\n5. Varför? ${varfor5 || '-'}`;
       
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt
+        model: 'gemini-3.1-pro-preview',
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
       });
       
-      setFollowUpData(prev => ({ ...prev, rotosak: response.text }));
-      toast.success('Rotorsak genererad!');
+      if (response && response.text) {
+        setFollowUpData(prev => ({ ...prev, rotorsak: response.text }));
+        toast.success('Rotorsak genererad!');
+      } else {
+        throw new Error('Inget text-svar från AI-modellen');
+      }
     } catch (error) {
-      console.error('AI Error:', error);
-      toast.error('Kunde inte generera rotorsak');
+      console.error('AI Error (Rotorsak):', error);
+      toast.error(`AI-fel: ${error.message || 'Kunde inte generera text'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -206,7 +228,7 @@ const AvvikelseList = () => {
         severity: parseInt(formData.severity) || 1,
         probability: parseInt(formData.probability) || 1,
         status: formData.status,
-        deadline: formData.deadline || '',
+        deadline: formData.deadline || null,
         author_uid: currentUser?.id || 'anonymous',
         attachments: formData.attachments || []
       };
@@ -249,8 +271,13 @@ const AvvikelseList = () => {
         await sendEmailNotification(currentUser.email, subject, htmlContent);
       }
     } catch (error) {
-      console.error('Failed to create avvikelse', error);
-      toast.error('Kunde inte skapa avvikelse');
+      console.error('Failed to create avvikelse:', error);
+      const errorMsg = error.message || error.details || 'Okänt fel vid sparning';
+      toast.error(`Kunde inte skapa avvikelse: ${errorMsg}`);
+      
+      if (errorMsg.includes('relation "avvikelser" does not exist')) {
+        toast.info('Tabellen "avvikelser" saknas i databasen. Kör SQL-skriptet i Supabase SQL Editor.');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -300,10 +327,14 @@ const AvvikelseList = () => {
       attachments: avvikelse.attachments || []
     });
 
-    const u = avvikelse.uppfoljning || {};
+    let u = avvikelse.uppfoljning || {};
+    if (typeof u === 'string') {
+      try { u = JSON.parse(u); } catch (e) { u = {}; }
+    }
+
     setFollowUpData({
       kortsiktiga: u.kortsiktiga || '',
-      rotosak: u.rotosak || '',
+      rotorsak: u.rotorsak || '',
       varfor1: u.varfor1 || '',
       varfor2: u.varfor2 || '',
       varfor3: u.varfor3 || '',
@@ -315,8 +346,8 @@ const AvvikelseList = () => {
     
     let step = 2;
     if (u.kortsiktiga) step = 3;
-    if (u.kortsiktiga && u.rotosak) step = 4;
-    if (u.kortsiktiga && u.rotosak && u.langsiktiga) step = 5;
+    if (u.kortsiktiga && u.rotorsak) step = 4;
+    if (u.kortsiktiga && u.rotorsak && u.langsiktiga) step = 5;
     if (u.godkand) step = 6;
     
     setActiveStep(step);
@@ -324,31 +355,38 @@ const AvvikelseList = () => {
   };
 
   const handleSaveStep = async (stepNumber) => {
+    console.log(`Saving step ${stepNumber} for avvikelse ${selectedAvvikelse?.id}`);
     try {
-      const updates = { uppfoljning: followUpData };
+      const currentUppfoljning = { ...followUpData };
       
       if (stepNumber === 5) {
-        updates.status = 'closed';
-        updates.uppfoljning.godkand = true;
-      } else {
-        updates.status = 'in-progress';
+        currentUppfoljning.godkand = true;
       }
       
+      const updates = { 
+        uppfoljning: currentUppfoljning,
+        status: stepNumber === 5 ? 'closed' : 'in-progress'
+      };
+      
+      console.log('Sending updates to Supabase:', updates);
       const updated = await updateAvvikelse(selectedAvvikelse.id, updates);
-      setAvvikelser(avvikelser.map(a => a.id === selectedAvvikelse.id ? updated : a));
+      console.log('Update successful, received:', updated);
+      
+      // Update local state immediately
+      setAvvikelser(prev => prev.map(a => a.id === selectedAvvikelse.id ? updated : a));
       setSelectedAvvikelse(updated);
+      setFollowUpData(currentUppfoljning);
       
       if (stepNumber < 5) {
         toast.success('Steg sparat!');
+        setActiveStep(stepNumber + 1);
       } else {
-        toast.success('Avvikelse avslutad!');
+        toast.success('Avvikelse godkänd och avslutad!');
+        setIsFollowUpModalOpen(false);
       }
-      
-      // Stäng modalen direkt för att återgå till Kanban-tavlan
-      setIsFollowUpModalOpen(false);
     } catch (error) {
-      console.error('Failed to save step', error);
-      toast.error('Kunde inte spara');
+      console.error('Failed to save step:', error);
+      toast.error('Kunde inte spara: ' + (error.message || 'Okänt fel'));
     }
   };
 
@@ -364,7 +402,7 @@ const AvvikelseList = () => {
         probability: parseInt(formData.probability) || 1,
         beskrivning: formData.beskrivning,
         problemdefinition: problemdefinition,
-        deadline: formData.deadline || '',
+        deadline: formData.deadline || null,
       };
       
       const updated = await updateAvvikelse(selectedAvvikelse.id, updates);
@@ -420,21 +458,35 @@ const AvvikelseList = () => {
     }
   };
 
+  const getRiskLevel = (score) => {
+    if (score >= 15) return { label: 'Kritisk', className: 'level-critical' };
+    if (score >= 10) return { label: 'Hög', className: 'level-high' };
+    if (score >= 5) return { label: 'Medium', className: 'level-medium' };
+    return { label: 'Låg', className: 'level-low' };
+  };
+
   const getFollowUpProgress = (uppfoljning) => {
     if (!uppfoljning) return 1;
     let steps = 1;
     if (uppfoljning.kortsiktiga?.trim()) steps++;
-    if (uppfoljning.rotosak?.trim()) steps++;
+    if (uppfoljning.rotorsak?.trim()) steps++;
     if (uppfoljning.langsiktiga?.trim()) steps++;
     if (uppfoljning.godkand) steps++;
     return steps;
   };
 
   const getAvvikelseStep = (a) => {
-    if (a.uppfoljning?.godkand) return 5;
-    if (a.uppfoljning?.langsiktiga?.trim()) return 4;
-    if (a.uppfoljning?.rotosak?.trim()) return 3;
-    if (a.uppfoljning?.kortsiktiga?.trim()) return 2;
+    if (!a) return 1;
+    let u = a.uppfoljning || {};
+    if (typeof u === 'string') {
+      try { u = JSON.parse(u); } catch (e) { u = {}; }
+    }
+    
+    // Check both boolean and string "true" just in case
+    if (u.godkand === true || u.godkand === 'true' || a.status === 'closed') return 5;
+    if (u.langsiktiga && u.langsiktiga.trim().length > 0) return 4;
+    if (u.rotorsak && u.rotorsak.trim().length > 0) return 3;
+    if (u.kortsiktiga && u.kortsiktiga.trim().length > 0) return 2;
     return 1;
   };
 
@@ -473,37 +525,44 @@ const AvvikelseList = () => {
                 <span className="kanban-count">{columnAvvikelser.length}</span>
               </div>
               <div className="kanban-cards">
-                {columnAvvikelser.map(a => (
-                  <div key={a.id} className="kanban-card" onClick={() => openFollowUp(a)}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                      <h4 className="kanban-card-title truncate" title={a.titel} style={{ flex: 1 }}>{a.titel}</h4>
-                      {a.deadline && (
-                        <span className="deadline-badge-mini" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                          📅 {a.deadline}
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="kanban-card-meta" style={{ marginTop: '0.25rem' }}>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span className="kanban-card-id">#{a.id.substring(0, 4).toUpperCase()}</span>
-                        {a.severity && a.probability && (
-                          <span className="risk-badge-mini" style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>
-                            {a.severity * a.probability}
-                          </span>
-                        )}
-                        {a.attachments && a.attachments.length > 0 && (
-                          <span className="attachment-badge">
-                            <Paperclip size={10} /> {a.attachments.length}
+                {columnAvvikelser.map(a => {
+                  const score = (a.severity || 1) * (a.probability || 1);
+                  const riskLevel = getRiskLevel(score);
+                  return (
+                    <div key={a.id} className={`kanban-card border-${riskLevel.className}`} onClick={() => openFollowUp(a)}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                        <h4 className="kanban-card-title truncate" title={a.titel} style={{ flex: 1 }}>{a.titel}</h4>
+                        {a.deadline && (
+                          <span className="deadline-badge-mini" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                            📅 {new Date(a.deadline).toLocaleDateString('sv-SE')}
                           </span>
                         )}
                       </div>
-                      <span className="priority-badge">
-                        {a.priority || 'Medium'}
-                      </span>
+                      
+                      <div className="kanban-card-meta" style={{ marginTop: '0.25rem' }}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                          <span className="kanban-card-id">#{a.id.substring(0, 4).toUpperCase()}</span>
+                          <span className="kanban-card-date" style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                            {new Date(a.created_at).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          {a.severity && a.probability && (
+                            <span className={`risk-badge-mini ${riskLevel.className}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>
+                              {score}
+                            </span>
+                          )}
+                          {a.attachments && a.attachments.length > 0 && (
+                            <span className="attachment-badge">
+                              <Paperclip size={10} /> {a.attachments.length}
+                            </span>
+                          )}
+                        </div>
+                        <span className="priority-badge">
+                          {a.priority || 'Medium'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
@@ -777,7 +836,7 @@ const AvvikelseList = () => {
                   />
                 </div>
 
-                <p className="info-date">Rapporterad: {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleDateString('sv-SE')}</p>
+                <p className="info-date">Rapporterad: {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
                 
                 <div className="info-desc">
                   <strong>Beskrivning:</strong>
@@ -869,7 +928,7 @@ const AvvikelseList = () => {
                     <div className="timeline-marker"><CheckCircle size={16} /></div>
                     <div className="timeline-content">
                       <h4>1. Registrerad</h4>
-                      <p className="text-muted">Avvikelsen skapades {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleDateString('sv-SE')}</p>
+                      <p className="text-muted">Avvikelsen skapades {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
                     </div>
                   </div>
 
@@ -922,8 +981,8 @@ const AvvikelseList = () => {
                             </button>
                           </div>
                           <textarea 
-                            value={followUpData.rotosak} 
-                            onChange={(e) => setFollowUpData({...followUpData, rotosak: e.target.value})}
+                            value={followUpData.rotorsak} 
+                            onChange={(e) => setFollowUpData({...followUpData, rotorsak: e.target.value})}
                             placeholder="Sammanfatta den slutgiltiga rotorsaken här..."
                             rows="3"
                           />
@@ -932,7 +991,7 @@ const AvvikelseList = () => {
                       ) : activeStep > 3 ? (
                         <div className="step-view">
                           <p><strong>Fastställd Rotorsak:</strong></p>
-                          <p>{followUpData.rotosak}</p>
+                          <p>{followUpData.rotorsak}</p>
                           <button className="btn-text" onClick={() => setActiveStep(3)}>Ändra</button>
                         </div>
                       ) : (

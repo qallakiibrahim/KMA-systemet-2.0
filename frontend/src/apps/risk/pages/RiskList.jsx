@@ -61,6 +61,9 @@ const RiskList = () => {
         ...formData,
         likelihood: parseInt(formData.likelihood),
         impact: parseInt(formData.impact),
+        risk_score: parseInt(formData.likelihood) * parseInt(formData.impact),
+        deadline: formData.deadline || null,
+        owner_id: currentUser?.id || 'anonymous'
       };
       
       if (selectedRisk) {
@@ -92,8 +95,13 @@ const RiskList = () => {
       
       handleCloseModal();
     } catch (error) {
-      console.error('Failed to save risk', error);
-      toast.error('Kunde inte spara risk');
+      console.error('Failed to save risk:', error);
+      const errorMsg = error.message || error.details || 'Okänt fel vid sparning';
+      toast.error(`Kunde inte spara risk: ${errorMsg}`);
+      
+      if (errorMsg.includes('relation "risker" does not exist')) {
+        toast.info('Tabellen "risker" saknas i databasen. Kör SQL-skriptet i Supabase SQL Editor.');
+      }
     }
   };
 
@@ -197,7 +205,7 @@ const RiskList = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
                         <h3 className="card-title-mini" title={r.title}>{r.title}</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                          {r.deadline && <span className="deadline-mini" style={{fontSize: '0.65rem', color: 'var(--text-muted)'}}>📅 {r.deadline}</span>}
+                          {r.deadline && <span className="deadline-mini" style={{fontSize: '0.65rem', color: 'var(--text-muted)'}}>📅 {new Date(r.deadline).toLocaleDateString('sv-SE')}</span>}
                           <button 
                             className="btn-icon-mini delete" 
                             onClick={(e) => {

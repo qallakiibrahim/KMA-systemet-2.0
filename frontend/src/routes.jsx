@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Home from './apps/auth/pages/Home';
 import Login from './apps/auth/pages/Login';
 import Register from './apps/auth/pages/Register';
 import NotFound from './apps/auth/pages/NotFound';
@@ -28,7 +27,6 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/avvikelse" element={<ProtectedRoute><AvvikelseList /></ProtectedRoute>} />
       <Route path="/risk" element={<ProtectedRoute><RiskList /></ProtectedRoute>} />
       <Route path="/company" element={<ProtectedRoute><CompanyList /></ProtectedRoute>} />
@@ -39,7 +37,7 @@ const AppRoutes = () => {
       <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
       <Route path="/tasks" element={<ProtectedRoute><TaskDashboard /></ProtectedRoute>} />
       <Route path="/ai" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
-      <Route path="/" element={<Navigate to="/home" />} />
+      <Route path="/" element={<Navigate to="/process" />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

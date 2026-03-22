@@ -44,3 +44,31 @@ export const deleteDokument = async (id) => {
   if (error) throw error;
   return { id };
 };
+
+export const uploadDocument = async (file) => {
+  const timestamp = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+  const filePath = `${timestamp}_${safeName}`;
+
+  const { data, error } = await supabase.storage
+    .from('documents')
+    .upload(filePath, file);
+
+  if (error) {
+    if (error.message.includes('bucket not found')) {
+      throw new Error('Supabase Storage bucket "documents" saknas. Skapa en publik bucket med namnet "documents" i din Supabase-panel.');
+    }
+    throw error;
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('documents')
+    .getPublicUrl(filePath);
+
+  return {
+    name: file.name,
+    url: publicUrl,
+    type: file.type,
+    size: file.size
+  };
+};

@@ -9,6 +9,7 @@
 
 .dashboard-header {
   margin-bottom: 2rem;
+  background-color: var(--bg-app);
 }
 
 .dashboard-header h1 {

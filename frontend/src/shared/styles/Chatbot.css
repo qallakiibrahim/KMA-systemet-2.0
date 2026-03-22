@@ -44,15 +44,17 @@
 .ai-header {
   background-color: var(--primary-color);
   color: white;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.ai-header h3 {
-  margin: 0;
-  font-size: 1rem;
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
 }
 
 .close-btn {
@@ -63,6 +65,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: background 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .chat-window {
@@ -71,57 +80,152 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
   background-color: var(--bg-app);
 }
 
 .message {
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  max-width: 80%;
-  word-wrap: break-word;
+  display: flex;
+  gap: 0.75rem;
+  max-width: 85%;
 }
 
 .message.user {
   align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message.ai {
+  align-self: flex-start;
+}
+
+.message-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.user .message-icon {
   background-color: var(--primary-color);
   color: white;
 }
 
-.message.assistant {
-  align-self: flex-start;
+.ai .message-icon {
   background-color: var(--bg-secondary);
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+}
+
+.message-text {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.user .message-text {
+  background-color: var(--primary-color);
+  color: white;
+  border-top-right-radius: 0;
+}
+
+.ai .message-text {
+  background-color: var(--bg-primary);
   color: var(--text-primary);
+  border-top-left-radius: 0;
+  border: 1px solid var(--border-color);
 }
 
 .chat-input {
   display: flex;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-primary);
+  gap: 0.5rem;
 }
 
 .chat-input input {
   flex: 1;
   border: 1px solid var(--border-color);
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  margin-right: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
   background-color: var(--bg-app);
   color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.chat-input input:focus {
+  outline: none;
+  border-color: var(--primary-color);
 }
 
 .chat-input button {
   background-color: var(--primary-color);
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 0.5rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
-.chat-input button:hover {
+.chat-input button:hover:not(:disabled) {
   background-color: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.chat-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading animation */
+.dot-typing {
+  position: relative;
+  left: -9999px;
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--primary-color);
+  color: var(--primary-color);
+  box-shadow: 9984px 0 0 0 var(--primary-color), 9999px 0 0 0 var(--primary-color), 10014px 0 0 0 var(--primary-color);
+  animation: dot-typing 1.5s infinite linear;
+  margin: 0.5rem 1rem;
+}
+
+@keyframes dot-typing {
+  0% {
+    box-shadow: 9984px 0 0 0 var(--primary-color), 9999px 0 0 0 var(--primary-color), 10014px 0 0 0 var(--primary-color);
+  }
+  16.667% {
+    box-shadow: 9984px -6px 0 0 var(--primary-color), 9999px 0 0 0 var(--primary-color), 10014px 0 0 0 var(--primary-color);
+  }
+  33.333% {
+    box-shadow: 9984px 0 0 0 var(--primary-color), 9999px 0 0 0 var(--primary-color), 10014px 0 0 0 var(--primary-color);
+  }
+  50% {
+    box-shadow: 9984px 0 0 0 var(--primary-color), 9999px -6px 0 0 var(--primary-color), 10014px 0 0 0 var(--primary-color);
+  }
+  66.667% {
+    box-shadow: 9984px 0 0 0 var(--primary-color), 9999px 0 0 0 var(--primary-color), 10014px 0 0 0 var(--primary-color);
+  }
+  83.333% {
+    box-shadow: 9984px 0 0 0 var(--primary-color), 9999px 0 0 0 var(--primary-color), 10014px -6px 0 0 var(--primary-color);
+  }
+  100% {
+    box-shadow: 9984px 0 0 0 var(--primary-color), 9999px 0 0 0 var(--primary-color), 10014px 0 0 0 var(--primary-color);
+  }
 }
 
 @media (max-width: 768px) {

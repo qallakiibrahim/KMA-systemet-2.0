@@ -15,12 +15,13 @@ const AIAssistant = () => {
     if (!input.trim()) return;
 
     const userMessage = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
     try {
-      const response = await chatWithAI(userMessage.content);
+      const response = await chatWithAI(newMessages);
       setMessages(prev => [...prev, { role: 'ai', content: response.response }]);
     } catch (error) {
       console.error('Failed to chat with AI', error);

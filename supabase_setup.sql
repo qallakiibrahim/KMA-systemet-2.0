@@ -7,14 +7,15 @@ CREATE TABLE IF NOT EXISTS avvikelser (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   titel TEXT NOT NULL,
   beskrivning TEXT,
-  problemdefinition JSONB, -- Stores 5W2H data
+  problemdefinition TEXT, -- Stores 5W2H data as text
   priority TEXT DEFAULT 'Medium',
-  severity TEXT DEFAULT 'Medium',
-  probability TEXT DEFAULT 'Medium',
-  status TEXT DEFAULT 'new',
+  severity INTEGER DEFAULT 1,
+  probability INTEGER DEFAULT 1,
+  status TEXT DEFAULT 'open',
   deadline TIMESTAMPTZ,
   author_uid TEXT,
   attachments JSONB DEFAULT '[]'::jsonb,
+  uppfoljning JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -24,19 +25,19 @@ CREATE TABLE IF NOT EXISTS risker (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
-  probability INTEGER DEFAULT 1,
+  likelihood INTEGER DEFAULT 1,
   impact INTEGER DEFAULT 1,
   risk_score INTEGER DEFAULT 1,
-  status TEXT DEFAULT 'identified',
+  status TEXT DEFAULT 'open',
   category TEXT DEFAULT 'general',
-  mitigation_plan TEXT,
+  deadline TIMESTAMPTZ,
   owner_id TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Dokument (Documents)
-CREATE TABLE IF NOT EXISTS dokument (
+-- Documents (Dokument)
+CREATE TABLE IF NOT EXISTS documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
@@ -47,13 +48,15 @@ CREATE TABLE IF NOT EXISTS dokument (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Processer (Processes)
-CREATE TABLE IF NOT EXISTS processer (
+-- Processes (Processer)
+CREATE TABLE IF NOT EXISTS processes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT,
   status TEXT DEFAULT 'active',
-  owner TEXT,
+  parent_id UUID REFERENCES processes(id) ON DELETE CASCADE,
+  steps JSONB DEFAULT '{"nodes": [], "edges": []}',
+  created_by UUID REFERENCES auth.users ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -111,8 +114,8 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 -- 2. Enable Row Level Security (RLS)
 ALTER TABLE avvikelser ENABLE ROW LEVEL SECURITY;
 ALTER TABLE risker ENABLE ROW LEVEL SECURITY;
-ALTER TABLE dokument ENABLE ROW LEVEL SECURITY;
-ALTER TABLE processer ENABLE ROW LEVEL SECURITY;
+ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE processes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -129,13 +132,13 @@ CREATE POLICY "Allow public read" ON avvikelser FOR SELECT TO public USING (true
 CREATE POLICY "Allow all for authenticated users" ON risker FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read" ON risker FOR SELECT TO public USING (true);
 
--- Dokument Policies
-CREATE POLICY "Allow all for authenticated users" ON dokument FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public read" ON dokument FOR SELECT TO public USING (true);
+-- Documents Policies
+CREATE POLICY "Allow all for authenticated users" ON documents FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read" ON documents FOR SELECT TO public USING (true);
 
--- Processer Policies
-CREATE POLICY "Allow all for authenticated users" ON processer FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Allow public read" ON processer FOR SELECT TO public USING (true);
+-- Processes Policies
+CREATE POLICY "Allow all for authenticated users" ON processes FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read" ON processes FOR SELECT TO public USING (true);
 
 -- Tasks Policies
 CREATE POLICY "Allow all for authenticated users" ON tasks FOR ALL TO authenticated USING (true) WITH CHECK (true);

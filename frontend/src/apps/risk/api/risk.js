@@ -1,6 +1,6 @@
 import { supabase } from '../../../supabase';
 
-const tableName = 'risks';
+const tableName = 'risker';
 
 export const getRisker = async () => {
   const { data, error } = await supabase

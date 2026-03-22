@@ -1,19 +1,53 @@
-import React, { useEffect, useState } from 'react';
-import { getDokuments, createDokument, deleteDokument } from '../api/dokument';
+import React, { useEffect, useState, useCallback } from 'react';
+import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument } from '../api/dokument';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { Plus, Trash2, X, FileText, Download, ExternalLink, File } from 'lucide-react';
+import { 
+  Plus, Edit2, Trash2, X, FileText, Download, ExternalLink, 
+  File, UploadCloud, Loader, Search, Filter, Grid, List as ListIcon,
+  FileCode, FileImage, FileAudio, FileVideo, FileArchive, FileSpreadsheet
+} from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../styles/DokumentList.css';
+
+const FileIcon = ({ type, size = 24 }) => {
+  if (!type) return <File size={size} />;
+  if (type.includes('pdf')) return <FileText size={size} className="text-red-500" />;
+  if (type.includes('image')) return <FileImage size={size} className="text-blue-500" />;
+  if (type.includes('video')) return <FileVideo size={size} className="text-purple-500" />;
+  if (type.includes('audio')) return <FileAudio size={size} className="text-pink-500" />;
+  if (type.includes('zip') || type.includes('archive')) return <FileArchive size={size} className="text-yellow-600" />;
+  if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv')) return <FileSpreadsheet size={size} className="text-green-600" />;
+  if (type.includes('javascript') || type.includes('json') || type.includes('html') || type.includes('css')) return <FileCode size={size} className="text-orange-500" />;
+  return <File size={size} />;
+};
+
+const formatSize = (bytes) => {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
 
 const DokumentList = () => {
   const [dokuments, setDokuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDokument, setEditingDokument] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [isDragging, setIsDragging] = useState(false);
+  
   const [formData, setFormData] = useState({ 
     title: '', 
     description: '', 
     file_url: '', 
-    category: 'general'
+    category: 'general',
+    status: 'utkast',
+    file_type: '',
+    file_size: 0
   });
   const { currentUser } = useAuth();
 
@@ -38,21 +72,103 @@ const DokumentList = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files ? e.target.files[0] : e;
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const result = await uploadDocument(file);
+      setFormData(prev => ({ 
+        ...prev, 
+        file_url: result.url,
+        title: prev.title || result.name,
+        file_type: result.type,
+        file_size: result.size
+      }));
+      toast.success('Fil uppladdad!');
+    } catch (error) {
+      console.error('Upload failed', error);
+      toast.error('Kunde inte ladda upp fil: ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const onDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleFileChange(file);
+    }
+  };
+
+  const openModal = (doc = null) => {
+    if (doc) {
+      setEditingDokument(doc);
+      setFormData({
+        title: doc.title || '',
+        description: doc.description || '',
+        file_url: doc.file_url || '',
+        category: doc.category || 'general',
+        status: doc.status || 'utkast',
+        file_type: doc.file_type || '',
+        file_size: doc.file_size || 0
+      });
+    } else {
+      setEditingDokument(null);
+      setFormData({ 
+        title: '', 
+        description: '', 
+        file_url: '', 
+        category: 'general',
+        status: 'utkast',
+        file_type: '',
+        file_size: 0
+      });
+    }
+    setIsModalOpen(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const newDoc = {
-        ...formData,
-        uploaded_by: currentUser?.id || 'anonymous'
-      };
-      const created = await createDokument(newDoc);
-      setDokuments([created, ...dokuments]);
+      if (editingDokument) {
+        const updated = await updateDokument(editingDokument.id, formData);
+        setDokuments(dokuments.map(d => d.id === editingDokument.id ? updated : d));
+        toast.success('Dokument uppdaterat!');
+      } else {
+        const newDoc = {
+          ...formData,
+          creator_uid: currentUser?.id || null
+        };
+        const created = await createDokument(newDoc);
+        setDokuments([created, ...dokuments]);
+        toast.success('Dokument tillagt!');
+      }
       setIsModalOpen(false);
-      setFormData({ title: '', description: '', file_url: '', category: 'general' });
-      toast.success('Dokument tillagt!');
+      setEditingDokument(null);
+      setFormData({ 
+        title: '', 
+        description: '', 
+        file_url: '', 
+        category: 'general',
+        file_type: '',
+        file_size: 0
+      });
     } catch (error) {
-      console.error('Failed to add dokument', error);
-      toast.error('Kunde inte lägga till dokument');
+      console.error('Failed to save dokument', error);
+      toast.error('Kunde inte spara dokument');
     }
   };
 
@@ -69,64 +185,209 @@ const DokumentList = () => {
     }
   };
 
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'godkänd': return { label: 'Godkänd', className: 'status-approved' };
+      case 'granskning': return { label: 'Granskning', className: 'status-review' };
+      case 'arkiverad': return { label: 'Arkiverad', className: 'status-archived' };
+      default: return { label: 'Utkast', className: 'status-draft' };
+    }
+  };
+
+  const filteredDokuments = dokuments.filter(d => {
+    const matchesSearch = 
+      d.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = categoryFilter === 'all' || d.category === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
+  });
+
   if (loading) return <div className="loading-spinner">Laddar dokument...</div>;
 
   return (
     <div className="dokument-dashboard">
       <div className="dashboard-header">
         <div>
-          <h1>Dokument</h1>
-          <p className="subtitle">Hantera och dela viktiga filer och dokument</p>
+          <h1>Dokumentbibliotek</h1>
+          <p className="subtitle">Centralt arkiv för verksamhetens styrande dokument och manualer</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          <span>Lägg till Dokument</span>
-        </button>
+        <div className="header-actions">
+          <div className="search-bar">
+            <Search size={18} />
+            <input 
+              type="text" 
+              placeholder="Sök i biblioteket..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button className="btn-primary" onClick={() => openModal()}>
+            <Plus size={20} />
+            <span>Nytt Dokument</span>
+          </button>
+        </div>
       </div>
 
-      <div className="dokument-grid">
-        {dokuments.length === 0 ? (
+      <div className="library-controls">
+        <div className="filter-tabs">
+          <button 
+            className={`filter-tab ${categoryFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setCategoryFilter('all')}
+          >
+            Alla
+          </button>
+          <button 
+            className={`filter-tab ${categoryFilter === 'policy' ? 'active' : ''}`}
+            onClick={() => setCategoryFilter('policy')}
+          >
+            Policy
+          </button>
+          <button 
+            className={`filter-tab ${categoryFilter === 'manual' ? 'active' : ''}`}
+            onClick={() => setCategoryFilter('manual')}
+          >
+            Manualer
+          </button>
+          <button 
+            className={`filter-tab ${categoryFilter === 'contract' ? 'active' : ''}`}
+            onClick={() => setCategoryFilter('contract')}
+          >
+            Avtal
+          </button>
+          <button 
+            className={`filter-tab ${categoryFilter === 'report' ? 'active' : ''}`}
+            onClick={() => setCategoryFilter('report')}
+          >
+            Rapporter
+          </button>
+        </div>
+        
+        <div className="view-toggle">
+          <button 
+            className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+            onClick={() => setViewMode('grid')}
+            title="Rutnät"
+          >
+            <Grid size={18} />
+          </button>
+          <button 
+            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+            title="Lista"
+          >
+            <ListIcon size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className={`dokument-container ${viewMode}`}>
+        {filteredDokuments.length === 0 ? (
           <div className="empty-state">
             <FileText size={48} className="empty-icon" />
             <h3>Inga dokument hittades</h3>
-            <p>Det finns inga uppladdade dokument för tillfället.</p>
+            <p>{searchTerm ? 'Inga dokument matchar din sökning.' : 'Det finns inga uppladdade dokument i denna kategori.'}</p>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <div className="dokument-grid">
+            {filteredDokuments.map((d) => {
+              const statusInfo = getStatusBadge(d.status);
+              return (
+                <div key={d.id} className="dokument-card">
+                  <div className="card-header">
+                    <div className="card-top">
+                      <span className={`status-badge-mini ${statusInfo.className}`}>{statusInfo.label}</span>
+                      <div className="card-actions-top">
+                        <button className="btn-icon-small" onClick={() => openModal(d)} title="Redigera">
+                          <Edit2 size={14} />
+                        </button>
+                        <button className="btn-icon-small delete" onClick={() => handleDelete(d.id)} title="Radera">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="card-title-group">
+                      <div className="dokument-icon-wrapper">
+                        <FileIcon type={d.file_type} size={28} />
+                      </div>
+                      <div className="title-container">
+                        <h3 className="card-title" title={d.title}>{d.title}</h3>
+                        <span className="dokument-category-badge">{d.category}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="card-body">
+                    <p className="card-description">{d.description || 'Ingen beskrivning tillgänglig.'}</p>
+                  </div>
+                  
+                  <div className="card-footer">
+                    <div className="card-meta">
+                      <span className="date">📅 {new Date(d.created_at || new Date()).toLocaleDateString('sv-SE')}</span>
+                      {d.file_size > 0 && <span className="size"> • 📦 {formatSize(d.file_size)}</span>}
+                    </div>
+                    {d.file_url && (
+                      <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="btn-open-doc">
+                        <ExternalLink size={16} />
+                        <span>Öppna</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
-          dokuments.map((d) => (
-            <div key={d.id} className="dokument-card">
-              <div className="card-header">
-                <div className="card-title-group">
-                  <div className="dokument-icon">
-                    <File size={24} />
-                  </div>
-                  <div>
-                    <h3 className="card-title">{d.title}</h3>
-                    <span className="dokument-category capitalize">{d.category}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="card-body">
-                <p className="card-description">{d.description || 'Ingen beskrivning.'}</p>
-              </div>
-              
-              <div className="card-footer">
-                <div className="card-meta">
-                  <span className="date">{new Date(d.created_at || new Date()).toLocaleDateString('sv-SE')}</span>
-                </div>
-                <div className="card-actions">
-                  {d.file_url && (
-                    <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="Öppna länk">
-                      <ExternalLink size={18} />
-                    </a>
-                  )}
-                  <button className="btn-icon delete" onClick={() => handleDelete(d.id)} title="Radera">
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
+          <div className="dokument-list-view">
+            <table className="dokument-table">
+              <thead>
+                <tr>
+                  <th>Namn</th>
+                  <th>Kategori</th>
+                  <th>Status</th>
+                  <th>Storlek</th>
+                  <th>Datum</th>
+                  <th>Åtgärder</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDokuments.map((d) => (
+                  <tr key={d.id}>
+                    <td>
+                      <div className="table-cell-title">
+                        <FileIcon type={d.file_type} size={18} />
+                        <span>{d.title}</span>
+                      </div>
+                    </td>
+                    <td><span className="dokument-category capitalize">{d.category}</span></td>
+                    <td>
+                      <span className={`status-badge-mini ${getStatusBadge(d.status).className}`}>
+                        {getStatusBadge(d.status).label}
+                      </span>
+                    </td>
+                    <td>{formatSize(d.file_size)}</td>
+                    <td>{new Date(d.created_at || new Date()).toLocaleDateString('sv-SE')}</td>
+                    <td>
+                      <div className="card-actions">
+                        <button className="btn-icon" onClick={() => openModal(d)} title="Redigera">
+                          <Edit2 size={16} />
+                        </button>
+                        {d.file_url && (
+                          <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="Öppna">
+                            <ExternalLink size={16} />
+                          </a>
+                        )}
+                        <button className="btn-icon delete" onClick={() => handleDelete(d.id)} title="Radera">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -134,12 +395,40 @@ const DokumentList = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>Lägg till nytt dokument</h2>
+              <h2>{editingDokument ? 'Redigera dokument' : 'Ladda upp nytt dokument'}</h2>
               <button className="close-btn" onClick={() => setIsModalOpen(false)}>
                 <X size={24} />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="dokument-form">
+              <div 
+                className={`drop-zone ${isDragging ? 'dragging' : ''} ${formData.file_url ? 'has-file' : ''}`}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+              >
+                {isUploading ? (
+                  <div className="upload-status">
+                    <Loader className="spin" size={32} />
+                    <p>Laddar upp fil...</p>
+                  </div>
+                ) : formData.file_url ? (
+                  <div className="upload-status success">
+                    <FileIcon type={formData.file_type} size={32} />
+                    <p>Fil klar: {formData.title}</p>
+                    <button type="button" className="btn-text" onClick={() => setFormData({...formData, file_url: '', file_type: '', file_size: 0})}>
+                      Byt fil
+                    </button>
+                  </div>
+                ) : (
+                  <div className="upload-prompt">
+                    <UploadCloud size={32} />
+                    <p>Dra och släpp fil här eller klicka för att välja</p>
+                    <input type="file" onChange={handleFileChange} className="file-input" />
+                  </div>
+                )}
+              </div>
+
               <div className="form-group">
                 <label htmlFor="title">Titel *</label>
                 <input
@@ -153,33 +442,37 @@ const DokumentList = () => {
                 />
               </div>
               
-              <div className="form-group">
-                <label htmlFor="category">Kategori</label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                >
-                  <option value="general">Allmänt</option>
-                  <option value="policy">Policy</option>
-                  <option value="manual">Manual</option>
-                  <option value="contract">Avtal</option>
-                  <option value="report">Rapport</option>
-                </select>
-              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="category">Kategori</label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                  >
+                    <option value="general">Allmänt</option>
+                    <option value="policy">Policy</option>
+                    <option value="manual">Manual</option>
+                    <option value="contract">Avtal</option>
+                    <option value="report">Rapport</option>
+                  </select>
+                </div>
 
-              <div className="form-group">
-                <label htmlFor="file_url">Länk till dokument (URL)</label>
-                <input
-                  type="url"
-                  id="file_url"
-                  name="file_url"
-                  value={formData.file_url}
-                  onChange={handleInputChange}
-                  placeholder="https://länk-till-dokument.pdf"
-                />
-                <small className="form-hint">Klistra in en länk till dokumentet (t.ex. Google Drive, SharePoint).</small>
+                <div className="form-group">
+                  <label htmlFor="status">Status</label>
+                  <select
+                    id="status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                  >
+                    <option value="utkast">Utkast</option>
+                    <option value="granskning">Granskning</option>
+                    <option value="godkänd">Godkänd</option>
+                    <option value="arkiverad">Arkiverad</option>
+                  </select>
+                </div>
               </div>
 
               <div className="form-group">
@@ -198,8 +491,8 @@ const DokumentList = () => {
                 <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Avbryt
                 </button>
-                <button type="submit" className="btn-primary">
-                  Spara Dokument
+                <button type="submit" className="btn-primary" disabled={!formData.file_url || isUploading}>
+                  {editingDokument ? 'Spara ändringar' : 'Ladda upp till bibliotek'}
                 </button>
               </div>
             </form>

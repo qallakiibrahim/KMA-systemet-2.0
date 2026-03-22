@@ -22,25 +22,29 @@
   --warning-color: #f59e0b;
   --event-avvikelse: #f97316;
   --event-custom: #8b5cf6;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --input-bg: #ffffff;
 }
 
 .dark {
-  --bg-app: #111827;
-  --bg-primary: #1f2937;
-  --bg-secondary: #374151;
-  --bg-hover: #374151;
-  --text-primary: #f9fafb;
-  --text-secondary: #d1d5db;
-  --text-muted: #9ca3af;
-  --border-color: #4b5563;
+  --bg-app: #0f172a;
+  --bg-primary: #1e293b;
+  --bg-secondary: #334155;
+  --bg-hover: #475569;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
   --primary-color: #3b82f6;
   --primary-hover: #60a5fa;
-  --danger-color: #ef4444;
-  --danger-hover: #f87171;
+  --danger-color: #f87171;
+  --danger-hover: #ef4444;
   --success-color: #10b981;
   --warning-color: #fbbf24;
   --event-avvikelse: #f97316;
   --event-custom: #8b5cf6;
+  --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --input-bg: #1e293b;
 }
 
 body {
@@ -49,13 +53,15 @@ body {
   background-color: var(--bg-app);
   color: var(--text-primary);
   overflow-x: hidden;
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .app-container {
   display: flex;
   overflow-x: hidden;
   width: 100%;
+  background-color: var(--bg-app);
+  transition: background-color 0.3s ease;
 }
 
 .main-wrapper {

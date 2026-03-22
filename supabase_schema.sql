@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Risks table
-CREATE TABLE IF NOT EXISTS risks (
+-- Risker table
+CREATE TABLE IF NOT EXISTS risker (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE risks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE risker ENABLE ROW LEVEL SECURITY;
 ALTER TABLE avvikelser ENABLE ROW LEVEL SECURITY;
 ALTER TABLE calendar_events ENABLE ROW LEVEL SECURITY;
 
@@ -95,11 +95,11 @@ CREATE POLICY "Users can insert tasks" ON tasks FOR INSERT WITH CHECK (auth.uid(
 CREATE POLICY "Users can update their own tasks" ON tasks FOR UPDATE USING (auth.uid() = created_by);
 CREATE POLICY "Users can delete their own tasks" ON tasks FOR DELETE USING (auth.uid() = created_by);
 
--- Risks: Similar policies
-CREATE POLICY "Risks are viewable by authenticated users" ON risks FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Users can insert risks" ON risks FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Users can update risks" ON risks FOR UPDATE USING (auth.role() = 'authenticated');
-CREATE POLICY "Users can delete risks" ON risks FOR DELETE USING (auth.role() = 'authenticated');
+-- Risker: Similar policies
+CREATE POLICY "Risker are viewable by authenticated users" ON risker FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can insert risker" ON risker FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Users can update risker" ON risker FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can delete risker" ON risker FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Avvikelser: Similar policies
 CREATE POLICY "Avvikelser are viewable by authenticated users" ON avvikelser FOR SELECT USING (auth.role() = 'authenticated');
@@ -119,6 +119,9 @@ CREATE TABLE IF NOT EXISTS documents (
   title TEXT NOT NULL,
   description TEXT,
   file_url TEXT NOT NULL,
+  file_type TEXT,
+  file_size INTEGER,
+  category TEXT DEFAULT 'general',
   version INTEGER DEFAULT 1,
   status TEXT DEFAULT 'utkast',
   creator_uid UUID REFERENCES auth.users ON DELETE CASCADE,
@@ -138,9 +141,12 @@ CREATE TABLE IF NOT EXISTS processes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  steps JSONB DEFAULT '[]',
+  status TEXT DEFAULT 'active',
+  parent_id UUID REFERENCES processes(id) ON DELETE CASCADE,
+  steps JSONB DEFAULT '{"nodes": [], "edges": []}',
   created_by UUID REFERENCES auth.users ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 ALTER TABLE processes ENABLE ROW LEVEL SECURITY;
