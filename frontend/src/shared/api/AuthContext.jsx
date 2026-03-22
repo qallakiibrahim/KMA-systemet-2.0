@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Ensure the redirect URL matches exactly what's in Supabase
-    const redirectUrl = `${window.location.origin}/home`;
+    const redirectUrl = `${window.location.origin}/process`;
     console.log('Logging in with Supabase OAuth...', { provider: 'google', redirectTo: redirectUrl });
 
     try {

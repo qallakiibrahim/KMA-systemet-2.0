@@ -1,6 +1,6 @@
 .sidebar {
   width: 250px;
-  height: 100vh;
+  height: 100dvh;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   display: flex;
@@ -11,6 +11,7 @@
   z-index: 1000;
   transition: transform 0.3s ease;
   border-right: 1px solid var(--border-color);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .sidebar-header {
