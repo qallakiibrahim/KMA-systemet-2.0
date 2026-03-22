@@ -74,7 +74,8 @@ const AdminPanel = () => {
     try {
       await updateUser(editingUser.id, { 
         role: editingUser.role,
-        permissions: editingUser.permissions
+        permissions: editingUser.permissions,
+        company_id: editingUser.company_id
       });
       // Update local state
       setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
