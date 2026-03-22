@@ -57,6 +57,11 @@ const RiskList = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      if (!userProfile?.company_id) {
+        toast.error('Du måste vara kopplad till ett företag för att skapa en risk. Kontakta en administratör.');
+        return;
+      }
+
       const riskData = {
         ...formData,
         likelihood: parseInt(formData.likelihood),

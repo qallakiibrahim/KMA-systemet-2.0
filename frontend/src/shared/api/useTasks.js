@@ -34,6 +34,10 @@ export const useTasks = () => {
 
   const addTask = async (taskData) => {
     if (!user) return;
+    if (!userProfile?.company_id) {
+      toast.error('Du måste vara kopplad till ett företag för att skapa en uppgift. Kontakta en administratör.');
+      return;
+    }
     try {
       const newTask = {
         ...taskData,

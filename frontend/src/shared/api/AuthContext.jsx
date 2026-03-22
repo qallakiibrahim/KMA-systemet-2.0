@@ -9,8 +9,8 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserProfile = async (userId) => {
-    if (!userId) {
+  const fetchUserProfile = async (userObj) => {
+    if (!userObj || !userObj.id) {
       setUserProfile(null);
       return;
     }
@@ -18,12 +18,34 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', userObj.id)
         .single();
         
       if (error) {
         console.error('Error fetching user profile:', error);
       } else {
+        // Update profile if name is missing but we have it in metadata
+        const metadata = userObj.user_metadata || {};
+        const nameFromGoogle = metadata.full_name || metadata.name;
+        
+        if (nameFromGoogle && (!data.display_name && !data.username)) {
+           // Update the profile in the database
+           const { data: updatedData, error: updateError } = await supabase
+             .from('profiles')
+             .update({ 
+               display_name: nameFromGoogle,
+               username: nameFromGoogle
+             })
+             .eq('id', userObj.id)
+             .select()
+             .single();
+             
+           if (!updateError && updatedData) {
+             setUserProfile(updatedData);
+             return;
+           }
+        }
+        
         setUserProfile(data);
       }
     } catch (err) {
@@ -37,7 +59,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        fetchUserProfile(currentUser.id).then(() => setLoading(false));
+        fetchUserProfile(currentUser).then(() => setLoading(false));
       } else {
         setLoading(false);
       }
@@ -48,7 +70,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        fetchUserProfile(currentUser.id).then(() => setLoading(false));
+        fetchUserProfile(currentUser).then(() => setLoading(false));
       } else {
         setUserProfile(null);
         setLoading(false);
@@ -60,7 +82,7 @@ export const AuthProvider = ({ children }) => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
           setUser(session.user);
-          fetchUserProfile(session.user.id);
+          fetchUserProfile(session.user);
         }
       });
     };

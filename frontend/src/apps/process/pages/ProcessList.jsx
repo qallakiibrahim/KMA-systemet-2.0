@@ -143,6 +143,11 @@ const ProcessListContent = () => {
     const title = prompt(`Ange namn på ny ${category === 'management' ? 'ledningsprocess' : category === 'core' ? 'huvudprocess' : 'stödprocess'}:`);
     if (!title) return;
 
+    if (!userProfile?.company_id) {
+      toast.error('Du måste vara kopplad till ett företag för att skapa en process. Kontakta en administratör.');
+      return;
+    }
+
     try {
       const newProcess = await createProcess({
         title,
@@ -178,6 +183,12 @@ const ProcessListContent = () => {
   const saveMap = async () => {
     setIsSaving(true);
     try {
+      if (!userProfile?.company_id) {
+        toast.error('Du måste vara kopplad till ett företag för att spara processkartan. Kontakta en administratör.');
+        setIsSaving(false);
+        return;
+      }
+
       // Find or create the root map process by title
       let rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
       const viewport = getViewport();

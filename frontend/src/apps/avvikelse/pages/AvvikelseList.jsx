@@ -218,6 +218,12 @@ const AvvikelseList = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
+      if (!userProfile?.company_id) {
+        toast.error('Du måste vara kopplad till ett företag för att skapa en avvikelse. Kontakta en administratör.');
+        setIsSaving(false);
+        return;
+      }
+
       const problemdefinition = `Vem: ${formData.vem}\nVad: ${formData.vad}\nNär: ${formData.nar}\nVar: ${formData.var}\nVarför: ${formData.varfor}\nHur: ${formData.hur}\nHur mycket: ${formData.hur_mycket}`;
 
       const newAvvikelse = {

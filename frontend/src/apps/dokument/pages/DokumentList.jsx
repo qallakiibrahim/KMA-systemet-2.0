@@ -143,6 +143,11 @@ const DokumentList = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      if (!editingDokument && !userProfile?.company_id) {
+        toast.error('Du måste vara kopplad till ett företag för att ladda upp ett dokument. Kontakta en administratör.');
+        return;
+      }
+
       if (editingDokument) {
         const updated = await updateDokument(editingDokument.id, formData);
         setDokuments(dokuments.map(d => d.id === editingDokument.id ? updated : d));
