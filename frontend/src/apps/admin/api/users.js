@@ -23,3 +23,15 @@ export const updateUserRole = async (userId, role) => {
   if (error) throw error;
   return data;
 };
+
+export const updateUser = async (userId, updates) => {
+  const { data, error } = await supabase
+    .from(tableName)
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
