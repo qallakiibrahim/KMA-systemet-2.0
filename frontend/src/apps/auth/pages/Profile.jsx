@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { User, Mail, Shield, Building, Calendar, CheckCircle } from 'lucide-react';
+import { User, Mail, Shield, Building, Calendar, CheckCircle, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import '../styles/Profile.css';
 
 const Profile = () => {
@@ -8,6 +9,8 @@ const Profile = () => {
 
   if (loading) return <div className="loading">Laddar profil...</div>;
   if (!userProfile) return <div className="loading">Kunde inte ladda profil. Försök logga ut och in igen.</div>;
+
+  const canManageCompany = userProfile.role === 'admin' || userProfile.role === 'superadmin';
 
   const renderPermissions = (permissions) => {
     if (!permissions || permissions.length === 0) return 'Inga specifika behörigheter';
@@ -50,7 +53,14 @@ const Profile = () => {
         </div>
 
         <div className="profile-card">
-          <h3><Building size={20} /> Företagsinformation</h3>
+          <div className="card-header-flex">
+            <h3><Building size={20} /> Företagsinformation</h3>
+            {canManageCompany && (
+              <Link to="/company" className="btn-settings-link">
+                <Settings size={16} /> Inställningar
+              </Link>
+            )}
+          </div>
           <div className="info-list">
             <div className="info-item">
               <span className="label">Företag:</span>

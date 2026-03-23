@@ -29,7 +29,24 @@ export const AuthProvider = ({ children }) => {
         
       // 2. If profile doesn't exist, create it
       if (error && error.code === 'PGRST116') {
-        console.log('Profile not found, creating new profile for:', email);
+        console.log('Profile not found, checking for pending invitations for:', email);
+        
+        // Check for pending invitation
+        const { data: invitation, error: inviteError } = await supabase
+          .from('pending_users')
+          .select('*')
+          .eq('email', email)
+          .single();
+          
+        let initialRole = email === 'qallakiibrahim@gmail.com' ? 'superadmin' : 'user';
+        let initialCompanyId = null;
+        
+        if (!inviteError && invitation) {
+          console.log('Found pending invitation:', invitation);
+          initialRole = invitation.role || 'user';
+          initialCompanyId = invitation.company_id;
+        }
+
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .insert([{ 
@@ -37,7 +54,8 @@ export const AuthProvider = ({ children }) => {
             email: email,
             display_name: nameFromGoogle,
             username: nameFromGoogle,
-            role: email === 'qallakiibrahim@gmail.com' ? 'superadmin' : 'user',
+            role: initialRole,
+            company_id: initialCompanyId,
             permissions: ['read_write']
           }])
           .select('*, companies(name)')
@@ -51,11 +69,17 @@ export const AuthProvider = ({ children }) => {
             email: email, 
             display_name: nameFromGoogle,
             username: nameFromGoogle,
-            role: email === 'qallakiibrahim@gmail.com' ? 'superadmin' : 'user',
+            role: initialRole,
+            company_id: initialCompanyId,
             permissions: ['read_write']
           };
         } else {
           profile = newProfile;
+          
+          // Delete the invitation if it was used
+          if (invitation) {
+            await supabase.from('pending_users').delete().eq('id', invitation.id);
+          }
         }
       } else if (error) {
         console.error('Error fetching user profile:', error);

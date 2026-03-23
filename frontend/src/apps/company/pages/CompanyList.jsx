@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { getCompanies, createCompany, updateCompany, deleteCompany } from '../api/company';
-import { Plus, Edit2, Trash2, X, Building, Mail, Phone, Globe, MapPin, Search } from 'lucide-react';
+import { getCompanies, updateCompany } from '../api/company';
+import { Building, Mail, Phone, Globe, MapPin, Save, Shield, CreditCard } from 'lucide-react';
+import { useAuth } from '../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import '../styles/CompanyList.css';
 
 const CompanyList = () => {
-  const [companies, setCompanies] = useState([]);
+  const { userProfile } = useAuth();
+  const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ 
     name: '', 
     org_nr: '', 
@@ -22,311 +22,240 @@ const CompanyList = () => {
     website: ''
   });
 
-  const fetchCompanies = async () => {
-    try {
-      const data = await getCompanies();
-      setCompanies(data);
-    } catch (error) {
-      console.error('Failed to fetch companies', error);
-      toast.error('Kunde inte hämta företag');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchCompanies();
-  }, []);
+    const fetchCompany = async () => {
+      if (!userProfile?.company_id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const allCompanies = await getCompanies();
+        const myCompany = allCompanies.find(c => c.id === userProfile.company_id);
+        if (myCompany) {
+          setCompany(myCompany);
+          setFormData({
+            name: myCompany.name || '',
+            org_nr: myCompany.org_nr || myCompany.org_number || '',
+            address: myCompany.address || '',
+            city: myCompany.city || '',
+            zip_code: myCompany.zip_code || '',
+            country: myCompany.country || '',
+            phone: myCompany.phone || '',
+            email: myCompany.email || '',
+            website: myCompany.website || ''
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch company', error);
+        toast.error('Kunde inte hämta företagsinformation');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompany();
+  }, [userProfile]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const openModal = (company = null) => {
-    if (company) {
-      setEditingCompany(company);
-      setFormData({
-        name: company.name || '',
-        org_nr: company.org_nr || company.org_number || '',
-        address: company.address || '',
-        city: company.city || '',
-        zip_code: company.zip_code || '',
-        country: company.country || '',
-        phone: company.phone || '',
-        email: company.email || '',
-        website: company.website || ''
-      });
-    } else {
-      setEditingCompany(null);
-      setFormData({ 
-        name: '', org_nr: '', address: '', city: '', zip_code: '', 
-        country: '', phone: '', email: '', website: '' 
-      });
-    }
-    setIsModalOpen(true);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (editingCompany) {
-        const updated = await updateCompany(editingCompany.id, formData);
-        setCompanies(companies.map(c => c.id === editingCompany.id ? updated : c));
-        toast.success('Företag uppdaterat!');
-      } else {
-        const created = await createCompany(formData);
-        setCompanies([created, ...companies]);
-        toast.success('Företag skapat!');
-      }
-      setIsModalOpen(false);
-      setEditingCompany(null);
-      setFormData({ 
-        name: '', org_nr: '', address: '', city: '', zip_code: '', 
-        country: '', phone: '', email: '', website: '' 
-      });
+      const updated = await updateCompany(company.id, formData);
+      setCompany(updated);
+      setIsEditing(false);
+      toast.success('Företagsinställningar uppdaterade!');
     } catch (error) {
       console.error('Failed to save company', error);
-      toast.error('Kunde inte spara företag');
+      toast.error('Kunde inte spara ändringar');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Är du säker på att du vill radera detta företag?')) {
-      try {
-        await deleteCompany(id);
-        setCompanies(companies.filter(c => c.id !== id));
-        toast.success('Företag raderat');
-      } catch (error) {
-        console.error('Failed to delete company', error);
-        toast.error('Kunde inte radera företag');
-      }
-    }
-  };
+  if (loading) return <div className="loading-spinner">Laddar inställningar...</div>;
 
-  const filteredCompanies = companies.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (c.org_nr || c.org_number || '').includes(searchTerm)
-  );
+  if (!company) {
+    return (
+      <div className="company-dashboard">
+        <div className="empty-state">
+          <Building size={48} className="empty-icon" />
+          <h3>Inget företag kopplat</h3>
+          <p>Ditt konto är inte kopplat till något företag ännu.</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (loading) return <div className="loading-spinner">Laddar företag...</div>;
+  if (userProfile.role !== 'admin' && userProfile.role !== 'superadmin') {
+    return (
+      <div className="company-dashboard">
+        <div className="empty-state">
+          <Shield size={48} className="empty-icon text-danger" />
+          <h3>Åtkomst nekad</h3>
+          <p>Du har inte behörighet att ändra företagsinställningar.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="company-dashboard">
       <div className="dashboard-header">
         <div>
-          <h1>Företag</h1>
-          <p className="subtitle">Hantera företag och organisationer</p>
+          <h1>Företagsinställningar</h1>
+          <p className="subtitle">Hantera information för {company.name}</p>
         </div>
-        <div className="header-actions">
-          <div className="search-bar">
-            <Search size={18} />
-            <input 
-              type="text" 
-              placeholder="Sök företag..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <button className="btn-primary" onClick={() => openModal()}>
-            <Plus size={20} />
-            <span>Lägg till Företag</span>
+        {!isEditing && (
+          <button className="btn-primary" onClick={() => setIsEditing(true)}>
+            Redigera profil
           </button>
-        </div>
-      </div>
-
-      <div className="company-grid">
-        {filteredCompanies.length === 0 ? (
-          <div className="empty-state">
-            <Building size={48} className="empty-icon" />
-            <h3>Inga företag hittades</h3>
-            <p>{searchTerm ? 'Inga företag matchar din sökning.' : 'Det finns inga registrerade företag för tillfället.'}</p>
-          </div>
-        ) : (
-          filteredCompanies.map((c) => (
-            <div key={c.id} className="company-card">
-              <div className="card-header">
-                <div className="card-title-group">
-                  <div className="company-avatar">
-                    <Building size={24} />
-                  </div>
-                  <div>
-                    <h3 className="card-title">{c.name}</h3>
-                    {(c.org_nr || c.org_number) && <span className="org-number">Org.nr: {c.org_nr || c.org_number}</span>}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="card-body">
-                <div className="contact-info">
-                  {c.email && (
-                    <div className="info-row">
-                      <Mail size={16} />
-                      <a href={`mailto:${c.email}`}>{c.email}</a>
-                    </div>
-                  )}
-                  {c.phone && (
-                    <div className="info-row">
-                      <Phone size={16} />
-                      <a href={`tel:${c.phone}`}>{c.phone}</a>
-                    </div>
-                  )}
-                  {c.website && (
-                    <div className="info-row">
-                      <Globe size={16} />
-                      <a href={c.website} target="_blank" rel="noopener noreferrer">{c.website}</a>
-                    </div>
-                  )}
-                  {(c.address || c.city) && (
-                    <div className="info-row">
-                      <MapPin size={16} />
-                      <span>{c.address}{c.city ? `, ${c.city}` : ''}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="card-footer">
-                <div className="card-meta">
-                  <span className="date">Tillagd {new Date(c.created_at || new Date()).toLocaleDateString('sv-SE')}</span>
-                </div>
-                <div className="card-actions">
-                  <button className="btn-icon" onClick={() => openModal(c)} title="Redigera">
-                    <Edit2 size={18} />
-                  </button>
-                  <button className="btn-icon delete" onClick={() => handleDelete(c.id)} title="Radera">
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2>{editingCompany ? 'Redigera företag' : 'Lägg till nytt företag'}</h2>
-              <button className="close-btn" onClick={() => setIsModalOpen(false)}>
-                <X size={24} />
-              </button>
+      <div className="settings-container" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem', marginTop: '2rem' }}>
+        <div className="settings-main">
+          {isEditing ? (
+            <div className="card shadow-sm p-4 bg-white rounded-lg">
+              <form onSubmit={handleSubmit} className="company-form">
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div className="form-group">
+                    <label>Företagsnamn *</label>
+                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="form-control" />
+                  </div>
+                  <div className="form-group">
+                    <label>Organisationsnummer</label>
+                    <input type="text" name="org_nr" value={formData.org_nr} onChange={handleInputChange} className="form-control" />
+                  </div>
+                </div>
+                
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div className="form-group">
+                    <label>E-post</label>
+                    <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="form-control" />
+                  </div>
+                  <div className="form-group">
+                    <label>Telefon</label>
+                    <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="form-control" />
+                  </div>
+                </div>
+
+                <div className="form-group mb-3">
+                  <label>Webbplats</label>
+                  <input type="url" name="website" value={formData.website} onChange={handleInputChange} className="form-control" />
+                </div>
+
+                <div className="form-group mb-3">
+                  <label>Gatuadress</label>
+                  <input type="text" name="address" value={formData.address} onChange={handleInputChange} className="form-control" />
+                </div>
+
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+                  <div className="form-group">
+                    <label>Postnummer</label>
+                    <input type="text" name="zip_code" value={formData.zip_code} onChange={handleInputChange} className="form-control" />
+                  </div>
+                  <div className="form-group">
+                    <label>Ort</label>
+                    <input type="text" name="city" value={formData.city} onChange={handleInputChange} className="form-control" />
+                  </div>
+                </div>
+
+                <div className="form-actions" style={{ display: 'flex', gap: '1rem' }}>
+                  <button type="button" className="btn-secondary" onClick={() => setIsEditing(false)}>Avbryt</button>
+                  <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Save size={18} /> Spara ändringar
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleSubmit} className="company-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="name">Företagsnamn *</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="Företag AB"
-                  />
+          ) : (
+            <div className="company-profile-view">
+              <div className="profile-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex items-start justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                      <Building size={32} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">{company.name}</h2>
+                      <p className="text-gray-500">Org.nr: {company.org_nr || company.org_number || 'Ej angivet'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label htmlFor="org_nr">Organisationsnummer</label>
-                  <input
-                    type="text"
-                    id="org_nr"
-                    name="org_nr"
-                    value={formData.org_nr}
-                    onChange={handleInputChange}
-                    placeholder="555555-5555"
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="email">E-post</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="info@foretag.se"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="phone">Telefon</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="08-123 45 67"
-                  />
-                </div>
-              </div>
 
-              <div className="form-group">
-                <label htmlFor="website">Webbplats</label>
-                <input
-                  type="url"
-                  id="website"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleInputChange}
-                  placeholder="https://www.foretag.se"
-                />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Kontaktinformation</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <Mail size={18} className="text-gray-400" />
+                        <span>{company.email || 'Ingen e-post angiven'}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <Phone size={18} className="text-gray-400" />
+                        <span>{company.phone || 'Inget telefonnummer angivet'}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <Globe size={18} className="text-gray-400" />
+                        <span>{company.website || 'Ingen webbplats angiven'}</span>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="form-group">
-                <label htmlFor="address">Gatuadress</label>
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  placeholder="Storgatan 1"
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="zip_code">Postnummer</label>
-                  <input
-                    type="text"
-                    id="zip_code"
-                    name="zip_code"
-                    value={formData.zip_code}
-                    onChange={handleInputChange}
-                    placeholder="123 45"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="city">Ort</label>
-                  <input
-                    type="text"
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    placeholder="Stockholm"
-                  />
+                  <div className="space-y-6">
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Adress</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3 text-gray-600">
+                        <MapPin size={18} className="text-gray-400 mt-1" />
+                        <div>
+                          <p>{company.address || 'Ingen adress angiven'}</p>
+                          <p>{company.zip_code} {company.city}</p>
+                          <p>{company.country}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+          )}
+        </div>
 
-              <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
-                  Avbryt
-                </button>
-                <button type="submit" className="btn-primary">
-                  {editingCompany ? 'Uppdatera Företag' : 'Spara Företag'}
-                </button>
+        <div className="settings-sidebar space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Licens & Status</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <CreditCard size={18} />
+                  <span>Plan</span>
+                </div>
+                <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded uppercase">{company.plan}</span>
               </div>
-            </form>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Shield size={18} />
+                  <span>Status</span>
+                </div>
+                <span className={`px-2 py-1 text-xs font-bold rounded uppercase ${
+                  company.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'
+                }`}>
+                  {company.status === 'active' ? 'Aktiv' : company.status}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Behöver du hjälp?</h4>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Om du behöver ändra din licensplan eller har frågor om ditt konto, vänligen kontakta SafeQMS support.
+            </p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

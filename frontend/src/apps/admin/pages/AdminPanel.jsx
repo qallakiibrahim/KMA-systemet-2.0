@@ -47,7 +47,19 @@ const AdminPanel = () => {
   
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
-  const [newCompany, setNewCompany] = useState({ name: '', org_nr: '', plan: 'Trial', status: 'active' });
+  const [newCompany, setNewCompany] = useState({ 
+    name: '', 
+    org_nr: '', 
+    plan: 'Trial', 
+    status: 'active',
+    address: '',
+    city: '',
+    zip_code: '',
+    country: 'Sverige',
+    phone: '',
+    email: '',
+    website: ''
+  });
   
   const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
 
@@ -195,7 +207,14 @@ const AdminPanel = () => {
       name: company.name || '',
       org_nr: company.org_nr || company.org_number || '',
       plan: company.plan || 'Basic',
-      status: company.status || 'active'
+      status: company.status || 'active',
+      address: company.address || '',
+      city: company.city || '',
+      zip_code: company.zip_code || '',
+      country: company.country || 'Sverige',
+      phone: company.phone || '',
+      email: company.email || '',
+      website: company.website || ''
     });
     setIsCompanyModalOpen(true);
   };
@@ -203,14 +222,23 @@ const AdminPanel = () => {
   const handleCreateOrUpdateCompany = async () => {
     if (!newCompany.name) return alert('Företagsnamn är obligatoriskt');
     
+    const companyData = {
+      name: newCompany.name,
+      org_nr: newCompany.org_nr,
+      plan: newCompany.plan,
+      status: newCompany.status,
+      address: newCompany.address,
+      city: newCompany.city,
+      zip_code: newCompany.zip_code,
+      country: newCompany.country,
+      phone: newCompany.phone,
+      email: newCompany.email,
+      website: newCompany.website
+    };
+    
     try {
       if (editingCompany) {
-        const updated = await updateCompany(editingCompany.id, {
-          name: newCompany.name,
-          org_nr: newCompany.org_nr,
-          plan: newCompany.plan,
-          status: newCompany.status
-        });
+        const updated = await updateCompany(editingCompany.id, companyData);
         setCompanies(companies.map(c => c.id === editingCompany.id ? updated : c));
         toast.success('Företag uppdaterat');
       } else {
@@ -220,9 +248,7 @@ const AdminPanel = () => {
           : null;
 
         const created = await createCompany({
-          name: newCompany.name,
-          org_nr: newCompany.org_nr,
-          plan: newCompany.plan,
+          ...companyData,
           status: newCompany.plan === 'Trial' ? 'trial' : 'active',
           expires_at: expiresAt
         });
@@ -233,7 +259,19 @@ const AdminPanel = () => {
       
       setIsCompanyModalOpen(false);
       setEditingCompany(null);
-      setNewCompany({ name: '', org_nr: '', plan: 'Trial', status: 'active' });
+      setNewCompany({ 
+        name: '', 
+        org_nr: '', 
+        plan: 'Trial', 
+        status: 'active',
+        address: '',
+        city: '',
+        zip_code: '',
+        country: 'Sverige',
+        phone: '',
+        email: '',
+        website: ''
+      });
     } catch (error) {
       console.error('Failed to save company', error);
       alert('Kunde inte spara företaget.');
@@ -644,58 +682,120 @@ const AdminPanel = () => {
       {/* Create/Edit Company Modal */}
       {isCompanyModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '500px' }}>
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
             <div className="modal-header">
               <h2>{editingCompany ? 'Redigera Företag' : 'Skapa Nytt Företag'}</h2>
               <button className="icon-btn" onClick={() => { setIsCompanyModalOpen(false); setEditingCompany(null); }}><X size={20} /></button>
             </div>
             <div className="modal-body">
-              <div className="form-group">
-                <label>Företagsnamn *</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  value={newCompany.name}
-                  onChange={(e) => setNewCompany({...newCompany, name: e.target.value})}
-                  placeholder="T.ex. Acme Corp AB"
-                />
-              </div>
-              <div className="form-group mt-3">
-                <label>Organisationsnummer</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  value={newCompany.org_nr}
-                  onChange={(e) => setNewCompany({...newCompany, org_nr: e.target.value})}
-                  placeholder="XXXXXX-XXXX"
-                />
-              </div>
-              <div className="form-group mt-3">
-                <label>Licensplan</label>
-                <select 
-                  className="form-control" 
-                  value={newCompany.plan}
-                  onChange={(e) => setNewCompany({...newCompany, plan: e.target.value})}
-                >
-                  <option value="Trial">Testversion (14 dagar)</option>
-                  <option value="Basic">Basic</option>
-                  <option value="Premium">Premium</option>
-                </select>
-              </div>
-              {editingCompany && (
-                <div className="form-group mt-3">
-                  <label>Status</label>
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label>Företagsnamn *</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={newCompany.name}
+                    onChange={(e) => setNewCompany({...newCompany, name: e.target.value})}
+                    placeholder="T.ex. Acme Corp AB"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Organisationsnummer</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={newCompany.org_nr}
+                    onChange={(e) => setNewCompany({...newCompany, org_nr: e.target.value})}
+                    placeholder="XXXXXX-XXXX"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>E-post</label>
+                  <input 
+                    type="email" 
+                    className="form-control" 
+                    value={newCompany.email}
+                    onChange={(e) => setNewCompany({...newCompany, email: e.target.value})}
+                    placeholder="info@foretag.se"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Telefon</label>
+                  <input 
+                    type="tel" 
+                    className="form-control" 
+                    value={newCompany.phone}
+                    onChange={(e) => setNewCompany({...newCompany, phone: e.target.value})}
+                    placeholder="08-123 45 67"
+                  />
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label>Webbplats</label>
+                  <input 
+                    type="url" 
+                    className="form-control" 
+                    value={newCompany.website}
+                    onChange={(e) => setNewCompany({...newCompany, website: e.target.value})}
+                    placeholder="https://www.foretag.se"
+                  />
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label>Gatuadress</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={newCompany.address}
+                    onChange={(e) => setNewCompany({...newCompany, address: e.target.value})}
+                    placeholder="Storgatan 1"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Postnummer</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={newCompany.zip_code}
+                    onChange={(e) => setNewCompany({...newCompany, zip_code: e.target.value})}
+                    placeholder="123 45"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Ort</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={newCompany.city}
+                    onChange={(e) => setNewCompany({...newCompany, city: e.target.value})}
+                    placeholder="Stockholm"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Licensplan</label>
                   <select 
                     className="form-control" 
-                    value={newCompany.status}
-                    onChange={(e) => setNewCompany({...newCompany, status: e.target.value})}
+                    value={newCompany.plan}
+                    onChange={(e) => setNewCompany({...newCompany, plan: e.target.value})}
                   >
-                    <option value="active">Aktiv</option>
-                    <option value="trial">Testperiod</option>
-                    <option value="expired">Utgången</option>
+                    <option value="Trial">Testversion (14 dagar)</option>
+                    <option value="Basic">Basic</option>
+                    <option value="Premium">Premium</option>
                   </select>
                 </div>
-              )}
+                {editingCompany && (
+                  <div className="form-group">
+                    <label>Status</label>
+                    <select 
+                      className="form-control" 
+                      value={newCompany.status}
+                      onChange={(e) => setNewCompany({...newCompany, status: e.target.value})}
+                    >
+                      <option value="active">Aktiv</option>
+                      <option value="trial">Testperiod</option>
+                      <option value="expired">Utgången</option>
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => { setIsCompanyModalOpen(false); setEditingCompany(null); }}>Avbryt</button>
