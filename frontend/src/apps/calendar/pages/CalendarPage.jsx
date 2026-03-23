@@ -224,7 +224,7 @@ const CalendarPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!selectedEvent && !userProfile?.company_id) {
+      if (!selectedEvent && !userProfile?.company_id && userProfile?.role !== 'superadmin') {
         toast.error('Du måste vara kopplad till ett företag för att skapa en händelse. Kontakta en administratör.');
         return;
       }

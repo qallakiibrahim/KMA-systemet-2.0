@@ -218,7 +218,7 @@ const AvvikelseList = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      if (!userProfile?.company_id) {
+      if (!userProfile?.company_id && userProfile?.role !== 'superadmin') {
         toast.error('Du måste vara kopplad till ett företag för att skapa en avvikelse. Kontakta en administratör.');
         setIsSaving(false);
         return;

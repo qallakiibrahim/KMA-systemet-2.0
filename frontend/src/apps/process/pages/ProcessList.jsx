@@ -143,7 +143,7 @@ const ProcessListContent = () => {
     const title = prompt(`Ange namn på ny ${category === 'management' ? 'ledningsprocess' : category === 'core' ? 'huvudprocess' : 'stödprocess'}:`);
     if (!title) return;
 
-    if (!userProfile?.company_id) {
+    if (!userProfile?.company_id && userProfile?.role !== 'superadmin') {
       toast.error('Du måste vara kopplad till ett företag för att skapa en process. Kontakta en administratör.');
       return;
     }
@@ -154,7 +154,9 @@ const ProcessListContent = () => {
         description: '',
         status: 'active',
         created_by: currentUser?.id,
-        company_id: userProfile?.company_id || null
+        company_id: userProfile?.company_id || null,
+        is_template: userProfile?.role === 'superadmin',
+        is_global: userProfile?.role === 'superadmin'
       });
 
       const newNode = {
@@ -183,7 +185,7 @@ const ProcessListContent = () => {
   const saveMap = async () => {
     setIsSaving(true);
     try {
-      if (!userProfile?.company_id) {
+      if (!userProfile?.company_id && userProfile?.role !== 'superadmin') {
         toast.error('Du måste vara kopplad till ett företag för att spara processkartan. Kontakta en administratör.');
         setIsSaving(false);
         return;
@@ -206,6 +208,8 @@ const ProcessListContent = () => {
           status: 'active',
           created_by: currentUser?.id,
           company_id: userProfile?.company_id || null,
+          is_template: userProfile?.role === 'superadmin',
+          is_global: userProfile?.role === 'superadmin',
           ...mapData
         });
         setProcesses([created, ...processes]);

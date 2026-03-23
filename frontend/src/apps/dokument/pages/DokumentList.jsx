@@ -143,7 +143,7 @@ const DokumentList = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!editingDokument && !userProfile?.company_id) {
+      if (!editingDokument && !userProfile?.company_id && userProfile?.role !== 'superadmin') {
         toast.error('Du måste vara kopplad till ett företag för att ladda upp ett dokument. Kontakta en administratör.');
         return;
       }
@@ -156,7 +156,9 @@ const DokumentList = () => {
         const newDoc = {
           ...formData,
           creator_uid: currentUser?.id || null,
-          company_id: userProfile?.company_id || null
+          company_id: userProfile?.company_id || null,
+          is_template: userProfile?.role === 'superadmin',
+          is_global: userProfile?.role === 'superadmin'
         };
         const created = await createDokument(newDoc);
         setDokuments([created, ...dokuments]);

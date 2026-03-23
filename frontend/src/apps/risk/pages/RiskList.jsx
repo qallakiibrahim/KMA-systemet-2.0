@@ -57,7 +57,7 @@ const RiskList = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (!userProfile?.company_id) {
+      if (!userProfile?.company_id && userProfile?.role !== 'superadmin') {
         toast.error('Du måste vara kopplad till ett företag för att skapa en risk. Kontakta en administratör.');
         return;
       }
@@ -69,7 +69,9 @@ const RiskList = () => {
         risk_score: parseInt(formData.likelihood) * parseInt(formData.impact),
         deadline: formData.deadline || null,
         owner_id: currentUser?.id || 'anonymous',
-        company_id: userProfile?.company_id || null
+        company_id: userProfile?.company_id || null,
+        is_template: userProfile?.role === 'superadmin',
+        is_global: userProfile?.role === 'superadmin'
       };
       
       if (selectedRisk) {

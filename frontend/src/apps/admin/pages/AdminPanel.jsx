@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive, X, Info } from 'lucide-react';
 import { getUsers, updateUser } from '../api/users';
-import { getCompanies, createCompany } from '../../company/api/company';
+import { getCompanies, createCompany, updateCompany } from '../../company/api/company';
+import { useAuth } from '../../../shared/api/AuthContext';
 import '../styles/AdminPanel.css';
 
 const AdminPanel = () => {
+  const { userProfile } = useAuth();
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,8 @@ const AdminPanel = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
-  const [newCompany, setNewCompany] = useState({ name: '', org_nr: '', plan: 'Trial' });
+  const [editingCompany, setEditingCompany] = useState(null);
+  const [newCompany, setNewCompany] = useState({ name: '', org_nr: '', plan: 'Trial', status: 'active' });
   
   const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
 
@@ -95,29 +98,54 @@ const AdminPanel = () => {
     }
   };
 
-  const handleCreateCompany = async () => {
+  const openEditCompanyModal = (company) => {
+    setEditingCompany(company);
+    setNewCompany({
+      name: company.name || '',
+      org_nr: company.org_nr || company.org_number || '',
+      plan: company.plan || 'Basic',
+      status: company.status || 'active'
+    });
+    setIsCompanyModalOpen(true);
+  };
+
+  const handleCreateOrUpdateCompany = async () => {
     if (!newCompany.name) return alert('Företagsnamn är obligatoriskt');
     
     try {
-      // Om det är en trial, sätt utgångsdatum till 14 dagar framåt
-      const expiresAt = newCompany.plan === 'Trial' 
-        ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() 
-        : null;
+      if (editingCompany) {
+        const updated = await updateCompany(editingCompany.id, {
+          name: newCompany.name,
+          org_nr: newCompany.org_nr,
+          plan: newCompany.plan,
+          status: newCompany.status
+        });
+        setCompanies(companies.map(c => c.id === editingCompany.id ? updated : c));
+        toast.success('Företag uppdaterat');
+      } else {
+        // Om det är en trial, sätt utgångsdatum till 14 dagar framåt
+        const expiresAt = newCompany.plan === 'Trial' 
+          ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() 
+          : null;
 
-      const created = await createCompany({
-        name: newCompany.name,
-        org_nr: newCompany.org_nr,
-        plan: newCompany.plan,
-        status: newCompany.plan === 'Trial' ? 'trial' : 'active',
-        expires_at: expiresAt
-      });
+        const created = await createCompany({
+          name: newCompany.name,
+          org_nr: newCompany.org_nr,
+          plan: newCompany.plan,
+          status: newCompany.plan === 'Trial' ? 'trial' : 'active',
+          expires_at: expiresAt
+        });
+        
+        setCompanies([...companies, created]);
+        toast.success('Företag skapat');
+      }
       
-      setCompanies([...companies, created]);
       setIsCompanyModalOpen(false);
-      setNewCompany({ name: '', org_nr: '', plan: 'Trial' });
+      setEditingCompany(null);
+      setNewCompany({ name: '', org_nr: '', plan: 'Trial', status: 'active' });
     } catch (error) {
-      console.error('Failed to create company', error);
-      alert('Kunde inte skapa företaget.');
+      console.error('Failed to save company', error);
+      alert('Kunde inte spara företaget.');
     }
   };
 
@@ -240,7 +268,7 @@ const AdminPanel = () => {
                       <td>-</td>
                       <td className="text-muted">{company.expires_at ? new Date(company.expires_at).toLocaleDateString() : '-'}</td>
                       <td className="actions-cell">
-                        <button className="icon-btn"><MoreVertical size={18} /></button>
+                        <button className="btn-secondary btn-sm" onClick={() => openEditCompanyModal(company)}>Redigera</button>
                       </td>
                     </tr>
                   ))}
@@ -386,13 +414,13 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* Create Company Modal */}
+      {/* Create/Edit Company Modal */}
       {isCompanyModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h2>Skapa Nytt Företag</h2>
-              <button className="icon-btn" onClick={() => setIsCompanyModalOpen(false)}><X size={20} /></button>
+              <h2>{editingCompany ? 'Redigera Företag' : 'Skapa Nytt Företag'}</h2>
+              <button className="icon-btn" onClick={() => { setIsCompanyModalOpen(false); setEditingCompany(null); }}><X size={20} /></button>
             </div>
             <div className="modal-body">
               <div className="form-group">
@@ -427,10 +455,26 @@ const AdminPanel = () => {
                   <option value="Premium">Premium</option>
                 </select>
               </div>
+              {editingCompany && (
+                <div className="form-group mt-3">
+                  <label>Status</label>
+                  <select 
+                    className="form-control" 
+                    value={newCompany.status}
+                    onChange={(e) => setNewCompany({...newCompany, status: e.target.value})}
+                  >
+                    <option value="active">Aktiv</option>
+                    <option value="trial">Testperiod</option>
+                    <option value="expired">Utgången</option>
+                  </select>
+                </div>
+              )}
             </div>
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setIsCompanyModalOpen(false)}>Avbryt</button>
-              <button className="btn-primary" onClick={handleCreateCompany}>Skapa Företag</button>
+              <button className="btn-secondary" onClick={() => { setIsCompanyModalOpen(false); setEditingCompany(null); }}>Avbryt</button>
+              <button className="btn-primary" onClick={handleCreateOrUpdateCompany}>
+                {editingCompany ? 'Spara ändringar' : 'Skapa Företag'}
+              </button>
             </div>
           </div>
         </div>
