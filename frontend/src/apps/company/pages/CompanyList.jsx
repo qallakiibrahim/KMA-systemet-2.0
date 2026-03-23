@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getCompanies, updateCompany } from '../api/company';
 import { Building, Mail, Phone, Globe, MapPin, Save, Shield, CreditCard } from 'lucide-react';
-import { useAuth } from '../../shared/api/AuthContext';
+import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import '../styles/CompanyList.css';
 
