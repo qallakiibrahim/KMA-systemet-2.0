@@ -107,7 +107,7 @@ const CompanyList = () => {
   const filteredCompanies = companies.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.org_nr?.includes(searchTerm)
+    (c.org_nr || c.org_number || '').includes(searchTerm)
   );
 
   if (loading) return <div className="loading-spinner">Laddar företag...</div>;

@@ -323,7 +323,7 @@ const AdminPanel = () => {
                 <div className="kpi-icon risk-icon"><Users size={24} /></div>
                 <div className="kpi-content">
                   <h3>Totalt Användare</h3>
-                  <p className="kpi-value">{users.length || 68}</p>
+                  <p className="kpi-value">{users.length}</p>
                 </div>
               </div>
             </div>
