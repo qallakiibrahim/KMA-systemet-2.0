@@ -23,9 +23,6 @@ const Sidebar = ({ isOpen, onClose }) => {
           <Link to="/process" onClick={onClose}><Activity /> <span>Processer</span></Link>
           <Link to="/avvikelse" onClick={onClose}><AlertTriangle /> <span>Avvikelser</span></Link>
           <Link to="/risk" onClick={onClose}><Shield /> <span>Risker</span></Link>
-          {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
-            <Link to="/company" onClick={onClose}><Building /> <span>Företagsinställningar</span></Link>
-          )}
           <Link to="/dokument" onClick={onClose}><FileText /> <span>Dokument</span></Link>
           <Link to="/calendar" onClick={onClose}><Calendar /> <span>Kalender</span></Link>
           <Link to="/tasks" onClick={onClose}><CheckSquare /> <span>Uppgifter</span></Link>

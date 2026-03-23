@@ -5,7 +5,6 @@ import Register from './apps/auth/pages/Register';
 import NotFound from './apps/auth/pages/NotFound';
 import AvvikelseList from './apps/avvikelse/pages/AvvikelseList';
 import RiskList from './apps/risk/pages/RiskList';
-import CompanyList from './apps/company/pages/CompanyList';
 import DokumentList from './apps/dokument/pages/DokumentList';
 import ProcessList from './apps/process/pages/ProcessList';
 import AdminPanel from './apps/admin/pages/AdminPanel';
@@ -31,7 +30,6 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/avvikelse" element={<ProtectedRoute><AvvikelseList /></ProtectedRoute>} />
       <Route path="/risk" element={<ProtectedRoute><RiskList /></ProtectedRoute>} />
-      <Route path="/company" element={<ProtectedRoute><CompanyList /></ProtectedRoute>} />
       <Route path="/dokument" element={<ProtectedRoute><DokumentList /></ProtectedRoute>} />
       <Route path="/process" element={<ProtectedRoute><ProcessList /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />

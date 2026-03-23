@@ -5,7 +5,7 @@ import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import '../styles/CompanyList.css';
 
-const CompanyList = () => {
+const CompanyList = ({ isEmbedded = false }) => {
   const { userProfile } = useAuth();
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -78,7 +78,7 @@ const CompanyList = () => {
 
   if (!company) {
     return (
-      <div className="company-dashboard">
+      <div className={isEmbedded ? "" : "company-dashboard"}>
         <div className="empty-state">
           <Building size={48} className="empty-icon" />
           <h3>Inget företag kopplat</h3>
@@ -90,7 +90,7 @@ const CompanyList = () => {
 
   if (userProfile.role !== 'admin' && userProfile.role !== 'superadmin') {
     return (
-      <div className="company-dashboard">
+      <div className={isEmbedded ? "" : "company-dashboard"}>
         <div className="empty-state">
           <Shield size={48} className="empty-icon text-danger" />
           <h3>Åtkomst nekad</h3>
@@ -101,20 +101,35 @@ const CompanyList = () => {
   }
 
   return (
-    <div className="company-dashboard">
-      <div className="dashboard-header">
-        <div>
-          <h1>Företagsinställningar</h1>
-          <p className="subtitle">Hantera information för {company.name}</p>
+    <div className={isEmbedded ? "company-embedded" : "company-dashboard"}>
+      {!isEmbedded && (
+        <div className="dashboard-header">
+          <div>
+            <h1>Företagsinställningar</h1>
+            <p className="subtitle">Hantera information för {company.name}</p>
+          </div>
+          {!isEditing && (
+            <button className="btn-primary" onClick={() => setIsEditing(true)}>
+              Redigera profil
+            </button>
+          )}
         </div>
-        {!isEditing && (
-          <button className="btn-primary" onClick={() => setIsEditing(true)}>
-            Redigera profil
-          </button>
-        )}
-      </div>
+      )}
 
-      <div className="settings-container" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem', marginTop: '2rem' }}>
+      {isEmbedded && !isEditing && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          <button className="btn-primary btn-sm" onClick={() => setIsEditing(true)}>
+            Redigera Företagsinfo
+          </button>
+        </div>
+      )}
+
+      <div className="settings-container" style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isEmbedded ? '1fr' : '1fr 350px', 
+        gap: '2rem', 
+        marginTop: isEmbedded ? '0' : '2rem' 
+      }}>
         <div className="settings-main">
           {isEditing ? (
             <div className="card shadow-sm p-4 bg-white rounded-lg">
@@ -248,12 +263,14 @@ const CompanyList = () => {
             </div>
           </div>
 
-          <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Behöver du hjälp?</h4>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              Om du behöver ändra din licensplan eller har frågor om ditt konto, vänligen kontakta SafeQMS support.
-            </p>
-          </div>
+          {!isEmbedded && (
+            <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
+              <h4 className="text-sm font-medium text-gray-900 mb-2">Behöver du hjälp?</h4>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Om du behöver ändra din licensplan eller har frågor om ditt konto, vänligen kontakta SafeQMS support.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
