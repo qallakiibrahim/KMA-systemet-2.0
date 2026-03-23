@@ -149,12 +149,22 @@ const ProcessListContent = () => {
     }
 
     try {
+      // Ensure we have a company_id if the user is a superadmin but not linked yet
+      let companyId = userProfile?.company_id;
+      
+      if (!companyId && userProfile?.role === 'superadmin') {
+        const { data: companies } = await supabase.from('companies').select('id').eq('name', 'SafeQMS').limit(1);
+        if (companies && companies.length > 0) {
+          companyId = companies[0].id;
+        }
+      }
+
       const newProcess = await createProcess({
         title,
         description: '',
         status: 'active',
         created_by: currentUser?.id,
-        company_id: userProfile?.company_id || null,
+        company_id: companyId,
         is_template: userProfile?.role === 'superadmin',
         is_global: userProfile?.role === 'superadmin'
       });

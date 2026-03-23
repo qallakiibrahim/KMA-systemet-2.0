@@ -39,10 +39,21 @@ export const useTasks = () => {
       return;
     }
     try {
+      // Ensure we have a company_id if the user is a superadmin but not linked yet
+      let companyId = userProfile?.company_id;
+      
+      if (!companyId && userProfile?.role === 'superadmin') {
+        // Try to find SafeQMS company ID
+        const { data: companies } = await supabase.from('companies').select('id').eq('name', 'SafeQMS').limit(1);
+        if (companies && companies.length > 0) {
+          companyId = companies[0].id;
+        }
+      }
+
       const newTask = {
         ...taskData,
         created_by: user.id,
-        company_id: userProfile?.company_id || null,
+        company_id: companyId,
         status: taskData.status || 'todo'
       };
       const created = await createTask(newTask);

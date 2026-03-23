@@ -105,22 +105,36 @@ export const AuthProvider = ({ children }) => {
 
           // Link to SafeQMS for superadmin
           if (email === 'qallakiibrahim@gmail.com') {
-            const { data: companies } = await supabase.from('companies').select('id, name').eq('name', 'SafeQMS');
-            let safeQmsId = companies?.[0]?.id;
-
-            if (!safeQmsId) {
-              const { data: newCompany } = await supabase.from('companies').insert([{ 
+            // First, find or create the SafeQMS company
+            let safeQmsId = null;
+            const { data: companies, error: compError } = await supabase.from('companies').select('id, name').eq('name', 'SafeQMS');
+            
+            if (compError) {
+              console.error('Error finding SafeQMS company:', compError);
+            } else if (companies && companies.length > 0) {
+              safeQmsId = companies[0].id;
+            } else {
+              console.log('SafeQMS company not found, creating it...');
+              const { data: newCompany, error: createCompError } = await supabase.from('companies').insert([{ 
                 name: 'SafeQMS', 
                 org_nr: '555555-5555', 
                 plan: 'Premium', 
                 status: 'active' 
               }]).select().single();
-              safeQmsId = newCompany?.id;
+              
+              if (createCompError) {
+                console.error('Error creating SafeQMS company:', createCompError);
+              } else {
+                safeQmsId = newCompany?.id;
+              }
             }
 
             if (safeQmsId && profile.company_id !== safeQmsId) {
               updates.company_id = safeQmsId;
               needsUpdate = true;
+              
+              // Optimistically update the local profile state so the user can save data immediately
+              setUserProfile(prev => ({ ...prev, company_id: safeQmsId, company_name: 'SafeQMS' }));
             }
           }
 
@@ -132,14 +146,16 @@ export const AuthProvider = ({ children }) => {
           }
 
           if (needsUpdate) {
-            const { data: updatedProfile } = await supabase
+            const { data: updatedProfile, error: updateErr } = await supabase
               .from('profiles')
               .update(updates)
               .eq('id', userObj.id)
               .select('*, companies(name)')
               .single();
             
-            if (updatedProfile) {
+            if (updateErr) {
+              console.error('Error updating profile in background:', updateErr);
+            } else if (updatedProfile) {
               if (updatedProfile.companies) {
                 updatedProfile.company_name = updatedProfile.companies.name;
               }

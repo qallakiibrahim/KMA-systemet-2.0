@@ -233,12 +233,63 @@ ALTER TABLE mail ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Authenticated users can insert mail" ON mail FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- 4. Create a trigger for new user profile creation
+-- 4. User invitations/pending profiles
+CREATE TABLE IF NOT EXISTS pending_users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT NOT NULL,
+  company_id UUID REFERENCES companies(id),
+  role TEXT DEFAULT 'user',
+  permissions TEXT[] DEFAULT '{read_write}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE pending_users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Superadmins can manage pending users" ON pending_users
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'superadmin'
+    )
+  );
+
+CREATE POLICY "Admins can manage pending users for their company" ON pending_users
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin' AND p.company_id = pending_users.company_id
+    )
+  );
+
+CREATE POLICY "Users can read their own invite" ON pending_users
+  FOR SELECT USING (email = auth.jwt()->>'email');
+
+-- 5. Create a trigger for new user profile creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  pending_role TEXT;
+  pending_company_id UUID;
+  pending_permissions TEXT[];
 BEGIN
-  INSERT INTO public.profiles (id, email, display_name)
-  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name');
+  -- Check if there is a pending invite for this email
+  SELECT role, company_id, permissions 
+  INTO pending_role, pending_company_id, pending_permissions
+  FROM public.pending_users 
+  WHERE email = NEW.email
+  LIMIT 1;
+
+  IF pending_company_id IS NOT NULL THEN
+    INSERT INTO public.profiles (id, email, display_name, role, company_id, permissions)
+    VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', pending_role, pending_company_id, pending_permissions);
+    
+    -- Delete the pending invite
+    DELETE FROM public.pending_users WHERE email = NEW.email;
+  ELSE
+    INSERT INTO public.profiles (id, email, display_name)
+    VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name');
+  END IF;
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

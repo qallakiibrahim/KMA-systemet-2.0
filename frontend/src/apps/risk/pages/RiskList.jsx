@@ -62,14 +62,24 @@ const RiskList = () => {
         return;
       }
 
+      // Ensure we have a company_id if the user is a superadmin but not linked yet
+      let companyId = userProfile?.company_id;
+      
+      if (!companyId && userProfile?.role === 'superadmin') {
+        const { data: companies } = await supabase.from('companies').select('id').eq('name', 'SafeQMS').limit(1);
+        if (companies && companies.length > 0) {
+          companyId = companies[0].id;
+        }
+      }
+
       const riskData = {
         ...formData,
         likelihood: parseInt(formData.likelihood),
         impact: parseInt(formData.impact),
         risk_score: parseInt(formData.likelihood) * parseInt(formData.impact),
         deadline: formData.deadline || null,
-        owner_id: currentUser?.id || 'anonymous',
-        company_id: userProfile?.company_id || null,
+        responsible_uid: currentUser?.id || null,
+        company_id: companyId,
         is_template: userProfile?.role === 'superadmin',
         is_global: userProfile?.role === 'superadmin'
       };

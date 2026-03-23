@@ -148,15 +148,25 @@ const DokumentList = () => {
         return;
       }
 
+      // Ensure we have a company_id if the user is a superadmin but not linked yet
+      let companyId = userProfile?.company_id;
+      
+      if (!companyId && userProfile?.role === 'superadmin') {
+        const { data: companies } = await supabase.from('companies').select('id').eq('name', 'SafeQMS').limit(1);
+        if (companies && companies.length > 0) {
+          companyId = companies[0].id;
+        }
+      }
+
       if (editingDokument) {
-        const updated = await updateDokument(editingDokument.id, formData);
+        const updated = await updateDokument(editingDokument.id, { ...formData, company_id: companyId });
         setDokuments(dokuments.map(d => d.id === editingDokument.id ? updated : d));
         toast.success('Dokument uppdaterat!');
       } else {
         const newDoc = {
           ...formData,
           creator_uid: currentUser?.id || null,
-          company_id: userProfile?.company_id || null,
+          company_id: companyId,
           is_template: userProfile?.role === 'superadmin',
           is_global: userProfile?.role === 'superadmin'
         };

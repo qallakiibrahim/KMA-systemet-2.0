@@ -224,6 +224,16 @@ const AvvikelseList = () => {
         return;
       }
 
+      // Ensure we have a company_id if the user is a superadmin but not linked yet
+      let companyId = userProfile?.company_id;
+      
+      if (!companyId && userProfile?.role === 'superadmin') {
+        const { data: companies } = await supabase.from('companies').select('id').eq('name', 'SafeQMS').limit(1);
+        if (companies && companies.length > 0) {
+          companyId = companies[0].id;
+        }
+      }
+
       const problemdefinition = `Vem: ${formData.vem}\nVad: ${formData.vad}\nNär: ${formData.nar}\nVar: ${formData.var}\nVarför: ${formData.varfor}\nHur: ${formData.hur}\nHur mycket: ${formData.hur_mycket}`;
 
       const newAvvikelse = {
@@ -231,12 +241,12 @@ const AvvikelseList = () => {
         beskrivning: formData.beskrivning,
         problemdefinition: problemdefinition,
         priority: formData.priority,
-        severity: parseInt(formData.severity) || 1,
-        probability: parseInt(formData.probability) || 1,
+        severity: formData.severity?.toString() || 'Medium',
+        probability: formData.probability?.toString() || 'Medium',
         status: formData.status,
         deadline: formData.deadline || null,
-        author_uid: currentUser?.id || 'anonymous',
-        company_id: userProfile?.company_id || null,
+        author_uid: currentUser?.id || null,
+        company_id: companyId,
         attachments: formData.attachments || []
       };
       

@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive, X, Info } from 'lucide-react';
-import { getUsers, updateUser } from '../api/users';
+import { getUsers, updateUser, getPendingInvitations, inviteUser, deleteInvitation } from '../api/users';
 import { getCompanies, createCompany, updateCompany } from '../../company/api/company';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { toast } from 'react-toastify';
 import '../styles/AdminPanel.css';
 
 const AdminPanel = () => {
   const { userProfile } = useAuth();
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
+  const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [newInvite, setNewInvite] = useState({ email: '', company_id: '', role: 'user' });
   
   const onboardingSteps = [
     {
@@ -49,12 +54,14 @@ const AdminPanel = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersData, companiesData] = await Promise.all([
+        const [usersData, companiesData, invitesData] = await Promise.all([
           getUsers(),
-          getCompanies()
+          getCompanies(),
+          getPendingInvitations()
         ]);
         setUsers(usersData);
         setCompanies(companiesData);
+        setInvitations(invitesData);
       } catch (error) {
         console.error('Failed to fetch admin data', error);
       } finally {
@@ -63,6 +70,46 @@ const AdminPanel = () => {
     };
     fetchData();
   }, []);
+
+  const handleInviteUser = async (e) => {
+    e.preventDefault();
+    if (!newInvite.email || !newInvite.company_id) {
+      toast.error('Fyll i alla obligatoriska fält');
+      return;
+    }
+    try {
+      await inviteUser(newInvite);
+      toast.success('Inbjudan skickad!');
+      setIsInviteModalOpen(false);
+      setNewInvite({ email: '', company_id: '', role: 'user' });
+      // Refresh data
+      const [usersData, companiesData, invitesData] = await Promise.all([
+        getUsers(),
+        getCompanies(),
+        getPendingInvitations()
+      ]);
+      setUsers(usersData);
+      setCompanies(companiesData);
+      setInvitations(invitesData);
+    } catch (error) {
+      console.error('Error inviting user:', error);
+      toast.error('Kunde inte skicka inbjudan');
+    }
+  };
+
+  const handleDeleteInvite = async (id) => {
+    if (!window.confirm('Är du säker på att du vill ta bort denna inbjudan?')) return;
+    try {
+      await deleteInvitation(id);
+      toast.success('Inbjudan borttagen');
+      // Refresh data
+      const invitesData = await getPendingInvitations();
+      setInvitations(invitesData);
+    } catch (error) {
+      console.error('Error deleting invitation:', error);
+      toast.error('Kunde inte ta bort inbjudan');
+    }
+  };
 
   if (loading) return <div className="loading-spinner">Laddar adminpanel...</div>;
 
@@ -222,6 +269,12 @@ const AdminPanel = () => {
           onClick={() => setActiveTab('users')}
         >
           <Users size={18} /> Användare & Roller
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'invites' ? 'active' : ''}`}
+          onClick={() => setActiveTab('invites')}
+        >
+          <Plus size={18} /> Inbjudningar
         </button>
         <button 
           className={`tab-btn ${activeTab === 'onboarding' ? 'active' : ''}`}
@@ -408,7 +461,105 @@ const AdminPanel = () => {
         )}
       </div>
 
-      {/* Edit User Modal */}
+      {activeTab === 'invites' && (
+        <div className="admin-content">
+          <div className="content-header">
+            <h2>Hantering av Inbjudningar</h2>
+            <button className="add-btn" onClick={() => setIsInviteModalOpen(true)}>
+              <Plus size={18} />
+              Bjud in Användare
+            </button>
+          </div>
+          
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>E-post</th>
+                  <th>Företag</th>
+                  <th>Roll</th>
+                  <th>Skapad</th>
+                  <th>Åtgärder</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invitations.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="empty-state">Inga väntande inbjudningar</td>
+                  </tr>
+                ) : (
+                  invitations.map((invite) => (
+                    <tr key={invite.id}>
+                      <td>{invite.email}</td>
+                      <td>{invite.companies?.name || 'Inget företag'}</td>
+                      <td>{invite.role}</td>
+                      <td>{new Date(invite.created_at).toLocaleDateString()}</td>
+                      <td>
+                        <button className="action-btn delete" onClick={() => handleDeleteInvite(invite.id)}>
+                          <Archive size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Invite User Modal */}
+      {isInviteModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Bjud in ny användare</h3>
+              <button className="close-btn" onClick={() => setIsInviteModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleInviteUser}>
+              <div className="form-group">
+                <label>E-postadress</label>
+                <input 
+                  type="email" 
+                  value={newInvite.email}
+                  onChange={(e) => setNewInvite({...newInvite, email: e.target.value})}
+                  placeholder="anvandare@foretag.se"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Företag</label>
+                <select 
+                  value={newInvite.company_id}
+                  onChange={(e) => setNewInvite({...newInvite, company_id: e.target.value})}
+                  required
+                >
+                  <option value="">Välj företag...</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Roll</label>
+                <select 
+                  value={newInvite.role}
+                  onChange={(e) => setNewInvite({...newInvite, role: e.target.value})}
+                >
+                  <option value="user">Användare</option>
+                  <option value="admin">Administratör</option>
+                </select>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="cancel-btn" onClick={() => setIsInviteModalOpen(false)}>Avbryt</button>
+                <button type="submit" className="save-btn">Skicka Inbjudan</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {isModalOpen && editingUser && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
