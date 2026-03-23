@@ -5,7 +5,7 @@ const tableName = 'profiles';
 export const getUsers = async () => {
   const { data, error } = await supabase
     .from(tableName)
-    .select('*')
+    .select('*, companies(name)')
     .order('display_name', { ascending: true });
     
   if (error) throw error;

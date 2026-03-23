@@ -350,11 +350,11 @@ const AdminPanel = () => {
                   {users.map((u) => (
                     <tr key={u.id}>
                       <td>
-                        <div className="font-medium">{u.username || 'Okänd'}</div>
+                        <div className="font-medium">{u.display_name || u.username || u.email.split('@')[0]}</div>
                         <div className="text-muted" style={{ fontSize: '0.75rem' }}>{u.email}</div>
                       </td>
                       <td className="text-muted">
-                        {companies.find(c => c.id === u.company_id)?.name || 'Inget företag'}
+                        {u.companies?.name || 'Inget företag'}
                       </td>
                       <td>
                         <span className={`role-badge ${u.role === 'admin' || u.role === 'superadmin' ? 'admin' : 'user'}`}>

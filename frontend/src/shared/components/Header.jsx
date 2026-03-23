@@ -111,7 +111,7 @@ const Header = ({ onMenuClick }) => {
         </div>
         <div className="user-profile" onClick={handleProfileClick} style={{ cursor: 'pointer' }}>
           <div className="user-info-text">
-            <span className="user-name">{userProfile?.display_name || user?.displayName || 'Användare'}</span>
+            <span className="user-name">{userProfile?.display_name || userProfile?.username || user?.email?.split('@')[0] || 'Användare'}</span>
             <span className="user-role-badge">{userProfile?.role === 'superadmin' ? 'Superadmin' : userProfile?.role === 'admin' ? 'Admin' : ''}</span>
           </div>
           <User size={24} />

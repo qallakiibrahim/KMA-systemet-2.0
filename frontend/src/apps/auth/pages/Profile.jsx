@@ -54,7 +54,7 @@ const Profile = () => {
           <div className="info-list">
             <div className="info-item">
               <span className="label">Företag:</span>
-              <span className="value">{userProfile.company || 'Ej kopplad till företag'}</span>
+              <span className="value">{userProfile.company_name || userProfile.company || 'Ej kopplad till företag'}</span>
             </div>
             <div className="info-item">
               <span className="label">Roll:</span>
