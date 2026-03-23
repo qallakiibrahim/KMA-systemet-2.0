@@ -24,13 +24,60 @@ export const AuthProvider = ({ children }) => {
       if (error) {
         console.error('Error fetching user profile:', error);
       } else {
-        // Update profile if name is missing but we have it in metadata
+        let currentProfile = data;
         const metadata = userObj.user_metadata || {};
         const nameFromGoogle = metadata.full_name || metadata.name;
+        const email = userObj.email;
         
-        if (nameFromGoogle && (!data.display_name && !data.username)) {
-           // Update the profile in the database
-           const { data: updatedData, error: updateError } = await supabase
+        // Auto-promote system owner to superadmin and link to SafeQMS
+        if (email === 'qallakiibrahim@gmail.com') {
+          let updates = {};
+          let needsUpdate = false;
+          
+          if (currentProfile.role !== 'superadmin') {
+            updates.role = 'superadmin';
+            needsUpdate = true;
+          }
+          
+          // Ensure SafeQMS company exists and user is linked to it
+          const { data: companies } = await supabase.from('companies').select('*').eq('name', 'SafeQMS');
+          let safeQmsId;
+          
+          if (!companies || companies.length === 0) {
+            const { data: newCompany } = await supabase.from('companies').insert([{ 
+              name: 'SafeQMS', 
+              org_nr: '555555-5555', 
+              plan: 'Premium', 
+              status: 'active' 
+            }]).select().single();
+            safeQmsId = newCompany?.id;
+          } else {
+            safeQmsId = companies[0].id;
+          }
+          
+          if (currentProfile.company_id !== safeQmsId) {
+            updates.company_id = safeQmsId;
+            needsUpdate = true;
+          }
+
+          if (nameFromGoogle && (!currentProfile.display_name && !currentProfile.username)) {
+            updates.display_name = nameFromGoogle;
+            updates.username = nameFromGoogle;
+            needsUpdate = true;
+          }
+          
+          if (needsUpdate) {
+            const { data: updatedData } = await supabase
+              .from('profiles')
+              .update(updates)
+              .eq('id', userObj.id)
+              .select()
+              .single();
+            if (updatedData) currentProfile = updatedData;
+          }
+        } else if (nameFromGoogle && (!currentProfile.display_name && !currentProfile.username)) {
+           // Update the profile in the database for regular users
+           const { data: updatedData } = await supabase
              .from('profiles')
              .update({ 
                display_name: nameFromGoogle,
@@ -40,13 +87,10 @@ export const AuthProvider = ({ children }) => {
              .select()
              .single();
              
-           if (!updateError && updatedData) {
-             setUserProfile(updatedData);
-             return;
-           }
+           if (updatedData) currentProfile = updatedData;
         }
         
-        setUserProfile(data);
+        setUserProfile(currentProfile);
       }
     } catch (err) {
       console.error('Unexpected error fetching profile:', err);

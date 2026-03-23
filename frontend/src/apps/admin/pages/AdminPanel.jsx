@@ -13,6 +13,29 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   
+  const onboardingSteps = [
+    {
+      title: '1. Skapa Företag',
+      description: 'Gå till fliken "Företag" och klicka på "Nytt Företag". Ange namn, organisationsnummer och välj en licensplan.',
+      icon: <Building size={20} />
+    },
+    {
+      title: '2. Bjud in Användare',
+      description: 'Be användaren logga in med sitt Google-konto på inloggningssidan. Systemet skapar automatiskt en profil för dem vid första inloggningen.',
+      icon: <Users size={20} />
+    },
+    {
+      title: '3. Koppla Användare till Företag',
+      description: 'Gå till fliken "Användare". Hitta den nya användaren i listan, klicka på "Hantera" och välj rätt företag i rullistan.',
+      icon: <CheckCircle size={20} />
+    },
+    {
+      title: '4. Sätt Behörigheter',
+      description: 'I samma "Hantera"-vy, välj roll (Företagsadmin eller Användare) och bocka i de granulära behörigheter användaren ska ha.',
+      icon: <Shield size={20} />
+    }
+  ];
+  
   // Modal state
   const [editingUser, setEditingUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -189,6 +212,12 @@ const AdminPanel = () => {
         >
           <Users size={18} /> Användare & Roller
         </button>
+        <button 
+          className={`tab-btn ${activeTab === 'onboarding' ? 'active' : ''}`}
+          onClick={() => setActiveTab('onboarding')}
+        >
+          <Info size={18} /> Onboarding Guide
+        </button>
       </div>
 
       <div className="admin-content">
@@ -337,6 +366,32 @@ const AdminPanel = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'onboarding' && (
+          <div className="onboarding-guide">
+            <div className="onboarding-header">
+              <h2>Onboarding Guide</h2>
+              <p>Följ dessa steg för att sätta upp ett nytt företag och deras användare i SafeQMS.</p>
+            </div>
+            
+            <div className="onboarding-steps-grid">
+              {onboardingSteps.map((step, index) => (
+                <div key={index} className="onboarding-step-card">
+                  <div className="step-number">{index + 1}</div>
+                  <div className="step-icon">{step.icon}</div>
+                  <h3>{step.title}</h3>
+                  <p>{step.description}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="info-card mt-4">
+              <h3><Shield size={20} /> Viktigt om Säkerhet</h3>
+              <p>Användare kan inte se någon data förrän de har blivit kopplade till ett företag. Som Superadmin kan du se all data för alla företag för att kunna ge support, men vanliga användare är strikt isolerade till sitt eget <code>company_id</code>.</p>
+              <p className="mt-2"><strong>Tips:</strong> Du tillhör nu företaget <strong>SafeQMS</strong>, vilket gör att du kan skapa standardmallar som sedan kan importeras av andra företag via Biblioteket.</p>
             </div>
           </div>
         )}
