@@ -14,6 +14,7 @@ import CalendarPage from './apps/calendar/pages/CalendarPage';
 import TaskDashboard from './apps/task/pages/TaskDashboard';
 import AIAssistant from './apps/ai_assistent/pages/AIAssistant';
 import LibraryList from './apps/library/pages/LibraryList';
+import Profile from './apps/auth/pages/Profile';
 import { useAuth } from './shared/api/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
@@ -39,6 +40,7 @@ const AppRoutes = () => {
       <Route path="/tasks" element={<ProtectedRoute><TaskDashboard /></ProtectedRoute>} />
       <Route path="/library" element={<ProtectedRoute><LibraryList /></ProtectedRoute>} />
       <Route path="/ai" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/process" />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

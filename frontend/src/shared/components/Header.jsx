@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../api/AuthContext';
 import { useTasks } from '../api/useTasks';
 import { getNotifications, updateNotification } from '../../apps/notification/api/notification';
@@ -6,8 +7,9 @@ import { Bell, User, Search, Menu, X } from 'lucide-react';
 import '../styles/Header.css';
 
 const Header = ({ onMenuClick }) => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { tasks } = useTasks();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -35,6 +37,14 @@ const Header = ({ onMenuClick }) => {
 
   const handleNotificationClick = () => {
     setShowNotifications(!showNotifications);
+  };
+
+  const handleProfileClick = () => {
+    if (userProfile?.role === 'superadmin') {
+      navigate('/admin');
+    } else {
+      navigate('/profile');
+    }
   };
 
   const markAsRead = async (id) => {
@@ -99,8 +109,8 @@ const Header = ({ onMenuClick }) => {
             </div>
           )}
         </div>
-        <div className="user-profile">
-          <span className="user-name">{user?.displayName || 'Användare'}</span>
+        <div className="user-profile" onClick={handleProfileClick} style={{ cursor: 'pointer' }}>
+          <span className="user-name">{userProfile?.display_name || user?.displayName || 'Användare'}</span>
           <User size={24} />
         </div>
       </div>
