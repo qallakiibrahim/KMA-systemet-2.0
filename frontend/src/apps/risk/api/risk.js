@@ -19,7 +19,23 @@ export const createRisk = async (data) => {
     .select()
     .single();
     
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase createRisk error:', error);
+    // If it's a missing column error, try without SaaS columns
+    if (error.message.includes('column') && error.message.includes('does not exist')) {
+      console.warn('Retrying risk creation without SaaS columns...');
+      const { company_id, is_template, is_global, ...minimalData } = data;
+      const { data: retryInserted, error: retryError } = await supabase
+        .from(tableName)
+        .insert([minimalData])
+        .select()
+        .single();
+        
+      if (retryError) throw retryError;
+      return retryInserted;
+    }
+    throw error;
+  }
   return inserted;
 };
 

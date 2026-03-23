@@ -190,6 +190,21 @@
   color: var(--text-primary);
 }
 
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.user-role-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
 @media (max-width: 768px) {
   .header {
     padding: 0 1rem;

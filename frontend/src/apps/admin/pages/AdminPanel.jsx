@@ -66,6 +66,17 @@ const AdminPanel = () => {
 
   if (loading) return <div className="loading-spinner">Laddar adminpanel...</div>;
 
+  if (userProfile?.role !== 'superadmin' && userProfile?.role !== 'admin') {
+    return (
+      <div className="admin-access-denied">
+        <Shield size={48} className="text-danger" />
+        <h1>Åtkomst nekad</h1>
+        <p>Du har inte behörighet att se denna sida. Din roll är: {userProfile?.role || 'okänd'}</p>
+        <button className="btn-primary" onClick={() => window.location.href = '/'}>Tillbaka till start</button>
+      </div>
+    );
+  }
+
   const renderStatusBadge = (status) => {
     switch(status) {
       case 'active': return <span className="status-badge success"><CheckCircle size={14} /> Aktiv</span>;

@@ -4,9 +4,10 @@ import { User, Mail, Shield, Building, Calendar, CheckCircle } from 'lucide-reac
 import '../styles/Profile.css';
 
 const Profile = () => {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, loading } = useAuth();
 
-  if (!userProfile) return <div className="loading">Laddar profil...</div>;
+  if (loading) return <div className="loading">Laddar profil...</div>;
+  if (!userProfile) return <div className="loading">Kunde inte ladda profil. Försök logga ut och in igen.</div>;
 
   const renderPermissions = (permissions) => {
     if (!permissions || permissions.length === 0) return 'Inga specifika behörigheter';

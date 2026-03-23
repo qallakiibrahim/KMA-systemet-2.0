@@ -4,9 +4,12 @@
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   display_name TEXT,
+  username TEXT,
   email TEXT,
   role TEXT DEFAULT 'user',
+  company_id UUID, -- Added for SaaS
   company TEXT,
+  permissions TEXT[] DEFAULT '{viewer}',
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -19,6 +22,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   status TEXT DEFAULT 'todo',
   priority TEXT DEFAULT 'Medium',
   created_by UUID REFERENCES auth.users ON DELETE CASCADE,
+  company_id UUID, -- Added for SaaS
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -34,6 +38,9 @@ CREATE TABLE IF NOT EXISTS risker (
   risk_score INTEGER,
   risk_level TEXT,
   responsible_uid UUID REFERENCES auth.users ON DELETE SET NULL,
+  company_id UUID, -- Added for SaaS
+  is_template BOOLEAN DEFAULT FALSE,
+  is_global BOOLEAN DEFAULT FALSE,
   deadline DATE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -48,6 +55,7 @@ CREATE TABLE IF NOT EXISTS avvikelser (
   discovery_date DATE,
   ansvarig_uid UUID REFERENCES auth.users ON DELETE SET NULL,
   author_uid UUID REFERENCES auth.users ON DELETE CASCADE,
+  company_id UUID, -- Added for SaaS
   avdelning TEXT,
   what TEXT,
   who TEXT,
@@ -71,6 +79,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
   all_day BOOLEAN DEFAULT FALSE,
   recurrence TEXT DEFAULT 'none',
   created_by UUID REFERENCES auth.users ON DELETE CASCADE,
+  company_id UUID, -- Added for SaaS
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -84,10 +93,16 @@ ALTER TABLE calendar_events ENABLE ROW LEVEL SECURITY;
 
 -- 3. Create RLS Policies
 
--- Profiles: Users can read all profiles, but only update their own
+-- Profiles: Users can read all profiles, but only update their own (unless superadmin)
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (
+  auth.uid() = id OR 
+  EXISTS (
+    SELECT 1 FROM profiles p 
+    WHERE p.id = auth.uid() AND p.role = 'superadmin'
+  )
+);
 
 -- Tasks: Authenticated users can read all, but only modify their own (or all if admin - simplified for now)
 CREATE POLICY "Tasks are viewable by authenticated users" ON tasks FOR SELECT USING (auth.role() = 'authenticated');
@@ -125,6 +140,9 @@ CREATE TABLE IF NOT EXISTS documents (
   version INTEGER DEFAULT 1,
   status TEXT DEFAULT 'utkast',
   creator_uid UUID REFERENCES auth.users ON DELETE CASCADE,
+  company_id UUID, -- Added for SaaS
+  is_template BOOLEAN DEFAULT FALSE,
+  is_global BOOLEAN DEFAULT FALSE,
   next_review_date DATE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -142,9 +160,13 @@ CREATE TABLE IF NOT EXISTS processes (
   title TEXT NOT NULL,
   description TEXT,
   status TEXT DEFAULT 'active',
+  category TEXT, -- Added for SaaS
   parent_id UUID REFERENCES processes(id) ON DELETE CASCADE,
   steps JSONB DEFAULT '{"nodes": [], "edges": []}',
   created_by UUID REFERENCES auth.users ON DELETE CASCADE,
+  company_id UUID, -- Added for SaaS
+  is_template BOOLEAN DEFAULT FALSE,
+  is_global BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -160,11 +182,15 @@ CREATE POLICY "Users can delete their own processes" ON processes FOR DELETE USI
 CREATE TABLE IF NOT EXISTS companies (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
-  org_number TEXT,
+  org_nr TEXT, -- Changed from org_number to org_nr to match frontend
+  org_number TEXT, -- Keep for backward compatibility
   address TEXT,
   contact_person TEXT,
   email TEXT,
   phone TEXT,
+  plan TEXT DEFAULT 'Basic', -- Added for SaaS
+  status TEXT DEFAULT 'active', -- Added for SaaS
+  expires_at TIMESTAMPTZ, -- Added for SaaS
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -174,7 +200,7 @@ CREATE POLICY "Companies are viewable by authenticated users" ON companies FOR S
 CREATE POLICY "Admins can manage companies" ON companies FOR ALL USING (
   EXISTS (
     SELECT 1 FROM profiles 
-    WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    WHERE profiles.id = auth.uid() AND (profiles.role = 'admin' OR profiles.role = 'superadmin')
   )
 );
 

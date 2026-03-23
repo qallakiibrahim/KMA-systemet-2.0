@@ -13,6 +13,7 @@ export const getProcesses = async () => {
 };
 
 export const createProcess = async (data) => {
+  // Defensive: try to insert, if it fails due to missing columns, try a minimal version
   const { data: inserted, error } = await supabase
     .from(tableName)
     .insert([data])
@@ -21,6 +22,21 @@ export const createProcess = async (data) => {
     
   if (error) {
     console.error('Supabase createProcess error:', error);
+    
+    // If it's a missing column error, try without SaaS columns
+    if (error.message.includes('column') && error.message.includes('does not exist')) {
+      console.warn('Retrying process creation without SaaS columns...');
+      const { company_id, is_template, is_global, category, ...minimalData } = data;
+      const { data: retryInserted, error: retryError } = await supabase
+        .from(tableName)
+        .insert([minimalData])
+        .select()
+        .single();
+        
+      if (retryError) throw retryError;
+      return retryInserted;
+    }
+    
     throw error;
   }
   return inserted;
