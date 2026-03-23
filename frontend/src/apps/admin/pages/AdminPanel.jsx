@@ -111,6 +111,16 @@ const AdminPanel = () => {
     }
   };
 
+  const filteredCompanies = companies.filter(c => 
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.org_nr || c.org_number || '').includes(searchTerm)
+  );
+
+  const filteredUsers = users.filter(u => 
+    u.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (loading) return <div className="loading-spinner">Laddar adminpanel...</div>;
 
   if (userProfile?.role !== 'superadmin' && userProfile?.role !== 'admin') {
@@ -352,10 +362,10 @@ const AdminPanel = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {companies.map(company => (
+                  {filteredCompanies.map(company => (
                     <tr key={company.id}>
                       <td className="font-medium">{company.name}</td>
-                      <td className="text-muted">{company.org_nr || '-'}</td>
+                      <td className="text-muted">{company.org_nr || company.org_number || '-'}</td>
                       <td>{company.plan || 'Basic'}</td>
                       <td>{renderStatusBadge(company.status || 'active')}</td>
                       <td>-</td>
@@ -365,7 +375,7 @@ const AdminPanel = () => {
                       </td>
                     </tr>
                   ))}
-                  {companies.length === 0 && (
+                  {filteredCompanies.length === 0 && (
                     <tr>
                       <td colSpan="7" className="text-center py-4 text-muted">Inga företag hittades. Skapa ett nytt!</td>
                     </tr>
@@ -400,7 +410,7 @@ const AdminPanel = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => (
+                  {filteredUsers.map((u) => (
                     <tr key={u.id}>
                       <td>
                         <div className="font-medium">{u.display_name || u.username || u.email.split('@')[0]}</div>
@@ -423,7 +433,7 @@ const AdminPanel = () => {
                       </td>
                     </tr>
                   ))}
-                  {users.length === 0 && (
+                  {filteredUsers.length === 0 && (
                     <tr>
                       <td colSpan="5" className="text-center py-4 text-muted">Inga användare hittades</td>
                     </tr>

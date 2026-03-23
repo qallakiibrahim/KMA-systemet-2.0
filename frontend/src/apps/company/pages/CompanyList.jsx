@@ -12,7 +12,7 @@ const CompanyList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({ 
     name: '', 
-    org_number: '', 
+    org_nr: '', 
     address: '', 
     city: '', 
     zip_code: '', 
@@ -48,7 +48,7 @@ const CompanyList = () => {
       setEditingCompany(company);
       setFormData({
         name: company.name || '',
-        org_number: company.org_number || '',
+        org_nr: company.org_nr || company.org_number || '',
         address: company.address || '',
         city: company.city || '',
         zip_code: company.zip_code || '',
@@ -60,7 +60,7 @@ const CompanyList = () => {
     } else {
       setEditingCompany(null);
       setFormData({ 
-        name: '', org_number: '', address: '', city: '', zip_code: '', 
+        name: '', org_nr: '', address: '', city: '', zip_code: '', 
         country: '', phone: '', email: '', website: '' 
       });
     }
@@ -82,7 +82,7 @@ const CompanyList = () => {
       setIsModalOpen(false);
       setEditingCompany(null);
       setFormData({ 
-        name: '', org_number: '', address: '', city: '', zip_code: '', 
+        name: '', org_nr: '', address: '', city: '', zip_code: '', 
         country: '', phone: '', email: '', website: '' 
       });
     } catch (error) {
@@ -153,7 +153,7 @@ const CompanyList = () => {
                   </div>
                   <div>
                     <h3 className="card-title">{c.name}</h3>
-                    {c.org_number && <span className="org-number">Org.nr: {c.org_number}</span>}
+                    {(c.org_nr || c.org_number) && <span className="org-number">Org.nr: {c.org_nr || c.org_number}</span>}
                   </div>
                 </div>
               </div>
@@ -229,12 +229,12 @@ const CompanyList = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="org_number">Organisationsnummer</label>
+                  <label htmlFor="org_nr">Organisationsnummer</label>
                   <input
                     type="text"
-                    id="org_number"
-                    name="org_number"
-                    value={formData.org_number}
+                    id="org_nr"
+                    name="org_nr"
+                    value={formData.org_nr}
                     onChange={handleInputChange}
                     placeholder="555555-5555"
                   />
