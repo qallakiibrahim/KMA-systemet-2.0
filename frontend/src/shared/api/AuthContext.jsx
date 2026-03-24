@@ -27,11 +27,7 @@ export const AuthProvider = ({ children }) => {
         .eq('id', userObj.id)
         .single();
         
-      console.log('DEBUG: Raw profile from DB:', profile);
-      if (error) console.error('DEBUG: Profile fetch error:', error);
       if (error && error.code === 'PGRST116') {
-        console.log('Profile not found, checking for pending invitations for:', email);
-        
         // Check for pending invitation
         const { data: invitation, error: inviteError } = await supabase
           .from('pending_users')
@@ -43,7 +39,6 @@ export const AuthProvider = ({ children }) => {
         let initialCompanyId = null;
         
         if (!inviteError && invitation) {
-          console.log('Found pending invitation:', invitation);
           initialRole = invitation.role || 'user';
           initialCompanyId = invitation.company_id;
         }
@@ -110,8 +105,6 @@ export const AuthProvider = ({ children }) => {
 
       // Flatten company data for easier access
       let companyData = null;
-      console.log('DEBUG: profile.companies:', profile.companies);
-      console.log('DEBUG: profile.company_id:', profile.company_id);
       
       if (profile.companies) {
         companyData = Array.isArray(profile.companies) ? profile.companies[0] : profile.companies;
@@ -120,10 +113,7 @@ export const AuthProvider = ({ children }) => {
       if (companyData) {
         profile.company_name = companyData.name || null;
         profile.company_logo = companyData.logo_url || null;
-        console.log('DEBUG: Company data found via join:', companyData);
-        console.log('DEBUG: Set company_logo to:', profile.company_logo);
       } else if (profile.company_id) {
-        console.log('DEBUG: No company join found, but company_id exists:', profile.company_id);
         // Fallback: Fetch company directly
         const { data: directCompany, error: directError } = await supabase
           .from('companies')
@@ -134,26 +124,14 @@ export const AuthProvider = ({ children }) => {
         if (!directError && directCompany) {
           profile.company_name = directCompany.name || null;
           profile.company_logo = directCompany.logo_url || null;
-          console.log('DEBUG: Company data found via direct fetch:', directCompany);
-          console.log('DEBUG: Set company_logo to:', profile.company_logo);
         } else {
-          console.error('DEBUG: Direct company fetch failed:', directError);
           profile.company_name = null;
           profile.company_logo = null;
         }
       } else {
         profile.company_name = null;
         profile.company_logo = null;
-        console.log('DEBUG: No company_id or join found');
       }
-
-      console.log('DEBUG: Final profile object before state update:', {
-        company_name: profile.company_name,
-        company_logo: profile.company_logo,
-        company_id: profile.company_id
-      });
-      
-      console.log('DEBUG: Final company_logo:', profile.company_logo);
 
       // Set the profile immediately so UI can render
       setUserProfile(profile);
@@ -172,7 +150,6 @@ export const AuthProvider = ({ children }) => {
 
           // Link to SafeQMS for superadmin if not already linked
           if (email === 'qallakiibrahim@gmail.com' && !profile.company_id) {
-            console.log('Superadmin has no company, linking to SafeQMS...');
             // First, find or create the SafeQMS company
             let safeQmsId = null;
             let safeQmsLogo = null;
@@ -184,7 +161,6 @@ export const AuthProvider = ({ children }) => {
               safeQmsId = companies[0].id;
               safeQmsLogo = companies[0].logo_url;
             } else {
-              console.log('SafeQMS company not found, creating it...');
               const { data: newCompany, error: createCompError } = await supabase.from('companies').insert([{ 
                 name: 'SafeQMS', 
                 org_nr: '555555-5555', 
@@ -328,7 +304,6 @@ export const AuthProvider = ({ children }) => {
 
     // Ensure the redirect URL matches exactly what's in Supabase
     const redirectUrl = `${window.location.origin}/process`;
-    console.log('Logging in with Supabase OAuth...', { provider: 'google', redirectTo: redirectUrl });
 
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
