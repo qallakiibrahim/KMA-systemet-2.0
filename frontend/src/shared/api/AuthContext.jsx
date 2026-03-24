@@ -107,9 +107,13 @@ export const AuthProvider = ({ children }) => {
         profile.permissions = ['read_write'];
       }
 
-      // Flatten company name for easier access
+      // Flatten company data for easier access
       if (profile.companies) {
-        profile.company_name = profile.companies.name;
+        const companyData = Array.isArray(profile.companies) ? profile.companies[0] : profile.companies;
+        if (companyData) {
+          profile.company_name = companyData.name;
+          profile.company_logo = companyData.logo_url;
+        }
       }
 
       // Set the profile immediately so UI can render
@@ -181,7 +185,11 @@ export const AuthProvider = ({ children }) => {
               console.error('Error updating profile in background:', updateErr);
             } else if (updatedProfile) {
               if (updatedProfile.companies) {
-                updatedProfile.company_name = updatedProfile.companies.name;
+                const companyData = Array.isArray(updatedProfile.companies) ? updatedProfile.companies[0] : updatedProfile.companies;
+                if (companyData) {
+                  updatedProfile.company_name = companyData.name;
+                  updatedProfile.company_logo = companyData.logo_url;
+                }
               }
               setUserProfile(updatedProfile);
             }
@@ -294,8 +302,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => supabase.auth.signOut();
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchUserProfile(user);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, currentUser: user, userProfile, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, currentUser: user, userProfile, loading, login, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

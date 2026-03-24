@@ -12,8 +12,8 @@ const Sidebar = ({ isExpanded, onToggle }) => {
   return (
     <aside className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <div className="sidebar-header">
-        {userProfile?.companies?.logo_url ? (
-          <img src={userProfile.companies.logo_url} alt="Company Logo" className="logo" />
+        {userProfile?.company_logo ? (
+          <img src={userProfile.company_logo} alt="Company Logo" className="logo" />
         ) : (
           <img src="/logo.png" alt="Logo" className="logo" />
         )}

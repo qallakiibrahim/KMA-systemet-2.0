@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import '../styles/CompanyList.css';
 
 const CompanyList = ({ isEmbedded = false }) => {
-  const { userProfile } = useAuth();
+  const { userProfile, refreshProfile } = useAuth();
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -136,6 +136,12 @@ const CompanyList = ({ isEmbedded = false }) => {
       const updated = await updateCompany(company.id, dataToSave);
       setCompany(updated);
       setIsEditing(false);
+      
+      // Refresh the user profile to update the logo in the sidebar
+      if (refreshProfile) {
+        await refreshProfile();
+      }
+      
       toast.success('Företagsinställningar uppdaterade!');
     } catch (error) {
       console.error('Failed to save company', error);
