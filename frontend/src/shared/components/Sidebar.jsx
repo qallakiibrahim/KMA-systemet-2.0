@@ -12,10 +12,11 @@ const Sidebar = ({ isExpanded, onToggle }) => {
   return (
     <aside className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <div className="sidebar-header">
-        <img src="/logo.png" alt="Logo" className="logo" />
-        <button className="toggle-sidebar-btn" onClick={onToggle}>
-          {isExpanded ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {userProfile?.companies?.logo_url ? (
+          <img src={userProfile.companies.logo_url} alt="Company Logo" className="logo" />
+        ) : (
+          <img src="/logo.png" alt="Logo" className="logo" />
+        )}
       </div>
       <nav className="sidebar-nav">
         <Link to="/process"><Activity /> {isExpanded && <span>Processer</span>}</Link>

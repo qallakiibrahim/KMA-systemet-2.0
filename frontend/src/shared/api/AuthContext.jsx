@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
       // 1. Try to get the profile with company name joined
       let { data: profile, error } = await supabase
         .from('profiles')
-        .select('*, companies(name)')
+        .select('*, companies(name, logo_url)')
         .eq('id', userObj.id)
         .single();
         
@@ -174,7 +174,7 @@ export const AuthProvider = ({ children }) => {
               .from('profiles')
               .update(updates)
               .eq('id', userObj.id)
-              .select('*, companies(name)')
+              .select('*, companies(name, logo_url)')
               .single();
             
             if (updateErr) {

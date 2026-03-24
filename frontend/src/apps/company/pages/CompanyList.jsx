@@ -19,7 +19,8 @@ const CompanyList = ({ isEmbedded = false }) => {
     country: '',
     phone: '',
     email: '',
-    website: ''
+    website: '',
+    logo_url: ''
   });
 
   useEffect(() => {
@@ -42,7 +43,8 @@ const CompanyList = ({ isEmbedded = false }) => {
             country: myCompany.country || '',
             phone: myCompany.phone || '',
             email: myCompany.email || '',
-            website: myCompany.website || ''
+            website: myCompany.website || '',
+            logo_url: myCompany.logo_url || ''
           });
         }
       } catch (error) {
@@ -162,6 +164,11 @@ const CompanyList = ({ isEmbedded = false }) => {
                 </div>
 
                 <div className="form-group mb-3">
+                  <label>Företagslogotyp (URL)</label>
+                  <input type="url" name="logo_url" value={formData.logo_url} onChange={handleInputChange} placeholder="https://example.com/logo.png" className="form-control" />
+                </div>
+
+                <div className="form-group mb-3">
                   <label>Gatuadress</label>
                   <input type="text" name="address" value={formData.address} onChange={handleInputChange} className="form-control" />
                 </div>
@@ -190,8 +197,12 @@ const CompanyList = ({ isEmbedded = false }) => {
               <div className="profile-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <div className="flex items-start justify-between mb-8">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-                      <Building size={32} />
+                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center overflow-hidden">
+                      {company.logo_url ? (
+                        <img src={company.logo_url} alt="Logo" className="w-full h-full object-contain" />
+                      ) : (
+                        <Building size={32} />
+                      )}
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold text-gray-900">{company.name}</h2>
