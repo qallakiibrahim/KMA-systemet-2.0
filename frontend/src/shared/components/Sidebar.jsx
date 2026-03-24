@@ -6,7 +6,7 @@ import { Home, AlertTriangle, Shield, FileText, Settings, LogOut, Moon, Sun, Cal
 import '../styles/Sidebar.css';
 
 const Sidebar = ({ isExpanded, onToggle }) => {
-  const { logout, userProfile } = useAuth();
+  const { logout, userProfile, refreshProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   console.log('DEBUG: Sidebar userProfile:', userProfile);
@@ -19,6 +19,15 @@ const Sidebar = ({ isExpanded, onToggle }) => {
           <img src={userProfile.company_logo} alt="Company Logo" className="logo" />
         ) : (
           <img src="/logo.png" alt="Logo" className="logo" />
+        )}
+        {isExpanded && (
+          <div style={{ fontSize: '10px', wordBreak: 'break-all', color: 'red', marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span>Logo: {userProfile?.company_logo ? 'YES' : 'NO'}</span>
+            <span>Name: {userProfile?.company_name || 'NO'}</span>
+            <button onClick={() => refreshProfile && refreshProfile()} style={{ padding: '2px 4px', background: '#eee', border: '1px solid #ccc', cursor: 'pointer' }}>
+              Refresh Profile
+            </button>
+          </div>
         )}
       </div>
       <nav className="sidebar-nav">
