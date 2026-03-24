@@ -543,32 +543,36 @@ const AdminPanel = ({ isEmbedded = false }) => {
             </button>
           </div>
           
-          <div className="data-table-container">
-            <table className="data-table">
+          <div className="table-container">
+            <table className="admin-table">
               <thead>
                 <tr>
                   <th>E-post</th>
                   <th>Företag</th>
                   <th>Roll</th>
                   <th>Skapad</th>
-                  <th>Åtgärder</th>
+                  <th className="actions-cell">Åtgärder</th>
                 </tr>
               </thead>
               <tbody>
                 {invitations.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="empty-state">Inga väntande inbjudningar</td>
+                    <td colSpan="5" className="text-center py-4 text-muted">Inga väntande inbjudningar</td>
                   </tr>
                 ) : (
                   invitations.map((invite) => (
                     <tr key={invite.id}>
-                      <td>{invite.email}</td>
+                      <td className="font-medium">{invite.email}</td>
                       <td>{invite.companies?.name || 'Inget företag'}</td>
-                      <td>{invite.role}</td>
-                      <td>{new Date(invite.created_at).toLocaleDateString()}</td>
                       <td>
-                        <button className="action-btn delete" onClick={() => handleDeleteInvite(invite.id)}>
-                          <Archive size={16} />
+                        <span className={`role-badge ${invite.role}`}>
+                          {invite.role === 'admin' ? 'Administratör' : 'Användare'}
+                        </span>
+                      </td>
+                      <td className="text-muted">{new Date(invite.created_at).toLocaleDateString()}</td>
+                      <td className="actions-cell">
+                        <button className="action-btn delete" onClick={() => handleDeleteInvite(invite.id)} title="Ta bort inbjudan">
+                          <XCircle size={18} />
                         </button>
                       </td>
                     </tr>
@@ -586,43 +590,48 @@ const AdminPanel = ({ isEmbedded = false }) => {
           <div className="modal-content">
             <div className="modal-header">
               <h3>Bjud in ny användare</h3>
-              <button className="close-btn" onClick={() => setIsInviteModalOpen(false)}>
+              <button className="icon-btn" onClick={() => setIsInviteModalOpen(false)}>
                 <X size={20} />
               </button>
             </div>
             <form onSubmit={handleInviteUser}>
-              <div className="form-group">
-                <label>E-postadress</label>
-                <input 
-                  type="email" 
-                  value={newInvite.email}
-                  onChange={(e) => setNewInvite({...newInvite, email: e.target.value})}
-                  placeholder="anvandare@foretag.se"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Företag</label>
-                <select 
-                  value={newInvite.company_id}
-                  onChange={(e) => setNewInvite({...newInvite, company_id: e.target.value})}
-                  required
-                >
-                  <option value="">Välj företag...</option>
-                  {companies.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Roll</label>
-                <select 
-                  value={newInvite.role}
-                  onChange={(e) => setNewInvite({...newInvite, role: e.target.value})}
-                >
-                  <option value="user">Användare</option>
-                  <option value="admin">Administratör</option>
-                </select>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>E-postadress</label>
+                  <input 
+                    type="email" 
+                    className="form-control"
+                    value={newInvite.email}
+                    onChange={(e) => setNewInvite({...newInvite, email: e.target.value})}
+                    placeholder="anvandare@foretag.se"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Företag</label>
+                  <select 
+                    className="form-control"
+                    value={newInvite.company_id}
+                    onChange={(e) => setNewInvite({...newInvite, company_id: e.target.value})}
+                    required
+                  >
+                    <option value="">Välj företag...</option>
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Roll</label>
+                  <select 
+                    className="form-control"
+                    value={newInvite.role}
+                    onChange={(e) => setNewInvite({...newInvite, role: e.target.value})}
+                  >
+                    <option value="user">Användare</option>
+                    <option value="admin">Administratör</option>
+                  </select>
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="cancel-btn" onClick={() => setIsInviteModalOpen(false)}>Avbryt</button>
