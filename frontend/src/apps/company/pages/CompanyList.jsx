@@ -84,8 +84,8 @@ const CompanyList = ({ isEmbedded = false }) => {
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${company.id}-${Math.random()}.${fileExt}`;
-      const filePath = `logos/${fileName}`;
+      const fileName = `company-${company.id}-${Date.now()}.${fileExt}`;
+      const filePath = fileName; // Sparar direkt i roten av 'logos'-bucketen
 
       // Upload the file to Supabase Storage
       const { error: uploadError, data } = await supabase.storage
@@ -96,11 +96,14 @@ const CompanyList = ({ isEmbedded = false }) => {
         });
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        console.error('Supabase upload error details:', uploadError);
         if (uploadError.message?.toLowerCase().includes('bucket not found') || uploadError.error === 'Bucket not found') {
-          throw new Error('Mappen "logos" saknas i Supabase Storage. Skapa en publik bucket med namnet "logos" i din Supabase-dashboard för att kunna ladda upp bilder.');
+          throw new Error('Mappen "logos" saknas i Supabase Storage.');
         }
-        throw new Error('Kunde inte ladda upp bilden. Kontrollera att lagringsutrymmet är konfigurerat i Supabase.');
+        if (uploadError.message?.toLowerCase().includes('row level security') || uploadError.statusCode === 403) {
+          throw new Error('Behörighet saknas (RLS). Kör SQL-skriptet för policies i Supabase.');
+        }
+        throw new Error(`Uppladdningsfel: ${uploadError.message}`);
       }
 
       // Get the public URL
@@ -121,7 +124,16 @@ const CompanyList = ({ isEmbedded = false }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const updated = await updateCompany(company.id, formData);
+      // Create a copy of formData and handle the org_nr/org_number mapping
+      const dataToSave = { ...formData };
+      
+      // If the database uses org_number instead of org_nr, we need to map it
+      if (company.org_number !== undefined && !company.org_nr) {
+        dataToSave.org_number = dataToSave.org_nr;
+        delete dataToSave.org_nr;
+      }
+
+      const updated = await updateCompany(company.id, dataToSave);
       setCompany(updated);
       setIsEditing(false);
       toast.success('Företagsinställningar uppdaterade!');
