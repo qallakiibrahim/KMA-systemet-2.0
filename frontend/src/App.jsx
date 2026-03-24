@@ -17,6 +17,7 @@ function App() {
     <Router>
       <div className="app-container">
         {user && <Sidebar isExpanded={isSidebarExpanded} onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} />}
+        {user && isSidebarExpanded && <div className="sidebar-overlay open" onClick={() => setIsSidebarExpanded(false)}></div>}
         <div className={`${user ? 'main-wrapper' : 'full-wrapper'} ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
           {user && <Header onMenuClick={() => setIsSidebarExpanded(!isSidebarExpanded)} />}
           <main className="main-content">
