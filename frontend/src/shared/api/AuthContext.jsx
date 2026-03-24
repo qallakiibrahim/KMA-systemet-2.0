@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
       // 1. Try to get the profile with company name joined
       let { data: profile, error } = await supabase
         .from('profiles')
-        .select('*, companies(name, logo_url, logo)')
+        .select('*, companies(name, logo_url)')
         .eq('id', userObj.id)
         .single();
         
@@ -109,25 +109,27 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Flatten company data for easier access
+      let companyData = null;
       if (profile.companies) {
-        const companyData = Array.isArray(profile.companies) ? profile.companies[0] : profile.companies;
-        if (companyData) {
-          profile.company_name = companyData.name;
-          profile.company_logo = companyData.logo_url || companyData.logo;
-          console.log('DEBUG: Company data found via join:', companyData);
-        }
+        companyData = Array.isArray(profile.companies) ? profile.companies[0] : profile.companies;
+      }
+
+      if (companyData) {
+        profile.company_name = companyData.name;
+        profile.company_logo = companyData.logo_url;
+        console.log('DEBUG: Company data found via join:', companyData);
       } else if (profile.company_id) {
         console.log('DEBUG: No company join found, but company_id exists:', profile.company_id);
         // Fallback: Fetch company directly
         const { data: directCompany, error: directError } = await supabase
           .from('companies')
-          .select('name, logo_url, logo')
+          .select('name, logo_url')
           .eq('id', profile.company_id)
           .single();
           
         if (!directError && directCompany) {
           profile.company_name = directCompany.name;
-          profile.company_logo = directCompany.logo_url || directCompany.logo;
+          profile.company_logo = directCompany.logo_url;
           console.log('DEBUG: Company data found via direct fetch:', directCompany);
         } else {
           console.error('DEBUG: Direct company fetch failed:', directError);
@@ -201,17 +203,30 @@ export const AuthProvider = ({ children }) => {
               .from('profiles')
               .update(updates)
               .eq('id', userObj.id)
-              .select('*, companies(name, logo_url, logo)')
+              .select('*, companies(name, logo_url)')
               .single();
             
             if (updateErr) {
               console.error('Error updating profile in background:', updateErr);
             } else if (updatedProfile) {
+              let companyData = null;
               if (updatedProfile.companies) {
-                const companyData = Array.isArray(updatedProfile.companies) ? updatedProfile.companies[0] : updatedProfile.companies;
-                if (companyData) {
-                  updatedProfile.company_name = companyData.name;
-                  updatedProfile.company_logo = companyData.logo_url || companyData.logo;
+                companyData = Array.isArray(updatedProfile.companies) ? updatedProfile.companies[0] : updatedProfile.companies;
+              }
+              
+              if (companyData) {
+                updatedProfile.company_name = companyData.name;
+                updatedProfile.company_logo = companyData.logo_url;
+              } else if (updatedProfile.company_id) {
+                const { data: directCompany } = await supabase
+                  .from('companies')
+                  .select('name, logo_url')
+                  .eq('id', updatedProfile.company_id)
+                  .single();
+                  
+                if (directCompany) {
+                  updatedProfile.company_name = directCompany.name;
+                  updatedProfile.company_logo = directCompany.logo_url;
                 }
               }
               setUserProfile(updatedProfile);

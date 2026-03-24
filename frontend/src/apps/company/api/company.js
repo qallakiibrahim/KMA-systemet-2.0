@@ -24,6 +24,7 @@ export const createCompany = async (data) => {
 };
 
 export const updateCompany = async (id, data) => {
+  console.log('DEBUG: Updating company with data:', data);
   const { data: updated, error } = await supabase
     .from(tableName)
     .update(data)
@@ -31,7 +32,11 @@ export const updateCompany = async (id, data) => {
     .select()
     .single();
     
-  if (error) throw error;
+  if (error) {
+    console.error('DEBUG: Update company error:', error);
+    throw error;
+  }
+  console.log('DEBUG: Updated company result:', updated);
   return updated;
 };
 
