@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { getCompanies, updateCompany } from '../api/company';
-import { Building, Mail, Phone, Globe, MapPin, Save, Shield, CreditCard } from 'lucide-react';
+import { Building, Mail, Phone, Globe, MapPin, Save, Shield, CreditCard, Upload, X } from 'lucide-react';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { supabase } from '../../../supabase';
 import { toast } from 'react-toastify';
 import '../styles/CompanyList.css';
 
@@ -10,6 +11,7 @@ const CompanyList = ({ isEmbedded = false }) => {
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({ 
     name: '', 
     org_nr: '', 
@@ -61,6 +63,58 @@ const CompanyList = ({ isEmbedded = false }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vänligen ladda upp en bildfil (PNG, JPG, etc)');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Bilden är för stor. Max 2MB tillåts.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${company.id}-${Math.random()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      // Upload the file to Supabase Storage
+      const { error: uploadError, data } = await supabase.storage
+        .from('logos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        // If bucket doesn't exist, we might get an error. 
+        // In a real app, we'd ensure the bucket exists.
+        console.error('Upload error:', uploadError);
+        throw new Error('Kunde inte ladda upp bilden. Kontrollera att lagringsutrymmet är konfigurerat.');
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('logos')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, logo_url: publicUrl }));
+      toast.success('Logotyp uppladdad!');
+    } catch (error) {
+      console.error('Logo upload failed:', error);
+      toast.error(error.message || 'Uppladdning misslyckades');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -164,8 +218,50 @@ const CompanyList = ({ isEmbedded = false }) => {
                 </div>
 
                 <div className="form-group mb-3">
-                  <label>Företagslogotyp (URL)</label>
-                  <input type="url" name="logo_url" value={formData.logo_url} onChange={handleInputChange} placeholder="https://example.com/logo.png" className="form-control" />
+                  <label>Företagslogotyp</label>
+                  <div className="logo-upload-container" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                    <div className="logo-preview" style={{ 
+                      width: '64px', 
+                      height: '64px', 
+                      border: '1px solid var(--border-color)', 
+                      borderRadius: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      backgroundColor: 'var(--bg-secondary)'
+                    }}>
+                      {formData.logo_url ? (
+                        <img src={formData.logo_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      ) : (
+                        <Building size={24} className="text-muted" />
+                      )}
+                    </div>
+                    <div className="upload-actions">
+                      <input 
+                        type="file" 
+                        id="logo-upload" 
+                        accept="image/*" 
+                        onChange={handleLogoUpload} 
+                        style={{ display: 'none' }} 
+                        disabled={uploading}
+                      />
+                      <label htmlFor="logo-upload" className="btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Upload size={16} /> {uploading ? 'Laddar upp...' : 'Ladda upp logga'}
+                      </label>
+                      {formData.logo_url && (
+                        <button 
+                          type="button" 
+                          className="btn-text btn-sm text-danger" 
+                          onClick={() => setFormData(prev => ({ ...prev, logo_url: '' }))}
+                          style={{ marginLeft: '0.5rem' }}
+                        >
+                          Ta bort
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted mt-1">Rekommenderad storlek: 200x200px. Max 2MB.</p>
                 </div>
 
                 <div className="form-group mb-3">
