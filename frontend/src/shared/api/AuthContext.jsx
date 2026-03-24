@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
             company_id: initialCompanyId,
             permissions: ['read_write']
           }])
-          .select('*, companies(name)')
+          .select('*, companies(name, logo_url)')
           .single();
           
         if (createError) {
@@ -113,7 +113,11 @@ export const AuthProvider = ({ children }) => {
         if (companyData) {
           profile.company_name = companyData.name;
           profile.company_logo = companyData.logo_url;
+          console.log('DEBUG: Company data found:', companyData);
+          console.log('DEBUG: Flattened logo:', profile.company_logo);
         }
+      } else {
+        console.log('DEBUG: No companies join found in profile:', profile);
       }
 
       // Set the profile immediately so UI can render

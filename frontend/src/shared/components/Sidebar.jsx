@@ -9,6 +9,9 @@ const Sidebar = ({ isExpanded, onToggle }) => {
   const { logout, userProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
+  console.log('DEBUG: Sidebar userProfile:', userProfile);
+  console.log('DEBUG: Sidebar company_logo:', userProfile?.company_logo);
+
   return (
     <aside className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}>
       <div className="sidebar-header">
