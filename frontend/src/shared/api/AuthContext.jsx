@@ -110,6 +110,9 @@ export const AuthProvider = ({ children }) => {
 
       // Flatten company data for easier access
       let companyData = null;
+      console.log('DEBUG: profile.companies:', profile.companies);
+      console.log('DEBUG: profile.company_id:', profile.company_id);
+      
       if (profile.companies) {
         companyData = Array.isArray(profile.companies) ? profile.companies[0] : profile.companies;
       }
@@ -137,6 +140,12 @@ export const AuthProvider = ({ children }) => {
       } else {
         console.log('DEBUG: No company_id on profile:', profile);
       }
+      
+      console.log('DEBUG: Final profile object before state update:', {
+        company_name: profile.company_name,
+        company_logo: profile.company_logo,
+        company_id: profile.company_id
+      });
       
       console.log('DEBUG: Final company_logo:', profile.company_logo);
 

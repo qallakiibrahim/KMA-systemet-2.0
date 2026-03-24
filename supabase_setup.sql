@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS companies (
   phone TEXT,
   email TEXT,
   website TEXT,
+  logo_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -157,6 +158,27 @@ CREATE POLICY "Allow all for authenticated users" ON calendar_events FOR ALL TO 
 CREATE POLICY "Allow public read" ON calendar_events FOR SELECT TO public USING (true);
 
 -- 4. Storage Buckets
--- Note: Buckets must be created via the Supabase UI or API. 
--- This script only documents the required buckets:
+-- Create storage bucket for logos if it doesn't exist
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('logos', 'logos', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create storage bucket for avvikelser if it doesn't exist
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avvikelser', 'avvikelser', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage Policies for logos
+CREATE POLICY "Public Access Logos" ON storage.objects FOR SELECT USING (bucket_id = 'logos');
+CREATE POLICY "Authenticated Upload Logos" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'logos');
+CREATE POLICY "Authenticated Update Logos" ON storage.objects FOR UPDATE TO authenticated WITH CHECK (bucket_id = 'logos');
+CREATE POLICY "Authenticated Delete Logos" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'logos');
+
+-- Storage Policies for avvikelser
+CREATE POLICY "Public Access Avvikelser" ON storage.objects FOR SELECT USING (bucket_id = 'avvikelser');
+CREATE POLICY "Authenticated Upload Avvikelser" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avvikelser');
+
+-- Note: Buckets must be created via the Supabase UI or API if the above INSERT fails. 
+-- This script documents the required buckets:
 -- - 'avvikelser' (Public)
+-- - 'logos' (Public)

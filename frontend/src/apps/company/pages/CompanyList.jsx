@@ -126,6 +126,7 @@ const CompanyList = ({ isEmbedded = false }) => {
     try {
       // Create a copy of formData and handle the org_nr/org_number mapping
       const dataToSave = { ...formData };
+      console.log('DEBUG: Saving company data with logo_url:', dataToSave.logo_url);
       
       // If the database uses org_number instead of org_nr, we need to map it
       if (company.org_number !== undefined && !company.org_nr) {

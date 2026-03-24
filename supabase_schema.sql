@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS companies (
   plan TEXT DEFAULT 'Basic', -- Added for SaaS
   status TEXT DEFAULT 'active', -- Added for SaaS
   expires_at TIMESTAMPTZ, -- Added for SaaS
+  logo_url TEXT, -- Added for company logo
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

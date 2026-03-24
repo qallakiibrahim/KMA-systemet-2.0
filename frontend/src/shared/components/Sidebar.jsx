@@ -24,6 +24,8 @@ const Sidebar = ({ isExpanded, onToggle }) => {
           <div style={{ fontSize: '10px', wordBreak: 'break-all', color: 'red', marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span>Logo: {userProfile?.company_logo ? 'YES' : 'NO'}</span>
             <span>Name: {userProfile?.company_name || 'NO'}</span>
+            <span>ID: {userProfile?.company_id || 'NO'}</span>
+            <span>Type: {typeof userProfile?.company_logo}</span>
             <button onClick={() => refreshProfile && refreshProfile()} style={{ padding: '2px 4px', background: '#eee', border: '1px solid #ccc', cursor: 'pointer' }}>
               Refresh Profile
             </button>
