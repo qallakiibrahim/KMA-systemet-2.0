@@ -11,14 +11,14 @@ import './App.css';
 
 function App() {
   const { user } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   return (
     <Router>
       <div className="app-container">
-        {user && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />}
-        <div className={`${user ? 'main-wrapper' : 'full-wrapper'} ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-          {user && <Header onMenuClick={() => setIsSidebarOpen(true)} />}
+        {user && <Sidebar isExpanded={isSidebarExpanded} onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} />}
+        <div className={`${user ? 'main-wrapper' : 'full-wrapper'} ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
+          {user && <Header onMenuClick={() => setIsSidebarExpanded(!isSidebarExpanded)} />}
           <main className="main-content">
             <AppRoutes />
           </main>

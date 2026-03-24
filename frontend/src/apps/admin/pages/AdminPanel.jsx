@@ -419,7 +419,14 @@ const AdminPanel = ({ isEmbedded = false }) => {
                 <tbody>
                   {filteredCompanies.map(company => (
                     <tr key={company.id}>
-                      <td className="font-medium">{company.name}</td>
+                      <td className="font-medium">
+                        {company.name}
+                        {company.name === 'SafeQMS' && (
+                          <span className="system-owner-badge" title="Systemägare">
+                            <Shield size={12} /> Systemägare
+                          </span>
+                        )}
+                      </td>
                       <td className="text-muted">{company.org_nr || company.org_number || '-'}</td>
                       <td>{company.plan || 'Basic'}</td>
                       <td>{renderStatusBadge(company.status || 'active')}</td>
@@ -472,7 +479,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
                         <div className="text-muted" style={{ fontSize: '0.75rem' }}>{u.email}</div>
                       </td>
                       <td className="text-muted">
-                        {u.companies?.name || 'Inget företag'}
+                        {u.companies?.name || u.company_name || 'Inget företag'}
                       </td>
                       <td>
                         <span className={`role-badge ${u.role === 'admin' || u.role === 'superadmin' ? 'admin' : 'user'}`}>

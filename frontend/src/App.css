@@ -68,16 +68,21 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin-left: 0;
+  margin-left: 70px; /* Default collapsed width */
   transition: margin-left 0.3s ease;
-  width: 100%;
+  width: calc(100% - 70px);
   max-width: 100%;
   box-sizing: border-box;
 }
 
-.main-wrapper.sidebar-open {
-  /* Optional: shift content on desktop if desired, but overlay is cleaner for "default closed" */
-  /* margin-left: var(--sidebar-width); */
+.main-wrapper.sidebar-expanded {
+  margin-left: 250px;
+  width: calc(100% - 250px);
+}
+
+.main-wrapper.sidebar-collapsed {
+  margin-left: 70px;
+  width: calc(100% - 70px);
 }
 
 .full-wrapper {
