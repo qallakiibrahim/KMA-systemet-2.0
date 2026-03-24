@@ -7,7 +7,6 @@ import AvvikelseList from './apps/avvikelse/pages/AvvikelseList';
 import RiskList from './apps/risk/pages/RiskList';
 import DokumentList from './apps/dokument/pages/DokumentList';
 import ProcessList from './apps/process/pages/ProcessList';
-import AdminPanel from './apps/admin/pages/AdminPanel';
 import Dashboard from './apps/rapport_statistik/pages/Dashboard';
 import CalendarPage from './apps/calendar/pages/CalendarPage';
 import TaskDashboard from './apps/task/pages/TaskDashboard';
@@ -32,7 +31,6 @@ const AppRoutes = () => {
       <Route path="/risk" element={<ProtectedRoute><RiskList /></ProtectedRoute>} />
       <Route path="/dokument" element={<ProtectedRoute><DokumentList /></ProtectedRoute>} />
       <Route path="/process" element={<ProtectedRoute><ProcessList /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
       <Route path="/statistik" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
       <Route path="/tasks" element={<ProtectedRoute><TaskDashboard /></ProtectedRoute>} />

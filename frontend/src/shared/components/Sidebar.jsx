@@ -29,9 +29,6 @@ const Sidebar = ({ isOpen, onClose }) => {
           <Link to="/statistik" onClick={onClose}><BarChart /> <span>Statistik</span></Link>
           <Link to="/library" onClick={onClose}><Library /> <span>Bibliotek</span></Link>
           <Link to="/ai" onClick={onClose}><Bot /> <span>AI Assistent</span></Link>
-          {userProfile?.role === 'superadmin' && (
-            <Link to="/admin" onClick={onClose}><Settings /> <span>Admin</span></Link>
-          )}
         </nav>
         <div className="sidebar-footer">
           <button onClick={toggleTheme}>

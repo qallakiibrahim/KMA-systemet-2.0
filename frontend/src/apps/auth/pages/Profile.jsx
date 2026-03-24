@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { User, Mail, Shield, Building, Calendar, CheckCircle, Settings, CreditCard, Globe, MapPin, Phone, Save } from 'lucide-react';
+import { User, Mail, Shield, Building, Calendar, CheckCircle, Settings, CreditCard, Globe, MapPin, Phone, Save, Activity } from 'lucide-react';
 import CompanyList from '../../company/pages/CompanyList';
+import AdminPanel from '../../admin/pages/AdminPanel';
 import '../styles/Profile.css';
 
 const Profile = () => {
@@ -12,6 +13,7 @@ const Profile = () => {
   if (!userProfile) return <div className="loading">Kunde inte ladda profil. Försök logga ut och in igen.</div>;
 
   const canManageCompany = userProfile.role === 'admin' || userProfile.role === 'superadmin';
+  const isSuperAdmin = userProfile.role === 'superadmin';
 
   const renderPermissions = (permissions) => {
     if (!permissions || permissions.length === 0) return 'Inga specifika behörigheter';
@@ -51,6 +53,14 @@ const Profile = () => {
             onClick={() => setActiveTab('company')}
           >
             <Building size={18} /> Företagsinställningar
+          </button>
+        )}
+        {isSuperAdmin && (
+          <button 
+            className={`profile-tab-btn ${activeTab === 'admin' ? 'active' : ''}`}
+            onClick={() => setActiveTab('admin')}
+          >
+            <Settings size={18} /> Admin Portal
           </button>
         )}
       </div>
@@ -96,7 +106,7 @@ const Profile = () => {
               {userProfile.role === 'superadmin' && (
                 <div className="admin-notice">
                   <Shield size={16} />
-                  <span>Du har Superadmin-rättigheter och kan hantera hela systemet via Admin-panelen.</span>
+                  <span>Du har Superadmin-rättigheter och kan hantera hela systemet via Admin-tabben ovan.</span>
                 </div>
               )}
             </div>
@@ -106,6 +116,12 @@ const Profile = () => {
         {activeTab === 'company' && canManageCompany && (
           <div className="profile-company-section">
             <CompanyList isEmbedded={true} />
+          </div>
+        )}
+
+        {activeTab === 'admin' && isSuperAdmin && (
+          <div className="profile-admin-section">
+            <AdminPanel isEmbedded={true} />
           </div>
         )}
       </div>

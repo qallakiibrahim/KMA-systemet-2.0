@@ -6,7 +6,7 @@ import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import '../styles/AdminPanel.css';
 
-const AdminPanel = () => {
+const AdminPanel = ({ isEmbedded = false }) => {
   const { userProfile } = useAuth();
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -279,25 +279,42 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="admin-panel-container">
-      <div className="admin-header">
-        <div>
-          <h1>Superadmin Portal</h1>
-          <p>Hantera systemet, företag och licenser</p>
+    <div className={isEmbedded ? "admin-panel-embedded" : "admin-panel-container"}>
+      {!isEmbedded && (
+        <div className="admin-header">
+          <div>
+            <h1>Superadmin Portal</h1>
+            <p>Hantera systemet, företag och licenser</p>
+          </div>
+          <div className="admin-actions">
+            {activeTab === 'companies' && (
+              <button className="btn-primary" onClick={() => setIsCompanyModalOpen(true)}>
+                <Plus size={18} /> Nytt Företag
+              </button>
+            )}
+            {activeTab === 'users' && (
+              <button className="btn-primary" onClick={() => setIsUserInfoModalOpen(true)}>
+                <Plus size={18} /> Ny Användare
+              </button>
+            )}
+          </div>
         </div>
-        <div className="admin-actions">
+      )}
+
+      {isEmbedded && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', gap: '1rem' }}>
           {activeTab === 'companies' && (
-            <button className="btn-primary" onClick={() => setIsCompanyModalOpen(true)}>
-              <Plus size={18} /> Nytt Företag
+            <button className="btn-primary btn-sm" onClick={() => setIsCompanyModalOpen(true)}>
+              <Plus size={16} /> Nytt Företag
             </button>
           )}
           {activeTab === 'users' && (
-            <button className="btn-primary" onClick={() => setIsUserInfoModalOpen(true)}>
-              <Plus size={18} /> Ny Användare
+            <button className="btn-primary btn-sm" onClick={() => setIsUserInfoModalOpen(true)}>
+              <Plus size={16} /> Ny Användare
             </button>
           )}
         </div>
-      </div>
+      )}
 
       <div className="admin-tabs">
         <button 

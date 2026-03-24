@@ -104,6 +104,12 @@
   padding: 1rem;
 }
 
+.profile-admin-section {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
 .card-header-flex {
   display: flex;
   justify-content: space-between;
