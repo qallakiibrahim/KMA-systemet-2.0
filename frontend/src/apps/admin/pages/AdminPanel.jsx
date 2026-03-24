@@ -634,7 +634,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
       )}
       {isModalOpen && editingUser && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '500px' }}>
+          <div className="modal-content">
             <div className="modal-header">
               <h2>Hantera Användare</h2>
               <button className="icon-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
@@ -696,23 +696,22 @@ const AdminPanel = ({ isEmbedded = false }) => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Avbryt</button>
-              <button className="btn-primary" onClick={handleSaveUser}>Spara ändringar</button>
+              <button className="cancel-btn" onClick={() => setIsModalOpen(false)}>Avbryt</button>
+              <button className="save-btn" onClick={handleSaveUser}>Spara ändringar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Create/Edit Company Modal */}
       {isCompanyModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
+          <div className="modal-content">
             <div className="modal-header">
               <h2>{editingCompany ? 'Redigera Företag' : 'Skapa Nytt Företag'}</h2>
               <button className="icon-btn" onClick={() => { setIsCompanyModalOpen(false); setEditingCompany(null); }}><X size={20} /></button>
             </div>
             <div className="modal-body">
-              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="form-grid">
                 <div className="form-group">
                   <label>Företagsnamn *</label>
                   <input 
@@ -753,7 +752,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
                     placeholder="08-123 45 67"
                   />
                 </div>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <div className="form-group col-span-2">
                   <label>Webbplats</label>
                   <input 
                     type="url" 
@@ -763,7 +762,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
                     placeholder="https://www.foretag.se"
                   />
                 </div>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <div className="form-group col-span-2">
                   <label>Gatuadress</label>
                   <input 
                     type="text" 
@@ -822,8 +821,8 @@ const AdminPanel = ({ isEmbedded = false }) => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => { setIsCompanyModalOpen(false); setEditingCompany(null); }}>Avbryt</button>
-              <button className="btn-primary" onClick={handleCreateOrUpdateCompany}>
+              <button className="cancel-btn" onClick={() => { setIsCompanyModalOpen(false); setEditingCompany(null); }}>Avbryt</button>
+              <button className="save-btn" onClick={handleCreateOrUpdateCompany}>
                 {editingCompany ? 'Spara ändringar' : 'Skapa Företag'}
               </button>
             </div>
@@ -834,18 +833,18 @@ const AdminPanel = ({ isEmbedded = false }) => {
       {/* User Info Modal */}
       {isUserInfoModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '500px' }}>
+          <div className="modal-content">
             <div className="modal-header">
               <h2>Lägg till Användare</h2>
               <button className="icon-btn" onClick={() => setIsUserInfoModalOpen(false)}><X size={20} /></button>
             </div>
             <div className="modal-body">
-              <div className="info-card" style={{ marginTop: 0 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="info-card">
+                <h3>
                   <Info size={20} /> Hur användare läggs till
                 </h3>
                 <p>Av säkerhetsskäl skapas användare automatiskt första gången de loggar in i systemet med sitt Google-konto.</p>
-                <ol style={{ paddingLeft: '1.5rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>
+                <ol className="checkbox-list" style={{ paddingLeft: '1.5rem', marginTop: '1rem', color: 'var(--text-secondary)', listStyleType: 'decimal' }}>
                   <li style={{ marginBottom: '0.5rem' }}>Be användaren gå till systemets inloggningssida och logga in.</li>
                   <li style={{ marginBottom: '0.5rem' }}>När de loggat in dyker de upp i listan här bakom.</li>
                   <li>Klicka på <strong>Hantera</strong> för att koppla dem till rätt företag och ge dem rätt behörigheter.</li>
@@ -853,7 +852,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-primary" onClick={() => setIsUserInfoModalOpen(false)}>Jag förstår</button>
+              <button className="save-btn" onClick={() => setIsUserInfoModalOpen(false)}>Jag förstår</button>
             </div>
           </div>
         </div>

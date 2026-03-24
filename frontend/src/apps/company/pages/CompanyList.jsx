@@ -207,7 +207,7 @@ const CompanyList = ({ isEmbedded = false }) => {
       }}>
         <div className="settings-main">
           {isEditing ? (
-            <div className="card shadow-sm p-4 bg-white rounded-lg">
+            <div className="card shadow-sm p-4 bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)]">
               <form onSubmit={handleSubmit} className="company-form">
                 <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div className="form-group">
@@ -317,10 +317,10 @@ const CompanyList = ({ isEmbedded = false }) => {
             </div>
           ) : (
             <div className="company-profile-view">
-              <div className="profile-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <div className="profile-card bg-[var(--bg-primary)] p-6 rounded-xl shadow-sm border border-[var(--border-color)]">
                 <div className="flex items-start justify-between mb-8">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center overflow-hidden">
+                    <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center overflow-hidden">
                       {company.logo_url ? (
                         <img src={company.logo_url} alt="Logo" className="w-full h-full object-contain" />
                       ) : (
@@ -328,36 +328,36 @@ const CompanyList = ({ isEmbedded = false }) => {
                       )}
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">{company.name}</h2>
-                      <p className="text-gray-500">Org.nr: {company.org_nr || company.org_number || 'Ej angivet'}</p>
+                      <h2 className="text-2xl font-bold text-[var(--text-primary)]">{company.name}</h2>
+                      <p className="text-[var(--text-muted)]">Org.nr: {company.org_nr || company.org_number || 'Ej angivet'}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-6">
-                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Kontaktinformation</h3>
+                    <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider">Kontaktinformation</h3>
                     <div className="space-y-4">
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <Mail size={18} className="text-gray-400" />
+                      <div className="flex items-center gap-3 text-[var(--text-secondary)]">
+                        <Mail size={18} className="text-[var(--text-muted)]" />
                         <span>{company.email || 'Ingen e-post angiven'}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <Phone size={18} className="text-gray-400" />
+                      <div className="flex items-center gap-3 text-[var(--text-secondary)]">
+                        <Phone size={18} className="text-[var(--text-muted)]" />
                         <span>{company.phone || 'Inget telefonnummer angivet'}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <Globe size={18} className="text-gray-400" />
+                      <div className="flex items-center gap-3 text-[var(--text-secondary)]">
+                        <Globe size={18} className="text-[var(--text-muted)]" />
                         <span>{company.website || 'Ingen webbplats angiven'}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-6">
-                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Adress</h3>
+                    <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider">Adress</h3>
                     <div className="space-y-4">
-                      <div className="flex items-start gap-3 text-gray-600">
-                        <MapPin size={18} className="text-gray-400 mt-1" />
+                      <div className="flex items-start gap-3 text-[var(--text-secondary)]">
+                        <MapPin size={18} className="text-[var(--text-muted)] mt-1" />
                         <div>
                           <p>{company.address || 'Ingen adress angiven'}</p>
                           <p>{company.zip_code} {company.city}</p>
@@ -373,23 +373,23 @@ const CompanyList = ({ isEmbedded = false }) => {
         </div>
 
         <div className="settings-sidebar space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Licens & Status</h3>
+          <div className="bg-[var(--bg-primary)] p-6 rounded-xl shadow-sm border border-[var(--border-color)]">
+            <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-4">Licens & Status</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                   <CreditCard size={18} />
                   <span>Plan</span>
                 </div>
-                <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded uppercase">{company.plan}</span>
+                <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold rounded uppercase">{company.plan}</span>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                   <Shield size={18} />
                   <span>Status</span>
                 </div>
                 <span className={`px-2 py-1 text-xs font-bold rounded uppercase ${
-                  company.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'
+                  company.status === 'active' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
                 }`}>
                   {company.status === 'active' ? 'Aktiv' : company.status}
                 </span>
@@ -398,9 +398,9 @@ const CompanyList = ({ isEmbedded = false }) => {
           </div>
 
           {!isEmbedded && (
-            <div className="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-200">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Behöver du hjälp?</h4>
-              <p className="text-xs text-gray-500 leading-relaxed">
+            <div className="bg-[var(--bg-secondary)] p-6 rounded-xl border border-dashed border-[var(--border-color)]">
+              <h4 className="text-sm font-medium text-[var(--text-primary)] mb-2">Behöver du hjälp?</h4>
+              <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                 Om du behöver ändra din licensplan eller har frågor om ditt konto, vänligen kontakta SafeQMS support.
               </p>
             </div>
