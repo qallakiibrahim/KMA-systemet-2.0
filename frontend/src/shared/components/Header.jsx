@@ -40,11 +40,7 @@ const Header = ({ onMenuClick }) => {
   };
 
   const handleProfileClick = () => {
-    if (userProfile?.role === 'superadmin') {
-      navigate('/admin');
-    } else {
-      navigate('/profile');
-    }
+    navigate('/profile');
   };
 
   const markAsRead = async (id) => {

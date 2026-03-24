@@ -17,7 +17,7 @@ function App() {
     <Router>
       <div className="app-container">
         {user && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />}
-        <div className={user ? 'main-wrapper' : 'full-wrapper'}>
+        <div className={`${user ? 'main-wrapper' : 'full-wrapper'} ${isSidebarOpen ? 'sidebar-open' : ''}`}>
           {user && <Header onMenuClick={() => setIsSidebarOpen(true)} />}
           <main className="main-content">
             <AppRoutes />
