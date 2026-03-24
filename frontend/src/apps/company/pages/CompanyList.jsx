@@ -252,7 +252,15 @@ const CompanyList = ({ isEmbedded = false }) => {
                       backgroundColor: 'var(--bg-secondary)'
                     }}>
                       {formData.logo_url ? (
-                        <img src={formData.logo_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        <img 
+                          src={formData.logo_url} 
+                          alt="Preview" 
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                          onError={(e) => {
+                            console.error('Logo preview failed to load:', formData.logo_url);
+                            e.target.src = 'https://via.placeholder.com/64?text=Error';
+                          }}
+                        />
                       ) : (
                         <Building size={24} className="text-muted" />
                       )}
@@ -278,6 +286,11 @@ const CompanyList = ({ isEmbedded = false }) => {
                         >
                           Ta bort
                         </button>
+                      )}
+                      {formData.logo_url && (
+                        <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '0.25rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          URL: {formData.logo_url}
+                        </p>
                       )}
                     </div>
                   </div>

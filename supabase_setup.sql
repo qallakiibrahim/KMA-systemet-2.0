@@ -146,6 +146,7 @@ CREATE POLICY "Allow all for authenticated users" ON tasks FOR ALL TO authentica
 CREATE POLICY "Allow public read" ON tasks FOR SELECT TO public USING (true);
 
 -- Companies Policies
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS logo_url TEXT;
 CREATE POLICY "Allow all for authenticated users" ON companies FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read" ON companies FOR SELECT TO public USING (true);
 

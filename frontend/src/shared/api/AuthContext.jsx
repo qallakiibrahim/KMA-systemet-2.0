@@ -118,9 +118,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (companyData) {
-        profile.company_name = companyData.name;
-        profile.company_logo = companyData.logo_url;
+        profile.company_name = companyData.name || null;
+        profile.company_logo = companyData.logo_url || null;
         console.log('DEBUG: Company data found via join:', companyData);
+        console.log('DEBUG: Set company_logo to:', profile.company_logo);
       } else if (profile.company_id) {
         console.log('DEBUG: No company join found, but company_id exists:', profile.company_id);
         // Fallback: Fetch company directly
@@ -131,16 +132,21 @@ export const AuthProvider = ({ children }) => {
           .single();
           
         if (!directError && directCompany) {
-          profile.company_name = directCompany.name;
-          profile.company_logo = directCompany.logo_url;
+          profile.company_name = directCompany.name || null;
+          profile.company_logo = directCompany.logo_url || null;
           console.log('DEBUG: Company data found via direct fetch:', directCompany);
+          console.log('DEBUG: Set company_logo to:', profile.company_logo);
         } else {
           console.error('DEBUG: Direct company fetch failed:', directError);
+          profile.company_name = null;
+          profile.company_logo = null;
         }
       } else {
-        console.log('DEBUG: No company_id on profile:', profile);
+        profile.company_name = null;
+        profile.company_logo = null;
+        console.log('DEBUG: No company_id or join found');
       }
-      
+
       console.log('DEBUG: Final profile object before state update:', {
         company_name: profile.company_name,
         company_logo: profile.company_logo,
@@ -169,12 +175,14 @@ export const AuthProvider = ({ children }) => {
             console.log('Superadmin has no company, linking to SafeQMS...');
             // First, find or create the SafeQMS company
             let safeQmsId = null;
-            const { data: companies, error: compError } = await supabase.from('companies').select('id, name').eq('name', 'SafeQMS');
+            let safeQmsLogo = null;
+            const { data: companies, error: compError } = await supabase.from('companies').select('id, name, logo_url').eq('name', 'SafeQMS');
             
             if (compError) {
               console.error('Error finding SafeQMS company:', compError);
             } else if (companies && companies.length > 0) {
               safeQmsId = companies[0].id;
+              safeQmsLogo = companies[0].logo_url;
             } else {
               console.log('SafeQMS company not found, creating it...');
               const { data: newCompany, error: createCompError } = await supabase.from('companies').insert([{ 
@@ -188,6 +196,7 @@ export const AuthProvider = ({ children }) => {
                 console.error('Error creating SafeQMS company:', createCompError);
               } else {
                 safeQmsId = newCompany?.id;
+                safeQmsLogo = newCompany?.logo_url;
               }
             }
 
@@ -196,7 +205,12 @@ export const AuthProvider = ({ children }) => {
               needsUpdate = true;
               
               // Optimistically update the local profile state
-              setUserProfile(prev => ({ ...prev, company_id: safeQmsId, company_name: 'SafeQMS' }));
+              setUserProfile(prev => ({ 
+                ...prev, 
+                company_id: safeQmsId, 
+                company_name: 'SafeQMS',
+                company_logo: safeQmsLogo 
+              }));
             }
           }
 
