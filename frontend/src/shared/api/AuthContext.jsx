@@ -23,11 +23,12 @@ export const AuthProvider = ({ children }) => {
       // 1. Try to get the profile with company name joined
       let { data: profile, error } = await supabase
         .from('profiles')
-        .select('*, companies(name, logo_url)')
+        .select('*, companies(name, logo_url, logo)')
         .eq('id', userObj.id)
         .single();
         
-      // 2. If profile doesn't exist, create it
+      console.log('DEBUG: Raw profile from DB:', profile);
+      if (error) console.error('DEBUG: Profile fetch error:', error);
       if (error && error.code === 'PGRST116') {
         console.log('Profile not found, checking for pending invitations for:', email);
         
@@ -112,13 +113,30 @@ export const AuthProvider = ({ children }) => {
         const companyData = Array.isArray(profile.companies) ? profile.companies[0] : profile.companies;
         if (companyData) {
           profile.company_name = companyData.name;
-          profile.company_logo = companyData.logo_url;
-          console.log('DEBUG: Company data found:', companyData);
-          console.log('DEBUG: Flattened logo:', profile.company_logo);
+          profile.company_logo = companyData.logo_url || companyData.logo;
+          console.log('DEBUG: Company data found via join:', companyData);
+        }
+      } else if (profile.company_id) {
+        console.log('DEBUG: No company join found, but company_id exists:', profile.company_id);
+        // Fallback: Fetch company directly
+        const { data: directCompany, error: directError } = await supabase
+          .from('companies')
+          .select('name, logo_url, logo')
+          .eq('id', profile.company_id)
+          .single();
+          
+        if (!directError && directCompany) {
+          profile.company_name = directCompany.name;
+          profile.company_logo = directCompany.logo_url || directCompany.logo;
+          console.log('DEBUG: Company data found via direct fetch:', directCompany);
+        } else {
+          console.error('DEBUG: Direct company fetch failed:', directError);
         }
       } else {
-        console.log('DEBUG: No companies join found in profile:', profile);
+        console.log('DEBUG: No company_id on profile:', profile);
       }
+      
+      console.log('DEBUG: Final company_logo:', profile.company_logo);
 
       // Set the profile immediately so UI can render
       setUserProfile(profile);
@@ -135,8 +153,9 @@ export const AuthProvider = ({ children }) => {
             needsUpdate = true;
           }
 
-          // Link to SafeQMS for superadmin
-          if (email === 'qallakiibrahim@gmail.com') {
+          // Link to SafeQMS for superadmin if not already linked
+          if (email === 'qallakiibrahim@gmail.com' && !profile.company_id) {
+            console.log('Superadmin has no company, linking to SafeQMS...');
             // First, find or create the SafeQMS company
             let safeQmsId = null;
             const { data: companies, error: compError } = await supabase.from('companies').select('id, name').eq('name', 'SafeQMS');
@@ -161,11 +180,11 @@ export const AuthProvider = ({ children }) => {
               }
             }
 
-            if (safeQmsId && profile.company_id !== safeQmsId) {
+            if (safeQmsId) {
               updates.company_id = safeQmsId;
               needsUpdate = true;
               
-              // Optimistically update the local profile state so the user can save data immediately
+              // Optimistically update the local profile state
               setUserProfile(prev => ({ ...prev, company_id: safeQmsId, company_name: 'SafeQMS' }));
             }
           }
@@ -182,7 +201,7 @@ export const AuthProvider = ({ children }) => {
               .from('profiles')
               .update(updates)
               .eq('id', userObj.id)
-              .select('*, companies(name, logo_url)')
+              .select('*, companies(name, logo_url, logo)')
               .single();
             
             if (updateErr) {
@@ -192,7 +211,7 @@ export const AuthProvider = ({ children }) => {
                 const companyData = Array.isArray(updatedProfile.companies) ? updatedProfile.companies[0] : updatedProfile.companies;
                 if (companyData) {
                   updatedProfile.company_name = companyData.name;
-                  updatedProfile.company_logo = companyData.logo_url;
+                  updatedProfile.company_logo = companyData.logo_url || companyData.logo;
                 }
               }
               setUserProfile(updatedProfile);
