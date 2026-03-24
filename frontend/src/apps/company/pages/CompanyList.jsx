@@ -96,10 +96,11 @@ const CompanyList = ({ isEmbedded = false }) => {
         });
 
       if (uploadError) {
-        // If bucket doesn't exist, we might get an error. 
-        // In a real app, we'd ensure the bucket exists.
         console.error('Upload error:', uploadError);
-        throw new Error('Kunde inte ladda upp bilden. Kontrollera att lagringsutrymmet är konfigurerat.');
+        if (uploadError.message?.toLowerCase().includes('bucket not found') || uploadError.error === 'Bucket not found') {
+          throw new Error('Mappen "logos" saknas i Supabase Storage. Skapa en publik bucket med namnet "logos" i din Supabase-dashboard för att kunna ladda upp bilder.');
+        }
+        throw new Error('Kunde inte ladda upp bilden. Kontrollera att lagringsutrymmet är konfigurerat i Supabase.');
       }
 
       // Get the public URL
