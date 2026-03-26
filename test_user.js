@@ -1,0 +1,12 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+async function checkUser() {
+  const { data, error } = await supabase.from('profiles').select('*').eq('email', 'qallakiibrahim@gmail.com').single();
+  console.log('Data:', data);
+  console.log('Error:', error);
+}
+checkUser();

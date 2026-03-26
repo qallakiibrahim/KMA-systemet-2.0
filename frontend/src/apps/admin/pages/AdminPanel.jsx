@@ -105,7 +105,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
       setInvitations(invitesData);
     } catch (error) {
       console.error('Error inviting user:', error);
-      toast.error('Kunde inte skicka inbjudan');
+      toast.error(`Kunde inte skicka inbjudan: ${error.message || 'Okänt fel'}`);
     }
   };
 
