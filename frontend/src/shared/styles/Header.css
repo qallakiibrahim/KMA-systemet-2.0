@@ -205,7 +205,7 @@
   letter-spacing: 0.02em;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .header {
     padding: 0 1rem;
   }
@@ -214,7 +214,7 @@
     width: 100px;
   }
   
-  .user-name {
+  .user-info-text {
     display: none;
   }
   

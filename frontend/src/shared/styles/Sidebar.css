@@ -157,7 +157,7 @@
   display: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
     width: var(--sidebar-expanded-width);

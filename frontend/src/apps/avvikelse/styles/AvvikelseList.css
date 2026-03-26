@@ -547,3 +547,62 @@
   text-transform: uppercase;
   font-size: 0.8rem;
 }
+
+@media (max-width: 1024px) {
+  .kanban-board {
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .kanban-board::-webkit-scrollbar {
+    display: none;
+  }
+
+  .kanban-column {
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .avvikelse-dashboard {
+    padding: 1rem;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .dashboard-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .follow-up-container {
+    flex-direction: column;
+    height: auto;
+    max-height: 70vh;
+  }
+
+  .avvikelse-info-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    max-height: 30vh;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-overlay {
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+  
+  .modal-content {
+    box-sizing: border-box;
+  }
+}

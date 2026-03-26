@@ -583,7 +583,27 @@
 .text-green-600 { color: #16a34a; }
 .text-orange-500 { color: #f97316; }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .dokument-dashboard {
+    padding: 1rem;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .header-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+
   .library-controls {
     flex-direction: column;
     align-items: stretch;

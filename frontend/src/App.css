@@ -107,8 +107,10 @@ body {
 
 /* Dark mode overrides (removed as we use global variables) */
 
-@media (max-width: 640px) {
-  .main-wrapper {
+@media (max-width: 768px) {
+  .main-wrapper,
+  .main-wrapper.sidebar-expanded,
+  .main-wrapper.sidebar-collapsed {
     margin-left: 0;
     width: 100%;
   }
