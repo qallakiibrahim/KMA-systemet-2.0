@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   username TEXT,
   email TEXT,
   role TEXT DEFAULT 'user',
-  company_id UUID, -- Added for SaaS
+  company_id UUID REFERENCES companies(id), -- Added for SaaS
   permissions TEXT[] DEFAULT '{viewer}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   status TEXT DEFAULT 'todo',
   priority TEXT DEFAULT 'Medium',
   created_by UUID REFERENCES auth.users ON DELETE CASCADE,
-  company_id UUID NOT NULL, -- Added for SaaS
+  company_id UUID NOT NULL REFERENCES companies(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -43,12 +43,14 @@ CREATE TABLE IF NOT EXISTS risker (
   description TEXT,
   category TEXT DEFAULT 'Allmän',
   status TEXT DEFAULT 'Ej påbörjad',
-  likelihood INTEGER,
-  impact INTEGER,
-  risk_score INTEGER,
+  likelihood INTEGER DEFAULT 1,
+  probability INTEGER DEFAULT 1,
+  impact INTEGER DEFAULT 1,
+  risk_score INTEGER DEFAULT 1,
   risk_level TEXT,
+  mitigation_plan TEXT,
   responsible_uid UUID REFERENCES auth.users ON DELETE SET NULL,
-  company_id UUID NOT NULL, -- Added for SaaS
+  company_id UUID NOT NULL REFERENCES companies(id),
   is_template BOOLEAN DEFAULT FALSE,
   is_global BOOLEAN DEFAULT FALSE,
   deadline DATE,
@@ -61,21 +63,17 @@ CREATE TABLE IF NOT EXISTS avvikelser (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   titel TEXT NOT NULL,
   beskrivning TEXT,
+  problemdefinition TEXT, -- Stores 5W2H data as formatted text
   status TEXT DEFAULT 'open',
   priority TEXT DEFAULT 'Medium',
+  severity TEXT DEFAULT '1',
+  probability TEXT DEFAULT '1',
   discovery_date DATE,
   ansvarig_uid UUID REFERENCES auth.users ON DELETE SET NULL,
   author_uid UUID REFERENCES auth.users ON DELETE CASCADE,
-  company_id UUID NOT NULL, -- Added for SaaS
-  avdelning TEXT,
-  what TEXT,
-  who TEXT,
-  when_text TEXT,
-  where_text TEXT,
-  why TEXT,
-  how TEXT,
-  how_much TEXT,
-  ai_rekommendation TEXT,
+  company_id UUID NOT NULL REFERENCES companies(id),
+  attachments JSONB DEFAULT '[]'::jsonb,
+  uppfoljning JSONB DEFAULT '{}'::jsonb,
   deadline DATE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -154,7 +152,7 @@ CREATE TABLE IF NOT EXISTS companies (
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE,
-  company_id UUID, -- Added for SaaS
+  company_id UUID REFERENCES companies(id),
   title TEXT NOT NULL,
   message TEXT,
   type TEXT,
