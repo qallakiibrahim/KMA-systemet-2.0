@@ -4,7 +4,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #f8fafc;
+  background: var(--bg-app);
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -13,8 +13,8 @@
 
 .editor-header {
   height: 64px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -40,14 +40,15 @@
   font-weight: 600;
   border: none;
   outline: none;
-  color: #1e293b;
+  color: var(--text-primary);
   padding: 0.5rem;
   border-radius: 4px;
   transition: background 0.2s;
+  background: transparent;
 }
 
 .title-input:focus {
-  background: #f1f5f9;
+  background: var(--bg-hover);
 }
 
 .header-right {
@@ -58,7 +59,7 @@
 
 .status-toggle {
   display: flex;
-  background: #f1f5f9;
+  background: var(--bg-hover);
   padding: 0.25rem;
   border-radius: 8px;
   gap: 0.25rem;
@@ -69,13 +70,13 @@
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-secondary);
   transition: all 0.2s;
 }
 
 .status-btn.active {
-  background: #ffffff;
-  color: #1e293b;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
@@ -83,6 +84,7 @@
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
 .editor-content-wrapper {
@@ -90,13 +92,13 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--bg-app);
 }
 
 .editor-menubar {
   height: 48px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   padding: 0 1rem;
@@ -104,6 +106,16 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.editor-menubar::-webkit-scrollbar {
+  height: 4px;
+}
+.editor-menubar::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
 }
 
 .menubar-group {
@@ -111,7 +123,7 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0 0.5rem;
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid var(--border-color);
 }
 
 .menubar-group:last-child {
@@ -124,18 +136,19 @@
   display: grid;
   place-items: center;
   border-radius: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .menubar-group button:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .menubar-group button.active {
-  background: #e2e8f0;
-  color: #2563eb;
+  background: var(--border-color);
+  color: var(--primary-color);
 }
 
 .editor-scroller {
@@ -150,8 +163,8 @@
   width: 100%;
   max-width: 850px;
   min-height: 1000px;
-  background: #ffffff;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background: var(--bg-primary);
+  box-shadow: var(--card-shadow);
   padding: 4rem;
   border-radius: 4px;
 }
@@ -161,13 +174,13 @@
   min-height: 800px;
   font-size: 1.1rem;
   line-height: 1.6;
-  color: #334155;
+  color: var(--text-primary);
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  color: #94a3b8;
+  color: var(--text-muted);
   pointer-events: none;
   height: 0;
 }
@@ -183,7 +196,7 @@
 .ProseMirror td,
 .ProseMirror th {
   min-width: 1em;
-  border: 2px solid #ced4da;
+  border: 2px solid var(--border-color);
   padding: 3px 5px;
   vertical-align: top;
   box-sizing: border-box;
@@ -193,13 +206,13 @@
 .ProseMirror th {
   font-weight: bold;
   text-align: left;
-  background-color: #f1f3f5;
+  background-color: var(--bg-secondary);
 }
 
 .editor-sidebar {
   width: 320px;
-  background: #ffffff;
-  border-left: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
@@ -210,7 +223,7 @@
 .sidebar-section h3 {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 1rem;
@@ -235,16 +248,16 @@
   height: 24px;
   display: grid;
   place-items: center;
-  background: #f1f5f9;
+  background: var(--bg-hover);
   border-radius: 4px;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-add-small:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--border-color);
+  color: var(--text-primary);
 }
 
 .attachment-list, .link-list {
@@ -260,7 +273,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem;
-  background: #f8fafc;
+  background: var(--bg-app);
   border-radius: 6px;
   font-size: 0.875rem;
 }
@@ -276,22 +289,22 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .attachment-actions, .link-item button {
   display: flex;
   gap: 0.5rem;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .attachment-actions a:hover, .attachment-actions button:hover, .link-item button:hover {
-  color: #ef4444;
+  color: var(--danger-color);
 }
 
 .empty-text {
   font-size: 0.875rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-style: italic;
   text-align: center;
   padding: 1rem 0;
@@ -300,7 +313,7 @@
 .metadata-info {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--bg-hover);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -308,11 +321,11 @@
 
 .metadata-info p {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .metadata-info strong {
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .ml-auto {
@@ -335,18 +348,18 @@
 }
 
 .editor-modal {
-  background: #ffffff;
+  background: var(--bg-primary);
   border-radius: 12px;
   width: 100%;
   max-width: 400px;
   padding: 1.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--card-shadow);
 }
 
 .editor-modal h4 {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .editor-modal .form-group {
@@ -357,16 +370,18 @@
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 0.25rem;
 }
 
-.editor-modal input {
+.editor-modal input, .editor-modal select {
   width: 100%;
   padding: 0.625rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.875rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .editor-modal-actions {
@@ -380,13 +395,82 @@
   padding: 0.5rem 1rem;
   border-radius: 6px;
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .btn-confirm {
   padding: 0.5rem 1rem;
   border-radius: 6px;
   font-size: 0.875rem;
-  background: #2563eb;
+  background: var(--primary-color);
   color: #ffffff;
+}
+
+/* Form group overrides for sidebar */
+.editor-sidebar .form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.editor-sidebar .form-group select,
+.editor-sidebar .form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .editor-header {
+    height: auto;
+    min-height: 64px;
+    flex-wrap: wrap;
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .header-left {
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .status-toggle {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .editor-paper {
+    padding: 1.5rem;
+    min-height: calc(100vh - 120px);
+    border-radius: 0;
+  }
+
+  .editor-scroller {
+    padding: 0;
+  }
+
+  .editor-sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 100%;
+    max-width: 320px;
+    z-index: 20;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+  }
 }

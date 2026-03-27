@@ -461,102 +461,111 @@ const DokumentList = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="dokument-form">
-              <div 
-                className={`drop-zone ${isDragging ? 'dragging' : ''} ${formData.file_url ? 'has-file' : ''}`}
-                onDragOver={onDragOver}
-                onDragLeave={onDragLeave}
-                onDrop={onDrop}
-              >
-                {isUploading ? (
-                  <div className="upload-status">
-                    <Loader className="spin" size={32} />
-                    <p>Laddar upp fil...</p>
-                  </div>
-                ) : formData.file_url ? (
-                  <div className="upload-status success">
-                    <FileIcon type={formData.file_type} size={32} />
-                    <p>Fil klar: {formData.title}</p>
-                    <button type="button" className="btn-text" onClick={() => setFormData({...formData, file_url: '', file_type: '', file_size: 0})}>
-                      Byt fil
-                    </button>
-                  </div>
-                ) : (
-                  <div className="upload-prompt">
-                    <UploadCloud size={32} />
-                    <p>Dra och släpp fil här eller klicka för att välja</p>
-                    <input type="file" onChange={handleFileChange} className="file-input" />
-                  </div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="title">Titel *</label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="Dokumentets namn"
-                />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="category">Kategori</label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                  >
-                    <option value="general">Allmänt</option>
-                    <option value="policy">Policy</option>
-                    <option value="manual">Manual</option>
-                    <option value="contract">Avtal</option>
-                    <option value="report">Rapport</option>
-                  </select>
+              <div className="modal-body">
+                <div 
+                  className={`drop-zone ${isDragging ? 'dragging' : ''} ${formData.file_url ? 'has-file' : ''}`}
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                >
+                  {isUploading ? (
+                    <div className="upload-status">
+                      <Loader className="spin" size={32} />
+                      <p>Laddar upp fil...</p>
+                    </div>
+                  ) : formData.file_url ? (
+                    <div className="upload-status success">
+                      <FileIcon type={formData.file_type} size={32} />
+                      <p>Fil klar: {formData.title}</p>
+                      <button type="button" className="btn-text" onClick={() => setFormData({...formData, file_url: '', file_type: '', file_size: 0})}>
+                        Byt fil
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="upload-prompt">
+                      <UploadCloud size={32} />
+                      <p>Dra och släpp fil här eller klicka för att välja</p>
+                      <input type="file" onChange={handleFileChange} className="file-input" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="iso_chapter">ISO-kapitel</label>
+                  <label htmlFor="title">Titel *</label>
                   <input
                     type="text"
-                    id="iso_chapter"
-                    name="iso_chapter"
-                    value={formData.iso_chapter}
+                    id="title"
+                    name="title"
+                    value={formData.title}
                     onChange={handleInputChange}
-                    placeholder="t.ex. 9.1 Övervakning"
+                    required
+                    placeholder="Dokumentets namn"
                   />
+                </div>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="category">Kategori</label>
+                    <select
+                      id="category"
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                    >
+                      <option value="general">Allmänt</option>
+                      <option value="policy">Policy</option>
+                      <option value="manual">Manual</option>
+                      <option value="contract">Avtal</option>
+                      <option value="report">Rapport</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="iso_chapter">ISO-kapitel</label>
+                    <select
+                      id="iso_chapter"
+                      name="iso_chapter"
+                      value={formData.iso_chapter}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Välj ISO-kapitel...</option>
+                      <option value="4. Organisationens förutsättningar">4. Organisationens förutsättningar</option>
+                      <option value="5. Ledarskap">5. Ledarskap</option>
+                      <option value="6. Planering">6. Planering</option>
+                      <option value="7. Stöd">7. Stöd</option>
+                      <option value="8. Verksamhet">8. Verksamhet</option>
+                      <option value="9. Utvärdering av prestanda">9. Utvärdering av prestanda</option>
+                      <option value="10. Förbättring">10. Förbättring</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="status">Status</label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                    >
+                      <option value="utkast">Utkast</option>
+                      <option value="granskning">Granskning</option>
+                      <option value="godkänd">Godkänd</option>
+                      <option value="arkiverad">Arkiverad</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="status">Status</label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
+                  <label htmlFor="description">Beskrivning</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
                     onChange={handleInputChange}
-                  >
-                    <option value="utkast">Utkast</option>
-                    <option value="granskning">Granskning</option>
-                    <option value="godkänd">Godkänd</option>
-                    <option value="arkiverad">Arkiverad</option>
-                  </select>
+                    rows="3"
+                    placeholder="Kort beskrivning av dokumentet..."
+                  ></textarea>
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="description">Beskrivning</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows="3"
-                  placeholder="Kort beskrivning av dokumentet..."
-                ></textarea>
               </div>
 
               <div className="form-actions">

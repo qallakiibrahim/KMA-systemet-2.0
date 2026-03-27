@@ -348,13 +348,20 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
               </div>
               <div className="form-group">
                 <label>ISO-kapitel</label>
-                <input 
-                  type="text" 
+                <select 
                   value={isoChapter} 
                   onChange={(e) => setIsoChapter(e.target.value)}
-                  placeholder="t.ex. 9.1 Övervakning"
                   className="w-full p-2 border rounded text-sm"
-                />
+                >
+                  <option value="">Välj ISO-kapitel...</option>
+                  <option value="4. Organisationens förutsättningar">4. Organisationens förutsättningar</option>
+                  <option value="5. Ledarskap">5. Ledarskap</option>
+                  <option value="6. Planering">6. Planering</option>
+                  <option value="7. Stöd">7. Stöd</option>
+                  <option value="8. Verksamhet">8. Verksamhet</option>
+                  <option value="9. Utvärdering av prestanda">9. Utvärdering av prestanda</option>
+                  <option value="10. Förbättring">10. Förbättring</option>
+                </select>
               </div>
               <div className="metadata-info">
                 <p><strong>Skapad:</strong> {new Date(document?.created_at || new Date()).toLocaleDateString()}</p>
