@@ -167,7 +167,19 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
   const [status, setStatus] = useState(document?.status || 'utkast');
   const [attachments, setAttachments] = useState(document?.attachments || []);
   const [externalLinks, setExternalLinks] = useState(document?.external_links || []);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -333,9 +345,17 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
         </div>
 
         {isSidebarOpen && (
-          <aside className="editor-sidebar">
-            <div className="sidebar-section">
-              <h3><Globe size={16} /> Metadata</h3>
+          <>
+            <div className="sidebar-overlay" onClick={() => window.innerWidth <= 768 && setIsSidebarOpen(false)}></div>
+            <aside className="editor-sidebar">
+              <div className="sidebar-header-mobile">
+                <h3><Globe size={16} /> Metadata & Bilagor</h3>
+                <button className="btn-icon" onClick={() => setIsSidebarOpen(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="sidebar-section">
+                <h3><Globe size={16} /> Kategori & ISO</h3>
               <div className="form-group">
                 <label>Kategori</label>
                 <select value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -463,6 +483,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
               </ul>
             </div>
           </aside>
+          </>
         )}
       </div>
 
