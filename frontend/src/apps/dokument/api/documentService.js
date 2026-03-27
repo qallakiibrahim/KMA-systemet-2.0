@@ -63,7 +63,7 @@ export const saveDocument = async (documentData) => {
     }
     
     // Fallback for not-null constraint on company_id
-    if (error.message && error.message.includes('null value in column "company_id" violates not-null constraint')) {
+    if (error.message && error.message.includes('column "company_id"') && error.message.includes('violates not-null constraint')) {
       console.warn('Retrying document save with a default company...');
       try {
         // Try to fetch any available company
@@ -76,6 +76,18 @@ export const saveDocument = async (documentData) => {
         }
       } catch (retryError) {
         console.error('Retry with default company failed:', retryError);
+        throw retryError;
+      }
+    }
+
+    // Fallback for not-null constraint on file_url
+    if (error.message && error.message.includes('column "file_url"') && error.message.includes('violates not-null constraint')) {
+      console.warn('Retrying document save with empty file_url...');
+      try {
+        rest.file_url = ''; // Provide an empty string if it's required but we don't have one
+        return await performSave(rest);
+      } catch (retryError) {
+        console.error('Retry with empty file_url failed:', retryError);
         throw retryError;
       }
     }

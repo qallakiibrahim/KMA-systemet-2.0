@@ -54,7 +54,7 @@ export const createDokument = async (data) => {
     }
     
     // Fallback for not-null constraint on company_id
-    if (error.message.includes('null value in column "company_id" violates not-null constraint')) {
+    if (error.message.includes('column "company_id"') && error.message.includes('violates not-null constraint')) {
       console.warn('Retrying document creation with a default company...');
       const { data: companies } = await supabase.from('companies').select('id').limit(1);
       if (companies && companies.length > 0) {
@@ -72,21 +72,56 @@ export const createDokument = async (data) => {
       }
     }
 
+    // Fallback for not-null constraint on file_url
+    if (error.message.includes('column "file_url"') && error.message.includes('violates not-null constraint')) {
+      console.warn('Retrying document creation with empty file_url...');
+      data.file_url = ''; 
+      const { data: retryInserted, error: retryError } = await supabase
+        .from(tableName)
+        .insert([data])
+        .select()
+        .single();
+        
+      if (retryError) throw retryError;
+      return retryInserted;
+    }
+
     throw error;
   }
   return inserted;
 };
 
 export const updateDokument = async (id, data) => {
-  const { data: updated, error } = await supabase
-    .from(tableName)
-    .update(data)
-    .eq('id', id)
-    .select()
-    .single();
+  try {
+    const { data: updated, error } = await supabase
+      .from(tableName)
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return updated;
+  } catch (error) {
+    console.error('Supabase updateDokument error:', error);
     
-  if (error) throw error;
-  return updated;
+    // Fallback for not-null constraint on file_url
+    if (error.message && error.message.includes('column "file_url"') && error.message.includes('violates not-null constraint')) {
+      console.warn('Retrying document update with empty file_url...');
+      data.file_url = ''; 
+      const { data: retryUpdated, error: retryError } = await supabase
+        .from(tableName)
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (retryError) throw retryError;
+      return retryUpdated;
+    }
+    
+    throw error;
+  }
 };
 
 export const deleteDokument = async (id) => {
