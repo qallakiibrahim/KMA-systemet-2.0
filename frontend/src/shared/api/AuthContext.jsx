@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { toast } from 'react-toastify';
+import { ensureApiKey } from '../utils/aiUtils';
 
 const AuthContext = createContext();
 
@@ -279,6 +280,8 @@ export const AuthProvider = ({ children }) => {
         if (session?.user) {
           setUser(session.user);
           fetchUserProfile(session.user);
+          // Trigger API key selection automatically after login
+          ensureApiKey();
         }
       });
     };
