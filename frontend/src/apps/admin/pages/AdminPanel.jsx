@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive, X, Info } from 'lucide-react';
+import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive, X, Info, Trash2 } from 'lucide-react';
 import { getUsers, updateUser, getPendingInvitations, inviteUser, deleteInvitation } from '../api/users';
-import { getCompanies, createCompany, updateCompany } from '../../company/api/company';
+import { getCompanies, createCompany, updateCompany, deleteCompany } from '../../company/api/company';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import '../styles/AdminPanel.css';
@@ -120,6 +120,26 @@ const AdminPanel = ({ isEmbedded = false }) => {
     } catch (error) {
       console.error('Error deleting invitation:', error);
       toast.error('Kunde inte ta bort inbjudan');
+    }
+  };
+
+  const handleDeleteCompany = async (id, name) => {
+    if (name === 'SafeQMS') {
+      toast.error('Systemets huvudföretag kan inte tas bort.');
+      return;
+    }
+    
+    if (!window.confirm(`Är du säker på att du vill ta bort företaget "${name}"? Detta kommer även att påverka alla användare och data kopplat till företaget.`)) return;
+    
+    try {
+      await deleteCompany(id);
+      toast.success('Företaget har tagits bort');
+      // Refresh data
+      const companiesData = await getCompanies();
+      setCompanies(companiesData);
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      toast.error(`Kunde inte ta bort företaget: ${error.message || 'Okänt fel'}`);
     }
   };
 
@@ -434,6 +454,14 @@ const AdminPanel = ({ isEmbedded = false }) => {
                       <td className="text-muted">{company.expires_at ? new Date(company.expires_at).toLocaleDateString() : '-'}</td>
                       <td className="actions-cell">
                         <button className="btn-secondary btn-sm" onClick={() => openEditCompanyModal(company)}>Redigera</button>
+                        <button 
+                          className="btn-danger btn-sm ml-2" 
+                          onClick={() => handleDeleteCompany(company.id, company.name)}
+                          disabled={company.name === 'SafeQMS'}
+                          title={company.name === 'SafeQMS' ? "Systemägaren kan inte tas bort" : "Ta bort företag"}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   ))}
