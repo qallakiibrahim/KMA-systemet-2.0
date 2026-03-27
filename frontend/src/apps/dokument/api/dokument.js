@@ -3,13 +3,31 @@ import { supabase } from '../../../supabase';
 const tableName = 'documents';
 
 export const getDokuments = async () => {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*, attachments(*)')
-    .order('created_at', { ascending: false });
-    
-  if (error) throw error;
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*, attachments(*)')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      // If the error is because the attachments relationship doesn't exist, try without it
+      if (error.message.includes('relationship') || error.message.includes('column') || error.code === 'PGRST204') {
+        console.warn('Failed to fetch with attachments, retrying without them...', error);
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from(tableName)
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (fallbackError) throw fallbackError;
+        return fallbackData;
+      }
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    throw error;
+  }
 };
 
 export const createDokument = async (data) => {
