@@ -219,6 +219,22 @@
 }
 
 @media (max-width: 768px) {
+  .library-container {
+    padding: 1rem;
+  }
+
+  .library-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .library-stats {
+    width: 100%;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
   .library-controls {
     flex-direction: column;
     align-items: stretch;
@@ -231,5 +247,16 @@
   
   .tab-group {
     justify-content: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tab-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-group button {
+    flex: 1;
+    white-space: nowrap;
   }
 }

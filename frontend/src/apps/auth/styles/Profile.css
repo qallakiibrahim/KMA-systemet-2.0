@@ -199,20 +199,60 @@
   color: var(--text-secondary);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 1rem;
+  }
+
   .profile-header {
     flex-direction: column;
     text-align: center;
     gap: 1rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 2.5rem;
+  }
+
+  .profile-title h1 {
+    font-size: 1.75rem;
+  }
+
+  .profile-title p {
+    font-size: 1rem;
   }
   
   .profile-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .profile-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem;
+  }
+
+  .profile-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profile-tab-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
   }
   
   .info-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
+  }
+
+  .profile-card {
+    padding: 1.25rem;
   }
 }
