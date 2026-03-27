@@ -257,17 +257,23 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
+        // Trigger API key selection on initial load if logged in
+        ensureApiKey();
       } else {
         setLoading(false);
       }
     });
 
     // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
+        // Trigger API key selection on sign in
+        if (event === 'SIGNED_IN') {
+          ensureApiKey();
+        }
       } else {
         setUserProfile(null);
         setLoading(false);

@@ -5,7 +5,7 @@ import { getAvvikelser } from '../../avvikelse/api/avvikelse';
 import { getRisker } from '../../risk/api/risk';
 import { getTasks } from '../../task/api/tasksApi';
 import { getDokuments } from '../../dokument/api/dokument';
-import { getAiInstance, ensureApiKey, hasApiKey } from '../../../shared/utils/aiUtils';
+import { getAiInstance } from '../../../shared/utils/aiUtils';
 import '../styles/Dashboard.css';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -26,16 +26,9 @@ const Dashboard = () => {
     setIsAiLoading(true);
     setAiError('');
     try {
-      // Check if we have a key without triggering the dialog
-      const keyAvailable = await hasApiKey();
-      if (!keyAvailable) {
-        setAiError('AI-nyckel saknas. Klicka nedan för att välja en nyckel.');
-        return;
-      }
-
       const ai = await getAiInstance();
       if (!ai) {
-        setAiError('Kunde inte initiera AI. Försök igen.');
+        setAiError('AI-nyckel saknas. Välj en nyckel för att få insikter.');
         return;
       }
 
@@ -62,17 +55,6 @@ Data:
       setAiError('Kunde inte generera AI-insikt.');
     } finally {
       setIsAiLoading(false);
-    }
-  };
-
-  const handleConnectAi = async () => {
-    try {
-      const key = await ensureApiKey();
-      if (key) {
-        generateAiInsight(stats);
-      }
-    } catch (error) {
-      console.error('Error connecting AI:', error);
     }
   };
 
@@ -192,12 +174,7 @@ Data:
               <RefreshCw size={16} className="animate-spin" /> Analyserar systemdata...
             </div>
           ) : aiError ? (
-            <div className="ai-insight-error-container">
-              <p className="ai-insight-error">{aiError}</p>
-              <button className="ai-refresh-btn" onClick={handleConnectAi}>
-                <Bot size={14} /> Anslut AI
-              </button>
-            </div>
+            <p className="ai-insight-error">{aiError}</p>
           ) : (
             <>
               <p className="ai-insight-text">{aiInsight || 'Välj en API-nyckel i Admin-panelen för att få proaktiva insikter.'}</p>
