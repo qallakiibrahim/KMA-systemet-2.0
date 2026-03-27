@@ -1,4 +1,13 @@
--- 1. Create Tables
+-- 1. Create Functions
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Create Tables
 
 -- Profiles table (linked to auth.users)
 CREATE TABLE IF NOT EXISTS profiles (
@@ -8,8 +17,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   email TEXT,
   role TEXT DEFAULT 'user',
   company_id UUID, -- Added for SaaS
-  company TEXT,
   permissions TEXT[] DEFAULT '{viewer}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -22,8 +31,9 @@ CREATE TABLE IF NOT EXISTS tasks (
   status TEXT DEFAULT 'todo',
   priority TEXT DEFAULT 'Medium',
   created_by UUID REFERENCES auth.users ON DELETE CASCADE,
-  company_id UUID, -- Added for SaaS
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  company_id UUID NOT NULL, -- Added for SaaS
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Risker table
@@ -38,11 +48,12 @@ CREATE TABLE IF NOT EXISTS risker (
   risk_score INTEGER,
   risk_level TEXT,
   responsible_uid UUID REFERENCES auth.users ON DELETE SET NULL,
-  company_id UUID, -- Added for SaaS
+  company_id UUID NOT NULL, -- Added for SaaS
   is_template BOOLEAN DEFAULT FALSE,
   is_global BOOLEAN DEFAULT FALSE,
   deadline DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Avvikelser table
@@ -55,7 +66,7 @@ CREATE TABLE IF NOT EXISTS avvikelser (
   discovery_date DATE,
   ansvarig_uid UUID REFERENCES auth.users ON DELETE SET NULL,
   author_uid UUID REFERENCES auth.users ON DELETE CASCADE,
-  company_id UUID, -- Added for SaaS
+  company_id UUID NOT NULL, -- Added for SaaS
   avdelning TEXT,
   what TEXT,
   who TEXT,
@@ -66,7 +77,8 @@ CREATE TABLE IF NOT EXISTS avvikelser (
   how_much TEXT,
   ai_rekommendation TEXT,
   deadline DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Calendar Events table
@@ -79,19 +91,112 @@ CREATE TABLE IF NOT EXISTS calendar_events (
   all_day BOOLEAN DEFAULT FALSE,
   recurrence TEXT DEFAULT 'none',
   created_by UUID REFERENCES auth.users ON DELETE CASCADE,
+  company_id UUID NOT NULL, -- Added for SaaS
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Documents table
+CREATE TABLE IF NOT EXISTS documents (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  file_url TEXT NOT NULL,
+  file_type TEXT,
+  file_size INTEGER,
+  category TEXT DEFAULT 'general',
+  version INTEGER DEFAULT 1,
+  status TEXT DEFAULT 'utkast',
+  creator_uid UUID REFERENCES auth.users ON DELETE CASCADE,
+  company_id UUID NOT NULL, -- Added for SaaS
+  is_template BOOLEAN DEFAULT FALSE,
+  is_global BOOLEAN DEFAULT FALSE,
+  next_review_date DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Processes table
+CREATE TABLE IF NOT EXISTS processes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'active',
+  category TEXT, -- Added for SaaS
+  parent_id UUID REFERENCES processes(id) ON DELETE CASCADE,
+  steps JSONB DEFAULT '{"nodes": [], "edges": []}',
+  created_by UUID REFERENCES auth.users ON DELETE CASCADE,
+  company_id UUID NOT NULL, -- Added for SaaS
+  is_template BOOLEAN DEFAULT FALSE,
+  is_global BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Companies table
+CREATE TABLE IF NOT EXISTS companies (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  org_nr TEXT,
+  address TEXT,
+  contact_person TEXT,
+  email TEXT,
+  phone TEXT,
+  plan TEXT DEFAULT 'Basic', -- Added for SaaS
+  status TEXT DEFAULT 'active', -- Added for SaaS
+  expires_at TIMESTAMPTZ, -- Added for SaaS
+  logo_url TEXT, -- Added for company logo
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
   company_id UUID, -- Added for SaaS
+  title TEXT NOT NULL,
+  message TEXT,
+  type TEXT,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Mail table (for Trigger Email equivalent)
+CREATE TABLE IF NOT EXISTS mail (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  "to" TEXT NOT NULL,
+  message JSONB NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Enable Row Level Security (RLS)
+-- User invitations/pending profiles
+CREATE TABLE IF NOT EXISTS pending_users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT NOT NULL,
+  company_id UUID REFERENCES companies(id),
+  role TEXT DEFAULT 'user',
+  permissions TEXT[] DEFAULT '{read_write}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Enable Row Level Security (RLS)
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE risker ENABLE ROW LEVEL SECURITY;
 ALTER TABLE avvikelser ENABLE ROW LEVEL SECURITY;
 ALTER TABLE calendar_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE processes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mail ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pending_users ENABLE ROW LEVEL SECURITY;
 
--- 3. Create RLS Policies
+-- 4. Create RLS Policies
 
 -- Profiles: Users can read all profiles, but only update their own (unless superadmin)
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
@@ -128,75 +233,19 @@ CREATE POLICY "Users can insert events" ON calendar_events FOR INSERT WITH CHECK
 CREATE POLICY "Users can update their own events" ON calendar_events FOR UPDATE USING (auth.uid() = created_by);
 CREATE POLICY "Users can delete their own events" ON calendar_events FOR DELETE USING (auth.uid() = created_by);
 
--- Documents table
-CREATE TABLE IF NOT EXISTS documents (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT,
-  file_url TEXT NOT NULL,
-  file_type TEXT,
-  file_size INTEGER,
-  category TEXT DEFAULT 'general',
-  version INTEGER DEFAULT 1,
-  status TEXT DEFAULT 'utkast',
-  creator_uid UUID REFERENCES auth.users ON DELETE CASCADE,
-  company_id UUID, -- Added for SaaS
-  is_template BOOLEAN DEFAULT FALSE,
-  is_global BOOLEAN DEFAULT FALSE,
-  next_review_date DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
-
+-- Documents: Similar policies
 CREATE POLICY "Documents are viewable by authenticated users" ON documents FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Users can insert documents" ON documents FOR INSERT WITH CHECK (auth.uid() = creator_uid);
 CREATE POLICY "Users can update their own documents" ON documents FOR UPDATE USING (auth.uid() = creator_uid);
 CREATE POLICY "Users can delete their own documents" ON documents FOR DELETE USING (auth.uid() = creator_uid);
 
--- Processes table
-CREATE TABLE IF NOT EXISTS processes (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT,
-  status TEXT DEFAULT 'active',
-  category TEXT, -- Added for SaaS
-  parent_id UUID REFERENCES processes(id) ON DELETE CASCADE,
-  steps JSONB DEFAULT '{"nodes": [], "edges": []}',
-  created_by UUID REFERENCES auth.users ON DELETE CASCADE,
-  company_id UUID, -- Added for SaaS
-  is_template BOOLEAN DEFAULT FALSE,
-  is_global BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE processes ENABLE ROW LEVEL SECURITY;
-
+-- Processes: Similar policies
 CREATE POLICY "Processes are viewable by authenticated users" ON processes FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Users can insert processes" ON processes FOR INSERT WITH CHECK (auth.uid() = created_by);
 CREATE POLICY "Users can update their own processes" ON processes FOR UPDATE USING (auth.uid() = created_by);
 CREATE POLICY "Users can delete their own processes" ON processes FOR DELETE USING (auth.uid() = created_by);
 
--- Companies table
-CREATE TABLE IF NOT EXISTS companies (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  org_nr TEXT, -- Changed from org_number to org_nr to match frontend
-  org_number TEXT, -- Keep for backward compatibility
-  address TEXT,
-  contact_person TEXT,
-  email TEXT,
-  phone TEXT,
-  plan TEXT DEFAULT 'Basic', -- Added for SaaS
-  status TEXT DEFAULT 'active', -- Added for SaaS
-  expires_at TIMESTAMPTZ, -- Added for SaaS
-  logo_url TEXT, -- Added for company logo
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
-
+-- Companies: Similar policies
 CREATE POLICY "Companies are viewable by authenticated users" ON companies FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Admins can manage companies" ON companies FOR ALL USING (
   EXISTS (
@@ -205,47 +254,15 @@ CREATE POLICY "Admins can manage companies" ON companies FOR ALL USING (
   )
 );
 
--- Notifications table
-CREATE TABLE IF NOT EXISTS notifications (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  message TEXT,
-  type TEXT,
-  is_read BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-
+-- Notifications: Similar policies
 CREATE POLICY "Users can view their own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can update their own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own notifications" ON notifications FOR DELETE USING (auth.uid() = user_id);
 
--- Mail table (for Trigger Email equivalent)
-CREATE TABLE IF NOT EXISTS mail (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  "to" TEXT NOT NULL,
-  message JSONB NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE mail ENABLE ROW LEVEL SECURITY;
-
+-- Mail: Similar policies
 CREATE POLICY "Authenticated users can insert mail" ON mail FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- 4. User invitations/pending profiles
-CREATE TABLE IF NOT EXISTS pending_users (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  email TEXT NOT NULL,
-  company_id UUID REFERENCES companies(id),
-  role TEXT DEFAULT 'user',
-  permissions TEXT[] DEFAULT '{read_write}',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE pending_users ENABLE ROW LEVEL SECURITY;
-
+-- Pending Users: Similar policies
 CREATE POLICY "Superadmins can manage pending users" ON pending_users
   FOR ALL USING (
     EXISTS (
@@ -265,7 +282,20 @@ CREATE POLICY "Admins can manage pending users for their company" ON pending_use
 CREATE POLICY "Users can read their own invite" ON pending_users
   FOR SELECT USING (email = auth.jwt()->>'email');
 
--- 5. Create a trigger for new user profile creation
+-- 5. Create Triggers for updated_at
+
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER update_risker_updated_at BEFORE UPDATE ON risker FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER update_avvikelser_updated_at BEFORE UPDATE ON avvikelser FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER update_calendar_events_updated_at BEFORE UPDATE ON calendar_events FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER update_documents_updated_at BEFORE UPDATE ON documents FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER update_processes_updated_at BEFORE UPDATE ON processes FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER update_notifications_updated_at BEFORE UPDATE ON notifications FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+CREATE TRIGGER update_pending_users_updated_at BEFORE UPDATE ON pending_users FOR EACH ROW EXECUTE PROCEDURE handle_updated_at();
+
+-- 6. Create a trigger for new user profile creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -298,3 +328,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+

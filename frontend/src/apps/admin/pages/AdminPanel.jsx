@@ -125,7 +125,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
 
   const filteredCompanies = companies.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (c.org_nr || c.org_number || '').includes(searchTerm)
+    (c.org_nr || '').includes(searchTerm)
   );
 
   const filteredUsers = users.filter(u => 
@@ -205,7 +205,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
     setEditingCompany(company);
     setNewCompany({
       name: company.name || '',
-      org_nr: company.org_nr || company.org_number || '',
+      org_nr: company.org_nr || '',
       plan: company.plan || 'Basic',
       status: company.status || 'active',
       address: company.address || '',
@@ -427,7 +427,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
                           </span>
                         )}
                       </td>
-                      <td className="text-muted">{company.org_nr || company.org_number || '-'}</td>
+                      <td className="text-muted">{company.org_nr || '-'}</td>
                       <td>{company.plan || 'Basic'}</td>
                       <td>{renderStatusBadge(company.status || 'active')}</td>
                       <td>-</td>

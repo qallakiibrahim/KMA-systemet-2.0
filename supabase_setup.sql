@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 CREATE TABLE IF NOT EXISTS companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  org_number TEXT,
+  org_nr TEXT,
   address TEXT,
   city TEXT,
   zip_code TEXT,

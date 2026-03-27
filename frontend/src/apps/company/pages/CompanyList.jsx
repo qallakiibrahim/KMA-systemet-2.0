@@ -38,7 +38,7 @@ const CompanyList = ({ isEmbedded = false }) => {
           setCompany(myCompany);
           setFormData({
             name: myCompany.name || '',
-            org_nr: myCompany.org_nr || myCompany.org_number || '',
+            org_nr: myCompany.org_nr || '',
             address: myCompany.address || '',
             city: myCompany.city || '',
             zip_code: myCompany.zip_code || '',
@@ -124,15 +124,8 @@ const CompanyList = ({ isEmbedded = false }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Create a copy of formData and handle the org_nr/org_number mapping
       const dataToSave = { ...formData };
       
-      // If the database uses org_number instead of org_nr, we need to map it
-      if (company.org_number !== undefined && !company.org_nr) {
-        dataToSave.org_number = dataToSave.org_nr;
-        delete dataToSave.org_nr;
-      }
-
       const updated = await updateCompany(company.id, dataToSave);
       setCompany(updated);
       setIsEditing(false);
@@ -329,7 +322,7 @@ const CompanyList = ({ isEmbedded = false }) => {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold text-[var(--text-primary)]">{company.name}</h2>
-                      <p className="text-[var(--text-muted)]">Org.nr: {company.org_nr || company.org_number || 'Ej angivet'}</p>
+                      <p className="text-[var(--text-muted)]">Org.nr: {company.org_nr || 'Ej angivet'}</p>
                     </div>
                   </div>
                 </div>
