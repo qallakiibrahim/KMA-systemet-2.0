@@ -14,7 +14,8 @@ import {
   ChevronRight, ChevronLeft, Globe, Lock, FileText,
   Bold, Italic, List, ListOrdered, Table as TableIcon,
   Undo, Redo, Eraser, ExternalLink, Download, Plus,
-  Heading1, Heading2, Heading3, Underline as UnderlineIcon
+  Heading1, Heading2, Heading3, Underline as UnderlineIcon,
+  Strikethrough, Quote, Code
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { saveDocument, uploadAttachment, deleteAttachment } from '../api/documentService';
@@ -78,6 +79,33 @@ const MenuBar = ({ editor }) => {
         >
           <UnderlineIcon size={18} />
         </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          className={editor.isActive('strike') ? 'active' : ''}
+          title="Genomstruken"
+        >
+          <Strikethrough size={18} />
+        </button>
+      </div>
+
+      <div className="menubar-group">
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          className={editor.isActive('blockquote') ? 'active' : ''}
+          title="Citat"
+        >
+          <Quote size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          className={editor.isActive('codeBlock') ? 'active' : ''}
+          title="Kodblock"
+        >
+          <Code size={18} />
+        </button>
       </div>
 
       <div className="menubar-group">
@@ -135,6 +163,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
   const { currentUser, userProfile } = useAuth();
   const [title, setTitle] = useState(document?.title || '');
   const [category, setCategory] = useState(document?.category || 'general');
+  const [isoChapter, setIsoChapter] = useState(document?.iso_chapter || '');
   const [status, setStatus] = useState(document?.status || 'utkast');
   const [attachments, setAttachments] = useState(document?.attachments || []);
   const [externalLinks, setExternalLinks] = useState(document?.external_links || []);
@@ -175,6 +204,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
         content: editor.getJSON(),
         description: editor.getText().substring(0, 200),
         category,
+        iso_chapter: isoChapter,
         status,
         external_links: externalLinks,
         company_id: userProfile?.company_id,
@@ -315,6 +345,16 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
                   <option value="contract">Avtal</option>
                   <option value="report">Rapport</option>
                 </select>
+              </div>
+              <div className="form-group">
+                <label>ISO-kapitel</label>
+                <input 
+                  type="text" 
+                  value={isoChapter} 
+                  onChange={(e) => setIsoChapter(e.target.value)}
+                  placeholder="t.ex. 9.1 Övervakning"
+                  className="w-full p-2 border rounded text-sm"
+                />
               </div>
               <div className="metadata-info">
                 <p><strong>Skapad:</strong> {new Date(document?.created_at || new Date()).toLocaleDateString()}</p>

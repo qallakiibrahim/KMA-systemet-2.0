@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS documents (
   file_type TEXT,
   file_size INTEGER,
   category TEXT DEFAULT 'general',
+  iso_chapter TEXT, -- ISO standard chapter reference
   version INTEGER DEFAULT 1,
   status TEXT DEFAULT 'utkast',
   creator_uid UUID REFERENCES auth.users ON DELETE CASCADE,

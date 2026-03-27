@@ -48,6 +48,7 @@ const DokumentList = () => {
     description: '', 
     file_url: '', 
     category: 'general',
+    iso_chapter: '',
     status: 'utkast',
     file_type: '',
     file_size: 0
@@ -129,6 +130,7 @@ const DokumentList = () => {
         description: doc.description || '',
         file_url: doc.file_url || '',
         category: doc.category || 'general',
+        iso_chapter: doc.iso_chapter || '',
         status: doc.status || 'utkast',
         file_type: doc.file_type || '',
         file_size: doc.file_size || 0
@@ -140,6 +142,7 @@ const DokumentList = () => {
         description: '', 
         file_url: '', 
         category: 'general',
+        iso_chapter: '',
         status: 'utkast',
         file_type: '',
         file_size: 0
@@ -189,6 +192,7 @@ const DokumentList = () => {
         description: '', 
         file_url: '', 
         category: 'general',
+        iso_chapter: '',
         file_type: '',
         file_size: 0
       });
@@ -345,7 +349,10 @@ const DokumentList = () => {
                       </div>
                       <div className="title-container">
                         <h3 className="card-title" title={d.title}>{d.title}</h3>
-                        <span className="dokument-category-badge">{d.category}</span>
+                        <div className="flex gap-2 mt-1">
+                          <span className="dokument-category-badge">{d.category}</span>
+                          {d.iso_chapter && <span className="dokument-category-badge bg-blue-100 text-blue-800 border-blue-200">ISO: {d.iso_chapter}</span>}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -377,6 +384,7 @@ const DokumentList = () => {
                 <tr>
                   <th>Namn</th>
                   <th>Kategori</th>
+                  <th>ISO-kapitel</th>
                   <th>Status</th>
                   <th>Storlek</th>
                   <th>Datum</th>
@@ -393,6 +401,7 @@ const DokumentList = () => {
                       </div>
                     </td>
                     <td><span className="dokument-category capitalize">{d.category}</span></td>
+                    <td>{d.iso_chapter || '-'}</td>
                     <td>
                       <span className={`status-badge-mini ${getStatusBadge(d.status).className}`}>
                         {getStatusBadge(d.status).label}
@@ -508,6 +517,18 @@ const DokumentList = () => {
                     <option value="contract">Avtal</option>
                     <option value="report">Rapport</option>
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="iso_chapter">ISO-kapitel</label>
+                  <input
+                    type="text"
+                    id="iso_chapter"
+                    name="iso_chapter"
+                    value={formData.iso_chapter}
+                    onChange={handleInputChange}
+                    placeholder="t.ex. 9.1 Övervakning"
+                  />
                 </div>
 
                 <div className="form-group">

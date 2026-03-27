@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS documents (
   description TEXT,
   file_url TEXT,
   category TEXT DEFAULT 'general',
+  iso_chapter TEXT,
   uploaded_by TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()

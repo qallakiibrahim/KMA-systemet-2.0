@@ -41,8 +41,21 @@ export const createDokument = async (data) => {
     console.error('Supabase createDokument error:', error);
     // If it's a missing column error, try without SaaS columns
     if (error.message.includes('column') && error.message.includes('does not exist')) {
+      if (error.message.includes('iso_chapter')) {
+        console.warn('Retrying document creation without iso_chapter...');
+        const { iso_chapter, ...dataWithoutIso } = data;
+        const { data: retryInserted, error: retryError } = await supabase
+          .from(tableName)
+          .insert([dataWithoutIso])
+          .select()
+          .single();
+          
+        if (retryError) throw retryError;
+        return retryInserted;
+      }
+
       console.warn('Retrying document creation without SaaS columns...');
-      const { company_id, is_template, is_global, ...minimalData } = data;
+      const { company_id, is_template, is_global, iso_chapter, ...minimalData } = data;
       const { data: retryInserted, error: retryError } = await supabase
         .from(tableName)
         .insert([minimalData])
@@ -105,6 +118,23 @@ export const updateDokument = async (id, data) => {
   } catch (error) {
     console.error('Supabase updateDokument error:', error);
     
+    // Fallback for missing columns
+    if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
+      if (error.message.includes('iso_chapter')) {
+        console.warn('Retrying document update without iso_chapter...');
+        const { iso_chapter, ...dataWithoutIso } = data;
+        const { data: retryUpdated, error: retryError } = await supabase
+          .from(tableName)
+          .update(dataWithoutIso)
+          .eq('id', id)
+          .select()
+          .single();
+          
+        if (retryError) throw retryError;
+        return retryUpdated;
+      }
+    }
+
     // Fallback for not-null constraint on file_url
     if (error.message && error.message.includes('column "file_url"') && error.message.includes('violates not-null constraint')) {
       console.warn('Retrying document update with empty file_url...');

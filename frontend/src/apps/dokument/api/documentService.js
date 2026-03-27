@@ -59,6 +59,16 @@ export const saveDocument = async (documentData) => {
     
     // Fallback for missing columns (e.g. if schema is not updated)
     if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
+      if (error.message.includes('iso_chapter')) {
+        console.warn('Retrying document save without iso_chapter...');
+        const { iso_chapter, ...dataWithoutIso } = rest;
+        try {
+          return await performSave(dataWithoutIso);
+        } catch (retryError) {
+          console.error('Retry without iso_chapter failed:', retryError);
+          throw retryError;
+        }
+      }
       throw new Error('Databasen saknar nödvändiga kolumner (t.ex. content, company_id). Vänligen kör SQL-skriptet "supabase_schema.sql" i Supabase för att uppdatera databasen.');
     }
     
