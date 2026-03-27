@@ -1,11 +1,24 @@
 import { GoogleGenAI } from '@google/genai';
 
 /**
+ * Gets the API key from the environment.
+ */
+const getRawApiKey = () => {
+  // In Vite/React, process.env might not be directly available or might be shimmed.
+  // We check multiple possible locations where the platform might inject it.
+  return (
+    (typeof process !== 'undefined' && process.env ? process.env.API_KEY || process.env.GEMINI_API_KEY : null) ||
+    (import.meta.env ? import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY : null) ||
+    null
+  );
+};
+
+/**
  * Checks if an API key is available without triggering a selection dialog.
  */
 export const hasApiKey = async () => {
   if (typeof window.aistudio === 'undefined') {
-    return !!(process.env.GEMINI_API_KEY || process.env.API_KEY);
+    return !!getRawApiKey();
   }
   try {
     return await window.aistudio.hasSelectedApiKey();
@@ -23,26 +36,22 @@ export const hasApiKey = async () => {
  */
 export const ensureApiKey = async () => {
   if (typeof window.aistudio === 'undefined') {
-    console.warn('AI Studio environment not detected. Falling back to environment variables.');
-    return process.env.GEMINI_API_KEY || process.env.API_KEY || null;
+    return getRawApiKey();
   }
 
   try {
     const hasKey = await window.aistudio.hasSelectedApiKey();
     if (!hasKey) {
       await window.aistudio.openSelectKey();
-      // Assume success and proceed
+      // Assume success and proceed as per instructions
     }
     
-    // The key is injected into process.env.API_KEY by the platform
-    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
-    return apiKey;
+    return getRawApiKey();
   } catch (error) {
     console.error('Error ensuring API key:', error);
     if (error.message && error.message.includes('Requested entity was not found')) {
-      // Reset and prompt again if the key is invalid
       await window.aistudio.openSelectKey();
-      return process.env.API_KEY || process.env.GEMINI_API_KEY || null;
+      return getRawApiKey();
     }
     return null;
   }
