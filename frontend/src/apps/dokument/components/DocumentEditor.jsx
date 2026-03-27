@@ -14,7 +14,7 @@ import {
   ChevronRight, ChevronLeft, Globe, Lock, FileText,
   Bold, Italic, List, ListOrdered, Table as TableIcon,
   Undo, Redo, Eraser, ExternalLink, Download, Plus,
-  Heading1, Heading2, Heading3
+  Heading1, Heading2, Heading3, Underline as UnderlineIcon
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { saveDocument, uploadAttachment, deleteAttachment } from '../api/documentService';
@@ -76,7 +76,7 @@ const MenuBar = ({ editor }) => {
           className={editor.isActive('underline') ? 'active' : ''}
           title="Understruken"
         >
-          <Underline size={18} />
+          <UnderlineIcon size={18} />
         </button>
       </div>
 
