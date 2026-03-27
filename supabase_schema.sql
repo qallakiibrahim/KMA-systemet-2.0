@@ -99,7 +99,9 @@ CREATE TABLE IF NOT EXISTS documents (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  file_url TEXT NOT NULL,
+  content JSONB, -- For "living" documents (Tiptap content)
+  external_links JSONB DEFAULT '[]'::jsonb, -- List of external URLs
+  file_url TEXT, -- Primary file if uploaded
   file_type TEXT,
   file_size INTEGER,
   category TEXT DEFAULT 'general',
@@ -112,6 +114,18 @@ CREATE TABLE IF NOT EXISTS documents (
   next_review_date DATE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Attachments table (for document attachments)
+CREATE TABLE IF NOT EXISTS attachments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  file_type TEXT,
+  file_size INTEGER,
+  uploaded_by UUID REFERENCES auth.users ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Processes table
@@ -188,6 +202,7 @@ ALTER TABLE risker ENABLE ROW LEVEL SECURITY;
 ALTER TABLE avvikelser ENABLE ROW LEVEL SECURITY;
 ALTER TABLE calendar_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE processes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -233,9 +248,14 @@ CREATE POLICY "Users can delete their own events" ON calendar_events FOR DELETE 
 
 -- Documents: Similar policies
 CREATE POLICY "Documents are viewable by authenticated users" ON documents FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Users can insert documents" ON documents FOR INSERT WITH CHECK (auth.uid() = creator_uid);
-CREATE POLICY "Users can update their own documents" ON documents FOR UPDATE USING (auth.uid() = creator_uid);
-CREATE POLICY "Users can delete their own documents" ON documents FOR DELETE USING (auth.uid() = creator_uid);
+CREATE POLICY "Users can insert documents" ON documents FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Users can update documents" ON documents FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can delete documents" ON documents FOR DELETE USING (auth.role() = 'authenticated');
+
+-- Attachments: Similar policies
+CREATE POLICY "Attachments are viewable by authenticated users" ON attachments FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can insert attachments" ON attachments FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Users can delete attachments" ON attachments FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Processes: Similar policies
 CREATE POLICY "Processes are viewable by authenticated users" ON processes FOR SELECT USING (auth.role() = 'authenticated');

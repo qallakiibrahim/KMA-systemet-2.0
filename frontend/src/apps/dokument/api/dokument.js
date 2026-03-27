@@ -5,7 +5,7 @@ const tableName = 'documents';
 export const getDokuments = async () => {
   const { data, error } = await supabase
     .from(tableName)
-    .select('*')
+    .select('*, attachments(*)')
     .order('created_at', { ascending: false });
     
   if (error) throw error;

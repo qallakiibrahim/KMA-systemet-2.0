@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument } from '../api/dokument';
 import { useAuth } from '../../../shared/api/AuthContext';
+import DocumentEditor from '../components/DocumentEditor';
 import { 
   Plus, Edit2, Trash2, X, FileText, Download, ExternalLink, 
   File, UploadCloud, Loader, Search, Filter, Grid, List as ListIcon,
-  FileCode, FileImage, FileAudio, FileVideo, FileArchive, FileSpreadsheet
+  FileCode, FileImage, FileAudio, FileVideo, FileArchive, FileSpreadsheet,
+  PlusCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../styles/DokumentList.css';
@@ -33,6 +35,7 @@ const DokumentList = () => {
   const [dokuments, setDokuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingDokument, setEditingDokument] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -115,6 +118,11 @@ const DokumentList = () => {
 
   const openModal = (doc = null) => {
     if (doc) {
+      if (doc.content) {
+        setEditingDokument(doc);
+        setIsEditorOpen(true);
+        return;
+      }
       setEditingDokument(doc);
       setFormData({
         title: doc.title || '',
@@ -241,10 +249,16 @@ const DokumentList = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="btn-primary" onClick={() => openModal()}>
-            <Plus size={20} />
-            <span>Nytt Dokument</span>
-          </button>
+          <div className="flex gap-2">
+            <button className="btn-secondary" onClick={() => setIsEditorOpen(true)}>
+              <PlusCircle size={20} />
+              <span>Nytt Levande Dokument</span>
+            </button>
+            <button className="btn-primary" onClick={() => openModal()}>
+              <Plus size={20} />
+              <span>Ladda upp Fil</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -408,6 +422,25 @@ const DokumentList = () => {
           </div>
         )}
       </div>
+
+      {isEditorOpen && (
+        <DocumentEditor 
+          document={editingDokument} 
+          onClose={() => {
+            setIsEditorOpen(false);
+            setEditingDokument(null);
+          }}
+          onSave={(savedDoc) => {
+            if (editingDokument) {
+              setDokuments(dokuments.map(d => d.id === savedDoc.id ? savedDoc : d));
+            } else {
+              setDokuments([savedDoc, ...dokuments]);
+            }
+            setIsEditorOpen(false);
+            setEditingDokument(null);
+          }}
+        />
+      )}
 
       {isModalOpen && (
         <div className="modal-overlay">
