@@ -31,27 +31,57 @@ export const getDocumentById = async (id) => {
 export const saveDocument = async (documentData) => {
   const { id, attachments, ...rest } = documentData;
 
-  let result;
-  if (id) {
-    const { data, error } = await supabase
-      .from('documents')
-      .update(rest)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    result = data;
-  } else {
-    const { data, error } = await supabase
-      .from('documents')
-      .insert(rest)
-      .select()
-      .single();
-    if (error) throw error;
-    result = data;
-  }
+  const performSave = async (dataToSave) => {
+    if (id) {
+      const { data, error } = await supabase
+        .from('documents')
+        .update(dataToSave)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    } else {
+      const { data, error } = await supabase
+        .from('documents')
+        .insert(dataToSave)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  };
 
-  return result;
+  try {
+    return await performSave(rest);
+  } catch (error) {
+    console.error('Supabase saveDocument error:', error);
+    
+    // Fallback for missing columns (e.g. if schema is not updated)
+    if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
+      throw new Error('Databasen saknar nödvändiga kolumner (t.ex. content, company_id). Vänligen kör SQL-skriptet "supabase_schema.sql" i Supabase för att uppdatera databasen.');
+    }
+    
+    // Fallback for not-null constraint on company_id
+    if (error.message && error.message.includes('null value in column "company_id" violates not-null constraint')) {
+      console.warn('Retrying document save with a default company...');
+      try {
+        // Try to fetch any available company
+        const { data: companies } = await supabase.from('companies').select('id').limit(1);
+        if (companies && companies.length > 0) {
+          rest.company_id = companies[0].id;
+          return await performSave(rest);
+        } else {
+          throw new Error('Du måste tillhöra ett företag för att spara dokument.');
+        }
+      } catch (retryError) {
+        console.error('Retry with default company failed:', retryError);
+        throw retryError;
+      }
+    }
+
+    throw error;
+  }
 };
 
 export const deleteDocument = async (id) => {

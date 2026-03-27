@@ -186,7 +186,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
       if (onSave) onSave(savedDoc);
     } catch (error) {
       console.error('Save error:', error);
-      toast.error('Kunde inte spara dokumentet');
+      toast.error(`Kunde inte spara dokumentet: ${error.message || 'Okänt fel'}`);
     } finally {
       setIsSaving(false);
     }

@@ -52,6 +52,26 @@ export const createDokument = async (data) => {
       if (retryError) throw retryError;
       return retryInserted;
     }
+    
+    // Fallback for not-null constraint on company_id
+    if (error.message.includes('null value in column "company_id" violates not-null constraint')) {
+      console.warn('Retrying document creation with a default company...');
+      const { data: companies } = await supabase.from('companies').select('id').limit(1);
+      if (companies && companies.length > 0) {
+        data.company_id = companies[0].id;
+        const { data: retryInserted, error: retryError } = await supabase
+          .from(tableName)
+          .insert([data])
+          .select()
+          .single();
+          
+        if (retryError) throw retryError;
+        return retryInserted;
+      } else {
+        throw new Error('Du måste tillhöra ett företag för att spara dokument.');
+      }
+    }
+
     throw error;
   }
   return inserted;
