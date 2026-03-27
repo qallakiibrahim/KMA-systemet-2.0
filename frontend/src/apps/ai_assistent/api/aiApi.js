@@ -13,7 +13,7 @@ export const chatWithAI = async (messages) => {
     const ai = await getAiInstance();
     
     if (!ai) {
-      return { response: 'AI-tjänsten saknar API-nyckel. Jag har öppnat rutan för att välja en nyckel. Välj en nyckel och klicka på skicka igen.' };
+      return { response: 'AI-tjänsten saknar API-nyckel. Kontrollera att du har anslutit din nyckel i inställningarna.' };
     }
     
     const validMessages = messages.filter(msg => msg.content && msg.role);

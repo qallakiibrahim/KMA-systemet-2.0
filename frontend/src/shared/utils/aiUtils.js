@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 
 /**
  * Gets the API key from the environment.
+ * The platform injects the selected key into process.env.API_KEY.
  */
 const getRawApiKey = () => {
   // In Vite/React, process.env might not be directly available or might be shimmed.
@@ -32,7 +33,6 @@ export const hasApiKey = async () => {
  * Checks if the user has selected an API key.
  * If not, opens the selection dialog.
  * Returns the API key if successful, null otherwise.
- * IMPORTANT: This should be called from a user-initiated event (like a click).
  */
 export const ensureApiKey = async () => {
   if (typeof window.aistudio === 'undefined') {
@@ -43,16 +43,11 @@ export const ensureApiKey = async () => {
     const hasKey = await window.aistudio.hasSelectedApiKey();
     if (!hasKey) {
       await window.aistudio.openSelectKey();
-      // Assume success and proceed as per instructions
     }
     
     return getRawApiKey();
   } catch (error) {
     console.error('Error ensuring API key:', error);
-    if (error.message && error.message.includes('Requested entity was not found')) {
-      await window.aistudio.openSelectKey();
-      return getRawApiKey();
-    }
     return null;
   }
 };

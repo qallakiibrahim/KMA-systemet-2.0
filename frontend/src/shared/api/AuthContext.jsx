@@ -270,10 +270,6 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
-        // Trigger API key selection on sign in
-        if (event === 'SIGNED_IN') {
-          ensureApiKey();
-        }
       } else {
         setUserProfile(null);
         setLoading(false);
@@ -286,8 +282,6 @@ export const AuthProvider = ({ children }) => {
         if (session?.user) {
           setUser(session.user);
           fetchUserProfile(session.user);
-          // Trigger API key selection automatically after login
-          ensureApiKey();
         }
       });
     };
