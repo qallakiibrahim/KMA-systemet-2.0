@@ -351,7 +351,7 @@ const DokumentList = () => {
                         <h3 className="card-title" title={d.title}>{d.title}</h3>
                         <div className="flex gap-2 mt-1">
                           <span className="dokument-category-badge">{d.category}</span>
-                          {d.iso_chapter && <span className="dokument-category-badge bg-blue-100 text-blue-800 border-blue-200">ISO: {d.iso_chapter}</span>}
+                          {d.iso_chapter && <span className="dokument-category-badge iso-badge">ISO: {d.iso_chapter}</span>}
                         </div>
                       </div>
                     </div>
@@ -394,22 +394,22 @@ const DokumentList = () => {
               <tbody>
                 {filteredDokuments.map((d) => (
                   <tr key={d.id}>
-                    <td>
+                    <td data-label="Namn">
                       <div className="table-cell-title">
                         <FileIcon type={d.file_type} size={18} />
                         <span>{d.title}</span>
                       </div>
                     </td>
-                    <td><span className="dokument-category capitalize">{d.category}</span></td>
-                    <td>{d.iso_chapter || '-'}</td>
-                    <td>
+                    <td data-label="Kategori"><span className="dokument-category capitalize">{d.category}</span></td>
+                    <td data-label="ISO-kapitel">{d.iso_chapter || '-'}</td>
+                    <td data-label="Status">
                       <span className={`status-badge-mini ${getStatusBadge(d.status).className}`}>
                         {getStatusBadge(d.status).label}
                       </span>
                     </td>
-                    <td>{formatSize(d.file_size)}</td>
-                    <td>{new Date(d.created_at || new Date()).toLocaleDateString('sv-SE')}</td>
-                    <td>
+                    <td data-label="Storlek">{formatSize(d.file_size)}</td>
+                    <td data-label="Datum">{new Date(d.created_at || new Date()).toLocaleDateString('sv-SE')}</td>
+                    <td data-label="Åtgärder">
                       <div className="card-actions">
                         <button className="btn-icon" onClick={() => openModal(d)} title="Redigera">
                           <Edit2 size={16} />

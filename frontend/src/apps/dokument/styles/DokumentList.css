@@ -32,9 +32,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: #ffffff;
-  color: #1e293b;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
@@ -44,8 +44,8 @@
 }
 
 .btn-secondary:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
 }
 
 .search-bar {
@@ -167,6 +167,14 @@
   color: var(--text-muted);
   margin-top: 0.25rem;
   display: inline-block;
+}
+
+.iso-badge {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--primary-color);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
 }
 
 .card-body {
@@ -421,8 +429,8 @@
 }
 
 .btn-icon-small.delete:hover {
-  color: #ef4444;
-  background: #fee2e2;
+  color: var(--danger-color);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .spin {
@@ -545,7 +553,7 @@
 }
 
 .dokument-table tr:hover td {
-  background: var(--bg-secondary-hover, rgba(0,0,0,0.02));
+  background: var(--bg-hover);
 }
 
 .table-cell-title {
@@ -635,6 +643,36 @@
 .text-green-600 { color: #16a34a; }
 .text-orange-500 { color: #f97316; }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: var(--bg-primary);
+  border-radius: 1rem;
+  border: 1px dashed var(--border-color);
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
 @media (max-width: 768px) {
   .dokument-dashboard {
     padding: 1rem;
@@ -682,6 +720,54 @@
   .dokument-table th:nth-child(3),
   .dokument-table td:nth-child(3) {
     display: none;
+  }
+
+  .dokument-list-view {
+    background: transparent;
+    border: none;
+  }
+
+  .dokument-table thead {
+    display: none;
+  }
+
+  .dokument-table, .dokument-table tbody, .dokument-table tr, .dokument-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .dokument-table tr {
+    margin-bottom: 1rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+    box-shadow: var(--card-shadow);
+  }
+
+  .dokument-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 0.5rem;
+    text-align: right;
+  }
+
+  .dokument-table td:last-child {
+    border-bottom: none;
+  }
+
+  .dokument-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 1rem;
+    text-align: left;
+  }
+
+  .table-cell-title {
+    justify-content: flex-end;
   }
 
   /* Car View (Bil Vy) for Modal on Mobile */
