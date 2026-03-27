@@ -354,13 +354,55 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
                   className="w-full p-2 border rounded text-sm"
                 >
                   <option value="">Välj ISO-kapitel...</option>
-                  <option value="4. Organisationens förutsättningar">4. Organisationens förutsättningar</option>
-                  <option value="5. Ledarskap">5. Ledarskap</option>
-                  <option value="6. Planering">6. Planering</option>
-                  <option value="7. Stöd">7. Stöd</option>
-                  <option value="8. Verksamhet">8. Verksamhet</option>
-                  <option value="9. Utvärdering av prestanda">9. Utvärdering av prestanda</option>
-                  <option value="10. Förbättring">10. Förbättring</option>
+                  <optgroup label="4. Organisationens förutsättningar">
+                    <option value="4. Organisationens förutsättningar">4. Huvudkapitel</option>
+                    <option value="4.1 Förståelse för organisationen">4.1 Förståelse för organisationen</option>
+                    <option value="4.2 Intressenters behov">4.2 Intressenters behov</option>
+                    <option value="4.3 Avgränsning">4.3 Avgränsning</option>
+                    <option value="4.4 Ledningssystemet">4.4 Ledningssystemet</option>
+                  </optgroup>
+                  <optgroup label="5. Ledarskap">
+                    <option value="5. Ledarskap">5. Huvudkapitel</option>
+                    <option value="5.1 Ledarskap och åtagande">5.1 Ledarskap och åtagande</option>
+                    <option value="5.2 Policy">5.2 Policy</option>
+                    <option value="5.3 Roller och ansvar">5.3 Roller och ansvar</option>
+                  </optgroup>
+                  <optgroup label="6. Planering">
+                    <option value="6. Planering">6. Huvudkapitel</option>
+                    <option value="6.1 Risker och möjligheter">6.1 Risker och möjligheter</option>
+                    <option value="6.2 Mål och planering">6.2 Mål och planering</option>
+                    <option value="6.3 Planering av ändringar">6.3 Planering av ändringar</option>
+                  </optgroup>
+                  <optgroup label="7. Stöd">
+                    <option value="7. Stöd">7. Huvudkapitel</option>
+                    <option value="7.1 Resurser">7.1 Resurser</option>
+                    <option value="7.2 Kompetens">7.2 Kompetens</option>
+                    <option value="7.3 Medvetenhet">7.3 Medvetenhet</option>
+                    <option value="7.4 Kommunikation">7.4 Kommunikation</option>
+                    <option value="7.5 Dokumenterad information">7.5 Dokumenterad information</option>
+                  </optgroup>
+                  <optgroup label="8. Verksamhet">
+                    <option value="8. Verksamhet">8. Huvudkapitel</option>
+                    <option value="8.1 Verksamhetsplanering">8.1 Verksamhetsplanering</option>
+                    <option value="8.2 Krav på produkter/tjänster">8.2 Krav på produkter/tjänster</option>
+                    <option value="8.3 Konstruktion och utveckling">8.3 Konstruktion och utveckling</option>
+                    <option value="8.4 Externt tillhandahållna processer">8.4 Externt tillhandahållna processer</option>
+                    <option value="8.5 Produktion och tjänsteleverans">8.5 Produktion och tjänsteleverans</option>
+                    <option value="8.6 Frisläppande">8.6 Frisläppande</option>
+                    <option value="8.7 Avvikande utdata">8.7 Avvikande utdata</option>
+                  </optgroup>
+                  <optgroup label="9. Utvärdering av prestanda">
+                    <option value="9. Utvärdering av prestanda">9. Huvudkapitel</option>
+                    <option value="9.1 Övervakning och mätning">9.1 Övervakning och mätning</option>
+                    <option value="9.2 Internrevision">9.2 Internrevision</option>
+                    <option value="9.3 Ledningens genomgång">9.3 Ledningens genomgång</option>
+                  </optgroup>
+                  <optgroup label="10. Förbättring">
+                    <option value="10. Förbättring">10. Huvudkapitel</option>
+                    <option value="10.1 Allmänt">10.1 Allmänt</option>
+                    <option value="10.2 Avvikelse och korrigerande åtgärd">10.2 Avvikelse och korrigerande åtgärd</option>
+                    <option value="10.3 Ständig förbättring">10.3 Ständig förbättring</option>
+                  </optgroup>
                 </select>
               </div>
               <div className="metadata-info">

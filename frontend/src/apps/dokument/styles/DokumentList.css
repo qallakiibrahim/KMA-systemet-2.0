@@ -648,12 +648,26 @@
 
   .header-actions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
 
   .header-actions button {
-    flex: 1;
+    flex: 0 1 auto;
     justify-content: center;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .search-bar {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .dokument-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .library-controls {
