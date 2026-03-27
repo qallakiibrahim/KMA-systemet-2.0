@@ -138,3 +138,83 @@
     grid-column: 1;
   }
 }
+
+/* AI Insight Card */
+.ai-insight-card {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border: 1px solid rgba(66, 133, 244, 0.2);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  box-shadow: var(--card-shadow);
+}
+
+.ai-insight-icon {
+  width: 48px;
+  height: 48px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ai-insight-content {
+  flex: 1;
+}
+
+.ai-insight-content h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ai-insight-text {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.ai-insight-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.ai-insight-error {
+  color: var(--danger-color);
+  font-size: 0.875rem;
+}
+
+.ai-refresh-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  margin-top: 1rem;
+}
+
+.ai-refresh-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}

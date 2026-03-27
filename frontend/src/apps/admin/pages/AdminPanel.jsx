@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive, X, Info, Trash2 } from 'lucide-react';
+import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive, X, Info, Trash2, Key, Bot } from 'lucide-react';
 import { getUsers, updateUser, getPendingInvitations, inviteUser, deleteInvitation } from '../api/users';
 import { getCompanies, createCompany, updateCompany, deleteCompany } from '../../company/api/company';
 import { useAuth } from '../../../shared/api/AuthContext';
@@ -140,6 +140,20 @@ const AdminPanel = ({ isEmbedded = false }) => {
     } catch (error) {
       console.error('Error deleting company:', error);
       toast.error(`Kunde inte ta bort företaget: ${error.message || 'Okänt fel'}`);
+    }
+  };
+
+  const handleSelectAiKey = async () => {
+    if (typeof window.aistudio !== 'undefined') {
+      try {
+        await window.aistudio.openSelectKey();
+        toast.success('AI-nyckel vald!');
+      } catch (error) {
+        console.error('Error selecting AI key:', error);
+        toast.error('Kunde inte öppna nyckelväljaren.');
+      }
+    } else {
+      toast.info('Denna funktion är endast tillgänglig i AI Studio-miljön.');
     }
   };
 
@@ -307,6 +321,9 @@ const AdminPanel = ({ isEmbedded = false }) => {
             <p>Hantera systemet, företag och licenser</p>
           </div>
           <div className="admin-actions">
+            <button className="btn-secondary" onClick={handleSelectAiKey} title="Välj din egen Gemini API-nyckel">
+              <Key size={18} /> AI-inställningar
+            </button>
             {activeTab === 'companies' && (
               <button className="btn-primary" onClick={() => setIsCompanyModalOpen(true)}>
                 <Plus size={18} /> Nytt Företag

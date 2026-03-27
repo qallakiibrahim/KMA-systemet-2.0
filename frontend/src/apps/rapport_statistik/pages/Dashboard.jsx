@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { AlertTriangle, Shield, CheckSquare, FileText } from 'lucide-react';
+import { AlertTriangle, Shield, CheckSquare, FileText, Bot, RefreshCw, Sparkles } from 'lucide-react';
 import { getAvvikelser } from '../../avvikelse/api/avvikelse';
 import { getRisker } from '../../risk/api/risk';
 import { getTasks } from '../../task/api/tasksApi';
 import { getDokuments } from '../../dokument/api/dokument';
+import { getAiInstance } from '../../../shared/utils/aiUtils';
 import '../styles/Dashboard.css';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -17,6 +18,45 @@ const Dashboard = () => {
     tasks: [],
     dokument: []
   });
+  const [aiInsight, setAiInsight] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  const generateAiInsight = async (currentStats) => {
+    setIsAiLoading(true);
+    setAiError('');
+    try {
+      const ai = await getAiInstance();
+      if (!ai) {
+        setAiError('AI-nyckel saknas. Gå till Admin-panelen för att välja en nyckel.');
+        return;
+      }
+
+      const prompt = `Analysera följande data från ett ledningssystem och ge en kort, proaktiv "Dagens AI-insikt" (max 3 meningar). Ge konkreta råd om vad ledningen bör fokusera på idag baserat på siffrorna. Svara på svenska.
+
+Data:
+- Antal avvikelser: ${currentStats.avvikelser.length} (${currentStats.avvikelser.filter(a => a.status === 'open').length} öppna)
+- Antal risker: ${currentStats.risker.length}
+- Antal uppgifter: ${currentStats.tasks.length} (${currentStats.tasks.filter(t => t.status !== 'done').length} ej klara)
+- Antal dokument: ${currentStats.dokument.length}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+      });
+
+      if (response && response.text) {
+        setAiInsight(response.text);
+      } else {
+        throw new Error('Inget svar från AI');
+      }
+    } catch (error) {
+      console.error('AI Insight Error:', error);
+      setAiError('Kunde inte generera AI-insikt.');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,12 +68,15 @@ const Dashboard = () => {
           getDokuments()
         ]);
         
-        setStats({
+        const newStats = {
           avvikelser: avvikelserData || [],
           risker: riskerData || [],
           tasks: tasksData || [],
           dokument: dokumentData || []
-        });
+        };
+        
+        setStats(newStats);
+        generateAiInsight(newStats);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -118,6 +161,29 @@ const Dashboard = () => {
       <div className="dashboard-header">
         <h1>Statistik & Rapporter</h1>
         <p>Övergripande översikt över systemets data</p>
+      </div>
+
+      <div className="ai-insight-card">
+        <div className="ai-insight-icon">
+          <Bot size={28} />
+        </div>
+        <div className="ai-insight-content">
+          <h2><Sparkles size={18} /> Dagens AI-insikt</h2>
+          {isAiLoading ? (
+            <div className="ai-insight-loading">
+              <RefreshCw size={16} className="animate-spin" /> Analyserar systemdata...
+            </div>
+          ) : aiError ? (
+            <p className="ai-insight-error">{aiError}</p>
+          ) : (
+            <>
+              <p className="ai-insight-text">{aiInsight || 'Välj en API-nyckel i Admin-panelen för att få proaktiva insikter.'}</p>
+              <button className="ai-refresh-btn" onClick={() => generateAiInsight(stats)}>
+                <RefreshCw size={14} /> Uppdatera insikt
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="kpi-grid">

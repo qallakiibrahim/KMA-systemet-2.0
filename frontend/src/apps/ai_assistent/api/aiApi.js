@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { getAiInstance } from '../../../shared/utils/aiUtils';
 
 const SYSTEM_INSTRUCTION = `
 Du är en hjälpsam AI-assistent för ett ledningssystem. 
@@ -9,13 +10,11 @@ Svara alltid på svenska. Var professionell men vänlig.
 
 export const chatWithAI = async (messages) => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const ai = await getAiInstance();
     
-    if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey.trim() === '') {
-      return { response: 'AI-tjänsten saknar API-nyckel. Gå till "Settings" i AI Studio och lägg till GEMINI_API_KEY.' };
+    if (!ai) {
+      return { response: 'AI-tjänsten saknar API-nyckel. Klicka på "Settings" i AI Studio för att välja en nyckel.' };
     }
-
-    const ai = new GoogleGenAI({ apiKey });
     
     const validMessages = messages.filter(msg => msg.content && msg.role);
     

@@ -6,6 +6,7 @@ import { useAuth } from '../../../shared/api/AuthContext';
 import { Plus, Edit2, Trash2, X, AlertTriangle, CheckCircle, Clock, Lock, Bot, Paperclip, FileText, Image as ImageIcon, UploadCloud, Loader } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleGenAI } from '@google/genai';
+import { getAiInstance } from '../../../shared/utils/aiUtils';
 import '../styles/AvvikelseList.css';
 
 const AvvikelseList = () => {
@@ -145,16 +146,14 @@ const AvvikelseList = () => {
       return;
     }
     
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error('Gemini API key is missing from process.env');
-      toast.error('AI-tjänsten kunde inte startas (saknar API-nyckel).');
-      return;
-    }
-
     setIsGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = await getAiInstance();
+      if (!ai) {
+        toast.error('AI-tjänsten saknar API-nyckel. Klicka på "Settings" i AI Studio för att välja en nyckel.');
+        return;
+      }
+      
       const prompt = `Skriv en professionell, sammanhängande och tydlig problembeskrivning baserat på följande 5W2H-fakta. Gör det till en löpande text som är lätt att läsa för ledningen. Svara på svenska.\n\nVem: ${vem}\nVad: ${vad}\nNär: ${nar}\nVar: ${varField}\nVarför: ${varfor}\nHur: ${hur}\nHur mycket: ${hur_mycket}`;
       
       const response = await ai.models.generateContent({
@@ -183,16 +182,14 @@ const AvvikelseList = () => {
       return;
     }
     
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error('Gemini API key is missing from process.env');
-      toast.error('AI-tjänsten kunde inte startas (saknar API-nyckel).');
-      return;
-    }
-
     setIsGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = await getAiInstance();
+      if (!ai) {
+        toast.error('AI-tjänsten saknar API-nyckel. Klicka på "Settings" i AI Studio för att välja en nyckel.');
+        return;
+      }
+
       const prompt = `Analysera följande "5 Varför"-svar gällande en avvikelse och sammanfatta den underliggande rotorsaken på ett professionellt och tydligt sätt (max 3-4 meningar). Svara på svenska.\n\nProblem: ${selectedAvvikelse?.titel || 'Okänt problem'}\n\n1. Varför? ${varfor1}\n2. Varför? ${varfor2 || '-'}\n3. Varför? ${varfor3 || '-'}\n4. Varför? ${varfor4 || '-'}\n5. Varför? ${varfor5 || '-'}`;
       
       const response = await ai.models.generateContent({
