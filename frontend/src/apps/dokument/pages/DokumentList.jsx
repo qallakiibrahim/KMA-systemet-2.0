@@ -366,12 +366,10 @@ const DokumentList = () => {
                       <span className="date">📅 {new Date(d.created_at || new Date()).toLocaleDateString('sv-SE')}</span>
                       {d.file_size > 0 && <span className="size"> • 📦 {formatSize(d.file_size)}</span>}
                     </div>
-                    {d.file_url && (
-                      <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="btn-open-doc">
-                        <ExternalLink size={16} />
-                        <span>Öppna</span>
-                      </a>
-                    )}
+                    <a href={d.file_url || `/dokument?id=${d.id}`} target="_blank" rel="noopener noreferrer" className="btn-open-doc">
+                      <ExternalLink size={16} />
+                      <span>Öppna</span>
+                    </a>
                   </div>
                 </div>
               );
@@ -414,11 +412,9 @@ const DokumentList = () => {
                         <button className="btn-icon" onClick={() => openModal(d)} title="Redigera">
                           <Edit2 size={16} />
                         </button>
-                        {d.file_url && (
-                          <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="Öppna">
-                            <ExternalLink size={16} />
-                          </a>
-                        )}
+                        <a href={d.file_url || `/dokument?id=${d.id}`} target="_blank" rel="noopener noreferrer" className="btn-icon" title="Öppna">
+                          <ExternalLink size={16} />
+                        </a>
                         <button className="btn-icon delete" onClick={() => handleDelete(d.id)} title="Radera">
                           <Trash2 size={16} />
                         </button>

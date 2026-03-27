@@ -567,7 +567,13 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
                         const doc = dokuments.find(d => d.id === docId);
                         if (!doc) return null;
                         return (
-                          <a key={doc.id} href={doc.file_url} target="_blank" rel="noopener noreferrer" className="doc-link-item">
+                          <a 
+                            key={doc.id} 
+                            href={doc.file_url || `/dokument?id=${doc.id}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="doc-link-item"
+                          >
                             <FileIcon type={doc.file_type} size={16} />
                             <span>{doc.title}</span>
                             <ExternalLink size={14} className="ml-auto" />
