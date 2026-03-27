@@ -197,6 +197,13 @@
 .ai-insight-error {
   color: var(--danger-color);
   font-size: 0.875rem;
+  margin: 0;
+}
+
+.ai-insight-error-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .ai-refresh-btn {

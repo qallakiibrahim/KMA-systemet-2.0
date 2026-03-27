@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Send, Bot, User } from 'lucide-react';
+import { Send, Bot, User, Key } from 'lucide-react';
 import { chatWithAI } from '../api/aiApi';
+import { hasApiKey, ensureApiKey } from '../../../shared/utils/aiUtils';
 import '../styles/AIAssistant.css';
 
 const AIAssistant = () => {
@@ -9,6 +10,22 @@ const AIAssistant = () => {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasKey, setHasKey] = useState(true);
+
+  React.useEffect(() => {
+    const checkKey = async () => {
+      const available = await hasApiKey();
+      setHasKey(available);
+    };
+    checkKey();
+  }, []);
+
+  const handleConnectAi = async () => {
+    const key = await ensureApiKey();
+    if (key) {
+      setHasKey(true);
+    }
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -39,6 +56,18 @@ const AIAssistant = () => {
       </div>
 
       <div className="chat-container">
+        {!hasKey && (
+          <div className="ai-setup-overlay">
+            <div className="ai-setup-content">
+              <Key size={48} className="ai-setup-icon" />
+              <h2>AI-nyckel saknas</h2>
+              <p>För att använda AI-assistenten behöver du ansluta din egen Gemini API-nyckel.</p>
+              <button className="btn-primary" onClick={handleConnectAi}>
+                Anslut AI nu
+              </button>
+            </div>
+          </div>
+        )}
         <div className="chat-messages">
           {messages.map((msg, index) => (
             <div key={index} className={`message-wrapper ${msg.role}`}>

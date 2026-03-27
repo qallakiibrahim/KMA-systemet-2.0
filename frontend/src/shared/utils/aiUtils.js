@@ -1,9 +1,25 @@
 import { GoogleGenAI } from '@google/genai';
 
 /**
+ * Checks if an API key is available without triggering a selection dialog.
+ */
+export const hasApiKey = async () => {
+  if (typeof window.aistudio === 'undefined') {
+    return !!(process.env.GEMINI_API_KEY || process.env.API_KEY);
+  }
+  try {
+    return await window.aistudio.hasSelectedApiKey();
+  } catch (error) {
+    console.error('Error checking for API key:', error);
+    return false;
+  }
+};
+
+/**
  * Checks if the user has selected an API key.
  * If not, opens the selection dialog.
  * Returns the API key if successful, null otherwise.
+ * IMPORTANT: This should be called from a user-initiated event (like a click).
  */
 export const ensureApiKey = async () => {
   if (typeof window.aistudio === 'undefined') {
@@ -26,6 +42,7 @@ export const ensureApiKey = async () => {
     if (error.message && error.message.includes('Requested entity was not found')) {
       // Reset and prompt again if the key is invalid
       await window.aistudio.openSelectKey();
+      return process.env.API_KEY || process.env.GEMINI_API_KEY || null;
     }
     return null;
   }
