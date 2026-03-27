@@ -28,7 +28,7 @@ const Dashboard = () => {
     try {
       const ai = await getAiInstance();
       if (!ai) {
-        setAiError('AI-nyckel saknas. Anslut en nyckel för att få insikter.');
+        setAiError('AI-nyckel saknas. Anslut en nyckel för att få insikter. Om du nyss har anslutit den, prova att ladda om sidan.');
         return;
       }
 

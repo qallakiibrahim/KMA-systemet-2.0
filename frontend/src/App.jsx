@@ -8,6 +8,7 @@ import Header from './shared/components/Header';
 import DeadlineChecker from './shared/components/DeadlineChecker';
 import KeySelectionOverlay from './shared/components/KeySelectionOverlay';
 import { useAuth } from './shared/api/AuthContext';
+import { hasApiKey as checkHasApiKey, ensureApiKey } from './shared/utils/aiUtils';
 import './App.css';
 
 function App() {
@@ -16,11 +17,28 @@ function App() {
   const [hasApiKey, setHasApiKey] = useState(true); // Default to true to avoid flicker
 
   // Check if the user has selected an API key (from Coach App logic)
-  const checkApiKey = async () => {
+  const checkApiKey = async (retries = 3) => {
     if (window.aistudio?.hasSelectedApiKey) {
       try {
         const hasKey = await window.aistudio.hasSelectedApiKey();
-        setHasApiKey(hasKey);
+        
+        if (!hasKey) {
+          setHasApiKey(false);
+          return;
+        }
+
+        // Even if the platform says it has a key, we check if we can actually access it
+        const keyAvailable = await checkHasApiKey();
+        
+        console.log('AI Key Check:', { hasKey, keyAvailable, retries });
+        
+        if (hasKey && !keyAvailable && retries > 0) {
+          // Small delay and retry to handle race condition in key injection
+          setTimeout(() => checkApiKey(retries - 1), 1000);
+          return;
+        }
+        
+        setHasApiKey(hasKey && keyAvailable);
       } catch (error) {
         console.error('Error checking API key:', error);
         setHasApiKey(true); // Fallback to true if check fails

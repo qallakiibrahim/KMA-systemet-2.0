@@ -7,11 +7,24 @@ import { GoogleGenAI } from '@google/genai';
 const getRawApiKey = () => {
   // In Vite/React, process.env might not be directly available or might be shimmed.
   // We check multiple possible locations where the platform might inject it.
-  return (
-    (typeof process !== 'undefined' && process.env ? process.env.API_KEY || process.env.GEMINI_API_KEY : null) ||
-    (import.meta.env ? import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY : null) ||
+  const env = (typeof process !== 'undefined' && process.env) || (window.process && window.process.env) || {};
+  const metaEnv = import.meta.env || {};
+
+  const key = (
+    env.API_KEY || 
+    env.GEMINI_API_KEY || 
+    metaEnv.VITE_GEMINI_API_KEY || 
+    metaEnv.VITE_API_KEY || 
+    window.API_KEY || 
+    window.GEMINI_API_KEY ||
     null
   );
+
+  if (!key) {
+    console.warn('AI API Key not found in any expected location.');
+  }
+
+  return key;
 };
 
 /**
@@ -22,7 +35,11 @@ export const hasApiKey = async () => {
     return !!getRawApiKey();
   }
   try {
-    return await window.aistudio.hasSelectedApiKey();
+    const platformHasKey = await window.aistudio.hasSelectedApiKey();
+    if (!platformHasKey) return false;
+    
+    // If platform says it has a key, we check if we can actually see it in the environment
+    return !!getRawApiKey();
   } catch (error) {
     console.error('Error checking for API key:', error);
     return false;

@@ -150,7 +150,7 @@ const AvvikelseList = () => {
     try {
       const ai = await getAiInstance();
       if (!ai) {
-        toast.error('AI-tjänsten saknar API-nyckel. Anslut en nyckel i inställningarna.');
+        toast.error('AI-tjänsten saknar API-nyckel. Anslut en nyckel i inställningarna. Om du nyss har anslutit den, prova att ladda om sidan.');
         return;
       }
       
@@ -186,7 +186,7 @@ const AvvikelseList = () => {
     try {
       const ai = await getAiInstance();
       if (!ai) {
-        toast.error('AI-tjänsten saknar API-nyckel. Anslut en nyckel i inställningarna.');
+        toast.error('AI-tjänsten saknar API-nyckel. Anslut en nyckel i inställningarna. Om du nyss har anslutit den, prova att ladda om sidan.');
         return;
       }
 

@@ -15,6 +15,7 @@ async function startServer() {
   const PORT = 3000;
 
   console.log('GEMINI_API_KEY present:', !!process.env.GEMINI_API_KEY);
+  console.log('API_KEY present:', !!process.env.API_KEY);
 
   // Vite middleware for frontend
   if (process.env.NODE_ENV !== 'production') {
@@ -32,6 +33,18 @@ async function startServer() {
         const fs = await import('fs');
         const templatePath = path.resolve(__dirname, 'frontend/index.html');
         let template = fs.readFileSync(templatePath, 'utf-8');
+        
+        // Inject environment variables into the template
+        const envScript = `
+          <script>
+            window.process = window.process || {};
+            window.process.env = window.process.env || {};
+            window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
+            window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
+          </script>
+        `;
+        template = template.replace('</head>', `${envScript}</head>`);
+        
         template = await vite.transformIndexHtml(url, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e) {
@@ -41,9 +54,22 @@ async function startServer() {
     });
   } else {
     const distPath = path.join(process.cwd(), 'frontend/dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.use(express.static(distPath, { index: false }));
+    app.get('*', async (req, res) => {
+      const fs = await import('fs');
+      const templatePath = path.join(distPath, 'index.html');
+      let template = fs.readFileSync(templatePath, 'utf-8');
+      
+      const envScript = `
+        <script>
+          window.process = window.process || {};
+          window.process.env = window.process.env || {};
+          window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
+          window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
+        </script>
+      `;
+      template = template.replace('</head>', `${envScript}</head>`);
+      res.status(200).set({ 'Content-Type': 'text/html' }).send(template);
     });
   }
 
