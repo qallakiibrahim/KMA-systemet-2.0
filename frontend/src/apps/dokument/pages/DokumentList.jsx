@@ -345,7 +345,7 @@ const DokumentList = () => {
                     </div>
                     <div className="card-title-group">
                       <div className="dokument-icon-wrapper">
-                        <FileIcon type={d.file_type} size={28} />
+                        <FileIcon type={d.file_type} size={18} />
                       </div>
                       <div className="title-container">
                         <h3 className="card-title" title={d.title}>{d.title}</h3>
