@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument } from '../api/dokument';
 import { useAuth } from '../../../shared/api/AuthContext';
 import DocumentEditor from '../components/DocumentEditor';
@@ -32,6 +33,7 @@ const formatSize = (bytes) => {
 };
 
 const DokumentList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [dokuments, setDokuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,6 +72,29 @@ const DokumentList = () => {
   useEffect(() => {
     fetchDokuments();
   }, []);
+
+  useEffect(() => {
+    const docId = searchParams.get('id');
+    if (docId && dokuments.length > 0 && !isEditorOpen) {
+      const docToOpen = dokuments.find(d => d.id === docId);
+      if (docToOpen) {
+        // If it has no file_url, it's a created document
+        if (!docToOpen.file_url) {
+          setEditingDokument(docToOpen);
+          setIsEditorOpen(true);
+          // Remove the id from the URL so it doesn't keep reopening when closed
+          searchParams.delete('id');
+          setSearchParams(searchParams, { replace: true });
+        } else if (docToOpen.file_url) {
+          // If it's an uploaded file, open it in a new tab
+          window.open(docToOpen.file_url, '_blank', 'noopener,noreferrer');
+          // Remove the id from the URL so it doesn't keep opening
+          searchParams.delete('id');
+          setSearchParams(searchParams, { replace: true });
+        }
+      }
+    }
+  }, [searchParams, dokuments, isEditorOpen, setSearchParams]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -119,7 +144,8 @@ const DokumentList = () => {
 
   const openModal = (doc = null) => {
     if (doc) {
-      if (doc.content) {
+      // If it has no file_url, it's a created document
+      if (!doc.file_url) {
         setEditingDokument(doc);
         setIsEditorOpen(true);
         return;
