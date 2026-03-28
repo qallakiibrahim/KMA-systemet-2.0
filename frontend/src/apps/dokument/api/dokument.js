@@ -30,6 +30,34 @@ export const getDokuments = async () => {
   }
 };
 
+export const getDokumentById = async (id) => {
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*, attachments(*)')
+      .eq('id', id)
+      .single();
+      
+    if (error) {
+      if (error.message.includes('relationship') || error.message.includes('column') || error.code === 'PGRST204') {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from(tableName)
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (fallbackError) throw fallbackError;
+        return fallbackData;
+      }
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.error('Error fetching document by id:', error);
+    throw error;
+  }
+};
+
 export const createDokument = async (data) => {
   const { data: inserted, error } = await supabase
     .from(tableName)

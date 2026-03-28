@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument } from '../api/dokument';
+import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument, getDokumentById } from '../api/dokument';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { supabase } from '../../../supabase';
 import DocumentEditor from '../components/DocumentEditor';
@@ -79,9 +79,13 @@ const DokumentList = () => {
 
   useEffect(() => {
     const docId = searchParams.get('id');
-    if (docId && dokuments.length > 0 && !isEditorOpen) {
+    console.log('URL docId:', docId, 'dokuments.length:', dokuments.length, 'isEditorOpen:', isEditorOpen);
+    
+    if (docId && !isEditorOpen) {
       const docToOpen = dokuments.find(d => String(d.id) === String(docId));
+      
       if (docToOpen) {
+        console.log('Found document in list:', docToOpen.title);
         // If it has no file_url, it's a created document
         if (!docToOpen.file_url) {
           setEditingDokument(docToOpen);
@@ -96,6 +100,29 @@ const DokumentList = () => {
           searchParams.delete('id');
           setSearchParams(searchParams, { replace: true });
         }
+      } else if (dokuments.length > 0) {
+        // If not found in current list but we have a list, try fetching it specifically
+        // This is useful for global templates or documents not in the current company view
+        console.log('Document not in list, fetching specifically:', docId);
+        const fetchAndOpen = async () => {
+          try {
+            const doc = await getDokumentById(docId);
+            if (doc) {
+              console.log('Fetched document specifically:', doc.title);
+              if (!doc.file_url) {
+                setEditingDokument(doc);
+                setIsEditorOpen(true);
+              } else {
+                openModal(doc);
+              }
+              searchParams.delete('id');
+              setSearchParams(searchParams, { replace: true });
+            }
+          } catch (error) {
+            console.error('Failed to fetch document by id', error);
+          }
+        };
+        fetchAndOpen();
       }
     }
   }, [searchParams, dokuments, isEditorOpen, setSearchParams]);
