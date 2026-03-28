@@ -36,6 +36,7 @@ const formatSize = (bytes) => {
 };
 
 const DokumentList = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [dokuments, setDokuments] = useState([]);
   const [processes, setProcesses] = useState([]);
@@ -312,22 +313,38 @@ const DokumentList = () => {
     }
   };
 
-  const filteredDokuments = dokuments.filter(d => {
+  const filteredItems = [...dokuments, ...processes.map(p => ({ ...p, is_process: true }))].filter(item => {
     const matchesSearch = 
-      d.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = categoryFilter === 'all' || d.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' || 
+                           item.category === categoryFilter || 
+                           (item.is_process && categoryFilter === 'process');
     
     return matchesSearch && matchesCategory;
   });
 
-  console.log('DokumentList render, loading:', loading, 'isCreateModalOpen:', isCreateModalOpen);
+  console.log('DokumentList render, loading:', loading, 'isCreateModalOpen:', isCreateModalOpen, 'items count:', filteredItems.length);
   if (loading) return <div className="loading-spinner">Laddar dokument...</div>;
 
   const handleCreateNewClick = () => {
     console.log('Button clicked, setting isCreateModalOpen to true');
     setIsCreateModalOpen(true);
+  };
+
+  const handleOpenItem = (item) => {
+    if (item.is_process) {
+      navigate(`/process?id=${item.id}`);
+      return;
+    }
+
+    if (item.file_url) {
+      window.open(item.file_url, '_blank');
+    } else {
+      setEditingDokument(item);
+      setIsEditorOpen(true);
+    }
   };
 
   console.log('DokumentList render, isCreateModalOpen:', isCreateModalOpen);
@@ -336,7 +353,7 @@ const DokumentList = () => {
       <div className="dashboard-header">
         <div>
           <h1>Dokumentbibliotek</h1>
-          <p className="subtitle">Centralt arkiv för verksamhetens styrande dokument och manualer</p>
+          <p className="subtitle">Centralt arkiv för verksamhetens styrande dokument, manualer och processer</p>
         </div>
         <div className="header-actions">
           <div className="search-bar">
@@ -368,6 +385,12 @@ const DokumentList = () => {
             onClick={() => setCategoryFilter('all')}
           >
             Alla
+          </button>
+          <button 
+            className={`filter-tab ${categoryFilter === 'process' ? 'active' : ''}`}
+            onClick={() => setCategoryFilter('process')}
+          >
+            Processer
           </button>
           <button 
             className={`filter-tab ${categoryFilter === 'policy' ? 'active' : ''}`}
@@ -414,7 +437,7 @@ const DokumentList = () => {
       </div>
 
       <div className={`dokument-container ${viewMode}`}>
-        {filteredDokuments.length === 0 ? (
+        {filteredItems.length === 0 ? (
           <div className="empty-state">
             <FileText size={48} className="empty-icon" />
             <h3>Inga dokument hittades</h3>
@@ -422,17 +445,19 @@ const DokumentList = () => {
           </div>
         ) : viewMode === 'grid' ? (
           <div className="dokument-grid">
-            {filteredDokuments.map((d) => {
+            {filteredItems.map((d) => {
               const statusInfo = getStatusBadge(d.status);
               return (
-                <div key={d.id} className="dokument-card">
+                <div key={`${d.is_process ? 'p' : 'd'}-${d.id}`} className={`dokument-card ${d.is_process ? 'process-card' : ''}`}>
                   <div className="card-header">
                     <div className="card-top">
                       <span className={`status-badge-mini ${statusInfo.className}`}>{statusInfo.label}</span>
                       <div className="card-actions-top">
-                        <button className="btn-icon-small" onClick={() => openModal(d)} title="Redigera">
-                          <Edit2 size={14} />
-                        </button>
+                        {!d.is_process && (
+                          <button className="btn-icon-small" onClick={() => openModal(d)} title="Redigera">
+                            <Edit2 size={14} />
+                          </button>
+                        )}
                         <button className="btn-icon-small delete" onClick={() => handleDelete(d.id)} title="Radera">
                           <Trash2 size={14} />
                         </button>
@@ -440,12 +465,12 @@ const DokumentList = () => {
                     </div>
                     <div className="card-title-group">
                       <div className="dokument-icon-wrapper">
-                        <FileIcon type={d.file_type} size={18} />
+                        {d.is_process ? <Activity size={18} className="text-blue-500" /> : <FileIcon type={d.file_type} size={18} />}
                       </div>
                       <div className="title-container">
                         <h3 className="card-title" title={d.title}>{d.title}</h3>
                         <div className="flex gap-2 mt-1">
-                          <span className="dokument-category-badge">{d.category}</span>
+                          <span className="dokument-category-badge">{d.is_process ? 'Process' : d.category}</span>
                           {d.iso_chapter && <span className="dokument-category-badge iso-badge">ISO: {d.iso_chapter}</span>}
                         </div>
                       </div>
@@ -461,20 +486,10 @@ const DokumentList = () => {
                       <span className="date">📅 {new Date(d.created_at || new Date()).toLocaleDateString('sv-SE')}</span>
                       {d.file_size > 0 && <span className="size"> • 📦 {formatSize(d.file_size)}</span>}
                     </div>
-                    {d.file_url ? (
-                      <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="btn-open-doc">
-                        <ExternalLink size={16} />
-                        <span>Öppna</span>
-                      </a>
-                    ) : (
-                      <button onClick={() => {
-                        setEditingDokument(d);
-                        setIsEditorOpen(true);
-                      }} className="btn-open-doc">
-                        <ExternalLink size={16} />
-                        <span>Öppna</span>
-                      </button>
-                    )}
+                    <button onClick={() => handleOpenItem(d)} className="btn-open-doc">
+                      <ExternalLink size={16} />
+                      <span>Öppna</span>
+                    </button>
                   </div>
                 </div>
               );
@@ -495,40 +510,33 @@ const DokumentList = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredDokuments.map((d) => (
-                  <tr key={d.id}>
+                {filteredItems.map((d) => (
+                  <tr key={`${d.is_process ? 'p' : 'd'}-${d.id}`}>
                     <td data-label="Namn">
                       <div className="table-cell-title">
-                        <FileIcon type={d.file_type} size={18} />
+                        {d.is_process ? <Activity size={18} className="text-blue-500" /> : <FileIcon type={d.file_type} size={18} />}
                         <span>{d.title}</span>
                       </div>
                     </td>
-                    <td data-label="Kategori"><span className="dokument-category capitalize">{d.category}</span></td>
+                    <td data-label="Kategori"><span className="dokument-category capitalize">{d.is_process ? 'Process' : d.category}</span></td>
                     <td data-label="ISO-kapitel">{d.iso_chapter || '-'}</td>
                     <td data-label="Status">
                       <span className={`status-badge-mini ${getStatusBadge(d.status).className}`}>
                         {getStatusBadge(d.status).label}
                       </span>
                     </td>
-                    <td data-label="Storlek">{formatSize(d.file_size)}</td>
+                    <td data-label="Storlek">{d.file_size ? formatSize(d.file_size) : '-'}</td>
                     <td data-label="Datum">{new Date(d.created_at || new Date()).toLocaleDateString('sv-SE')}</td>
                     <td data-label="Åtgärder">
                       <div className="card-actions">
-                        <button className="btn-icon" onClick={() => openModal(d)} title="Redigera">
-                          <Edit2 size={16} />
-                        </button>
-                        {d.file_url ? (
-                          <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="Öppna">
-                            <ExternalLink size={16} />
-                          </a>
-                        ) : (
-                          <button onClick={() => {
-                            setEditingDokument(d);
-                            setIsEditorOpen(true);
-                          }} className="btn-icon" title="Öppna">
-                            <ExternalLink size={16} />
+                        {!d.is_process && (
+                          <button className="btn-icon" onClick={() => openModal(d)} title="Redigera">
+                            <Edit2 size={16} />
                           </button>
                         )}
+                        <button onClick={() => handleOpenItem(d)} className="btn-icon" title="Öppna">
+                          <ExternalLink size={16} />
+                        </button>
                         <button className="btn-icon delete" onClick={() => handleDelete(d.id)} title="Radera">
                           <Trash2 size={16} />
                         </button>

@@ -12,6 +12,35 @@ export const getRisker = async () => {
   return data;
 };
 
+export const getGlobalRisks = async () => {
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*')
+      .or('is_global.eq.true,company_id.is.null');
+      
+    if (error) {
+      console.warn('Full global risks query failed, trying fallback...', error);
+      const { data: allRisks, error: allRisksError } = await supabase
+        .from(tableName)
+        .select('*');
+        
+      if (allRisksError) throw allRisksError;
+      
+      return allRisks.filter(r => 
+        r.is_global === true || 
+        !r.company_id ||
+        r.is_template === true ||
+        r.title?.toLowerCase().includes('mall')
+      );
+    }
+    return data;
+  } catch (error) {
+    console.error('Error fetching global risks:', error);
+    return [];
+  }
+};
+
 export const createRisk = async (data) => {
   const { data: inserted, error } = await supabase
     .from(tableName)

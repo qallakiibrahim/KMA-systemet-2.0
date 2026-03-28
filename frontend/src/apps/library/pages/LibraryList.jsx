@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Library, Search, Download, FileText, Activity, Shield, AlertTriangle, Plus, Filter, ExternalLink } from 'lucide-react';
-import { getProcesses, createProcess } from '../../process/api/process';
-import { getDokuments, createDokument } from '../../dokument/api/dokument';
-import { getRisker, createRisk } from '../../risk/api/risk';
+import { getProcesses, createProcess, getGlobalProcesses } from '../../process/api/process';
+import { getDokuments, createDokument, getGlobalTemplates } from '../../dokument/api/dokument';
+import { getRisker, createRisk, getGlobalRisks } from '../../risk/api/risk';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import '../styles/Library.css';
@@ -25,19 +25,40 @@ const LibraryList = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [processes, documents, risks] = await Promise.all([
+      const results = await Promise.allSettled([
         getProcesses(),
         getDokuments(),
-        getRisker()
+        getRisker(),
+        getGlobalProcesses(),
+        getGlobalTemplates(),
+        getGlobalRisks()
       ]);
 
-      // Filter for templates
-      // Note: We assume is_template column exists. If not, we'll filter by title or just show all for now
-      // but ideally we filter by is_template === true
+      const processes = results[0].status === 'fulfilled' ? results[0].value : [];
+      const documents = results[1].status === 'fulfilled' ? results[1].value : [];
+      const risks = results[2].status === 'fulfilled' ? results[2].value : [];
+      const globalProcesses = results[3].status === 'fulfilled' ? results[3].value : [];
+      const globalDocuments = results[4].status === 'fulfilled' ? results[4].value : [];
+      const globalRisks = results[5].status === 'fulfilled' ? results[5].value : [];
+
+      // Merge and filter for templates
+      const mergeAndFilter = (local, global) => {
+        const merged = [...local];
+        global.forEach(g => {
+          if (!merged.find(l => l.id === g.id)) merged.push(g);
+        });
+        return merged.filter(item => 
+          item.is_template === true || 
+          item.is_global === true || 
+          !item.company_id ||
+          item.title?.toLowerCase().includes('mall')
+        );
+      };
+
       setTemplates({
-        processes: processes.filter(p => p.is_template || p.title.toLowerCase().includes('mall')),
-        documents: documents.filter(d => d.is_template || d.title.toLowerCase().includes('mall')),
-        risks: risks.filter(r => r.is_template || r.title.toLowerCase().includes('mall'))
+        processes: mergeAndFilter(processes, globalProcesses),
+        documents: mergeAndFilter(documents, globalDocuments),
+        risks: mergeAndFilter(risks, globalRisks)
       });
     } catch (error) {
       console.error('Failed to fetch library data', error);

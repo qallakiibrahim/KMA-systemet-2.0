@@ -14,10 +14,11 @@ export const getProcesses = async () => {
 
 export const getGlobalProcesses = async () => {
   try {
+    console.log('Fetching global processes from Supabase...');
     const { data, error } = await supabase
       .from(tableName)
       .select('*')
-      .or('is_global.eq.true,and(company_id.is.null,title.ilike.%mall%)');
+      .or('is_global.eq.true,company_id.is.null');
       
     if (error) {
       console.warn('Full global processes query failed, trying fallback...', error);
@@ -29,11 +30,14 @@ export const getGlobalProcesses = async () => {
       
       return allProcs.filter(p => 
         p.is_global === true || 
-        (!p.company_id && p.title?.toLowerCase().includes('mall')) ||
-        p.is_template === true
+        !p.company_id ||
+        p.is_template === true ||
+        p.title?.toLowerCase().includes('mall')
       );
     }
-    return data;
+    
+    console.log(`Fetched ${data?.length || 0} global processes`);
+    return data.filter(p => p.is_global === true || !p.company_id || p.is_template === true || p.title?.toLowerCase().includes('mall'));
   } catch (error) {
     console.error('Error fetching global processes:', error);
     return [];

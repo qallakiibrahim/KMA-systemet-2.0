@@ -32,28 +32,42 @@ export const getDokuments = async () => {
 
 export const getGlobalTemplates = async () => {
   try {
+    console.log('Fetching global templates from Supabase...');
     // Try the full query first
     const { data, error } = await supabase
       .from(tableName)
       .select('*, attachments(*)')
-      .or('is_global.eq.true,and(company_id.is.null,title.ilike.%mall%)');
+      .or('is_global.eq.true,company_id.is.null');
       
     if (error) {
       console.warn('Full global templates query failed, trying fallback...', error);
-      // Fallback: just fetch all and filter in JS if columns are missing
-      const { data: allDocs, error: allDocsError } = await supabase
-        .from(tableName)
-        .select('*');
-        
-      if (allDocsError) throw allDocsError;
       
-      return allDocs.filter(d => 
-        d.is_global === true || 
-        (!d.company_id && d.title?.toLowerCase().includes('mall')) ||
-        d.is_template === true
-      );
+      // If it's a relationship error, try without attachments
+      if (error.message.includes('relationship') || error.message.includes('column') || error.code === 'PGRST204') {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from(tableName)
+          .select('*')
+          .or('is_global.eq.true,company_id.is.null');
+          
+        if (fallbackError) {
+          console.error('Fallback global templates query failed:', fallbackError);
+          // Last resort: fetch all and filter
+          const { data: allDocs, error: allDocsError } = await supabase
+            .from(tableName)
+            .select('*');
+          if (allDocsError) throw allDocsError;
+          return allDocs.filter(d => d.is_global === true || !d.company_id || d.is_template === true);
+        }
+        
+        console.log(`Fetched ${fallbackData?.length || 0} global templates via fallback query`);
+        return fallbackData.filter(d => d.is_global === true || !d.company_id || d.is_template === true || d.title?.toLowerCase().includes('mall'));
+      }
+      throw error;
     }
-    return data;
+    
+    console.log(`Fetched ${data?.length || 0} global templates`);
+    // Filter to ensure we only get templates
+    return data.filter(d => d.is_global === true || !d.company_id || d.is_template === true || d.title?.toLowerCase().includes('mall'));
   } catch (error) {
     console.error('Error fetching global templates:', error);
     return [];
