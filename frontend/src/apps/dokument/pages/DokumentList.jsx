@@ -266,8 +266,15 @@ const DokumentList = () => {
     return matchesSearch && matchesCategory;
   });
 
+  console.log('DokumentList render, loading:', loading, 'isCreateModalOpen:', isCreateModalOpen);
   if (loading) return <div className="loading-spinner">Laddar dokument...</div>;
 
+  const handleCreateNewClick = () => {
+    console.log('Button clicked, setting isCreateModalOpen to true');
+    setIsCreateModalOpen(true);
+  };
+
+  console.log('DokumentList render, isCreateModalOpen:', isCreateModalOpen);
   return (
     <div className="dokument-dashboard">
       <div className="dashboard-header">
@@ -286,7 +293,7 @@ const DokumentList = () => {
             />
           </div>
           <div className="flex gap-2">
-            <button className="btn-secondary" onClick={() => setIsCreateModalOpen(true)}>
+            <button className="btn-secondary" onClick={handleCreateNewClick}>
               <PlusCircle size={20} />
               <span>Nytt Levande Dokument</span>
             </button>
@@ -479,16 +486,18 @@ const DokumentList = () => {
         )}
       </div>
 
-      <CreateDocumentModal 
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        templates={dokuments}
-        onCreated={(newDoc) => {
-          setDokuments([newDoc, ...dokuments]);
-          setEditingDokument(newDoc);
-          setIsEditorOpen(true);
-        }}
-      />
+      {isCreateModalOpen && (
+        <CreateDocumentModal 
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          templates={dokuments}
+          onCreated={(newDoc) => {
+            setDokuments([newDoc, ...dokuments]);
+            setEditingDokument(newDoc);
+            setIsEditorOpen(true);
+          }}
+        />
+      )}
 
       {isEditorOpen && (
         <DocumentEditor 

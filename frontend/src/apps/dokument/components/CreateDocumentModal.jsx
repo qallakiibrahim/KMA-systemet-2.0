@@ -9,7 +9,9 @@ import { toast } from 'react-toastify';
 import './CreateDocumentModal.css';
 
 const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => {
-  const { userProfile, currentUser } = useAuth();
+  try {
+    console.log('CreateDocumentModal isOpen:', isOpen);
+    const { userProfile, currentUser } = useAuth();
   const [activeCategory, setActiveCategory] = useState('new'); // 'new', 'company', 'global'
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -228,6 +230,10 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
       )}
     </div>
   );
+} catch (error) {
+  console.error('Error rendering CreateDocumentModal:', error);
+  return null;
+}
 };
 
 export default CreateDocumentModal;
