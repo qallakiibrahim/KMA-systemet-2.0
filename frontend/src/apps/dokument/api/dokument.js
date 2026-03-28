@@ -30,6 +30,33 @@ export const getDokuments = async () => {
   }
 };
 
+export const getGlobalTemplates = async () => {
+  try {
+    // Fetch items that are either global templates or have "mall" in the title and no company_id
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*, attachments(*)')
+      .or('is_global.eq.true,and(company_id.is.null,title.ilike.%mall%)');
+      
+    if (error) {
+      if (error.message.includes('relationship') || error.message.includes('column') || error.code === 'PGRST204') {
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from(tableName)
+          .select('*')
+          .or('is_global.eq.true,and(company_id.is.null,title.ilike.%mall%)');
+          
+        if (fallbackError) throw fallbackError;
+        return fallbackData;
+      }
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    console.error('Error fetching global templates:', error);
+    return [];
+  }
+};
+
 export const getDokumentById = async (id) => {
   try {
     const { data, error } = await supabase

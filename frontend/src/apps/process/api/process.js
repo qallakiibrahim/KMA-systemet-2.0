@@ -12,6 +12,21 @@ export const getProcesses = async () => {
   return data;
 };
 
+export const getGlobalProcesses = async () => {
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*')
+      .or('is_global.eq.true,and(company_id.is.null,title.ilike.%mall%)');
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching global processes:', error);
+    return [];
+  }
+};
+
 export const createProcess = async (data) => {
   // Defensive: try to insert, if it fails due to missing columns, try a minimal version
   const { data: inserted, error } = await supabase

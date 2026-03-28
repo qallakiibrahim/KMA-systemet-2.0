@@ -1,44 +1,61 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   X, FileText, Layout, Building2, Globe, Search, 
-  ChevronRight, Plus, Image as ImageIcon, File
+  ChevronRight, Plus, Image as ImageIcon, File, Activity
 } from 'lucide-react';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { createDokument } from '../api/dokument';
+import { createProcess } from '../../process/api/process';
 import { toast } from 'react-toastify';
 import './CreateDocumentModal.css';
 
-const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => {
+const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], processTemplates = [] }) => {
+  const navigate = useNavigate();
   try {
-    console.log('CreateDocumentModal isOpen:', isOpen);
     const { userProfile, currentUser } = useAuth();
-  const [activeCategory, setActiveCategory] = useState('new'); // 'new', 'company', 'global'
+  const [activeCategory, setActiveCategory] = useState('new'); // 'new', 'company', 'global', 'process'
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
   // Safety check for templates
   const safeTemplates = Array.isArray(templates) ? templates : [];
+  const safeProcessTemplates = Array.isArray(processTemplates) ? processTemplates : [];
 
   if (!isOpen) return null;
 
   const companyTemplates = useMemo(() => 
-    safeTemplates.filter(t => t.is_template && t.company_id === userProfile?.company_id && !t.is_global),
+    safeTemplates.filter(t => (t.is_template || t.title?.toLowerCase().includes('mall')) && t.company_id === userProfile?.company_id && !t.is_global),
     [safeTemplates, userProfile]
   );
 
   const globalTemplates = useMemo(() => 
-    safeTemplates.filter(t => t.is_global && t.is_template),
+    safeTemplates.filter(t => (t.is_global || !t.company_id) && (t.is_template || t.title?.toLowerCase().includes('mall'))),
     [safeTemplates]
   );
 
+  const companyProcessTemplates = useMemo(() => 
+    safeProcessTemplates.filter(t => (t.is_template || t.title?.toLowerCase().includes('mall')) && t.company_id === userProfile?.company_id && !t.is_global),
+    [safeProcessTemplates, userProfile]
+  );
+
+  const globalProcessTemplates = useMemo(() => 
+    safeProcessTemplates.filter(t => (t.is_global || !t.company_id) && (t.is_template || t.title?.toLowerCase().includes('mall'))),
+    [safeProcessTemplates]
+  );
+
   const filteredTemplates = useMemo(() => {
-    const list = activeCategory === 'company' ? companyTemplates : globalTemplates;
+    let list = [];
+    if (activeCategory === 'company') list = companyTemplates;
+    else if (activeCategory === 'global') list = globalTemplates;
+    else if (activeCategory === 'process') list = [...companyProcessTemplates, ...globalProcessTemplates];
+    
     if (!searchTerm) return list;
     return list.filter(t => 
       t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [activeCategory, companyTemplates, globalTemplates, searchTerm]);
+  }, [activeCategory, companyTemplates, globalTemplates, companyProcessTemplates, globalProcessTemplates, searchTerm]);
 
   const handleCreateNew = async (visual = false) => {
     setIsCreating(true);
@@ -81,7 +98,9 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
     setIsCreating(true);
     try {
       const { id, created_at, updated_at, ...templateData } = template;
-      const newDoc = {
+      const isProcess = activeCategory === 'process' || template.type === 'process';
+      
+      const newItem = {
         ...templateData,
         title: `${template.title} (Kopia)`,
         company_id: userProfile?.company_id,
@@ -91,10 +110,17 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
         status: 'utkast'
       };
 
-      const created = await createDokument(newDoc);
-      onCreated(created);
-      onClose();
-      toast.success('Mall importerad!');
+      if (isProcess) {
+        const created = await createProcess(newItem);
+        toast.success('Processmall importerad!');
+        onClose();
+        navigate(`/process?id=${created.id}`);
+      } else {
+        const created = await createDokument(newItem);
+        onCreated(created);
+        onClose();
+        toast.success('Dokumentmall importerad!');
+      }
     } catch (error) {
       console.error('Failed to use template:', error);
       toast.error('Kunde inte använda mallen');
@@ -131,8 +157,16 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
               onClick={() => setActiveCategory('global')}
             >
               <Globe size={20} />
-              <span>SafeQMS Mallar</span>
+              <span>SafeQMS Dokument</span>
               <span className="count">{globalTemplates.length}</span>
+            </button>
+            <button 
+              className={`nav-item ${activeCategory === 'process' ? 'active' : ''}`}
+              onClick={() => setActiveCategory('process')}
+            >
+              <Activity size={20} />
+              <span>Processmallar</span>
+              <span className="count">{companyProcessTemplates.length + globalProcessTemplates.length}</span>
             </button>
           </nav>
         </div>
@@ -144,11 +178,13 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
                 {activeCategory === 'new' && 'Välj dokumenttyp'}
                 {activeCategory === 'company' && 'Välj från företagets mallar'}
                 {activeCategory === 'global' && 'Välj från SafeQMS bibliotek'}
+                {activeCategory === 'process' && 'Välj processmall'}
               </h2>
               <p>
                 {activeCategory === 'new' && 'Börja från grunden med ett tomt dokument.'}
                 {activeCategory === 'company' && 'Använd en mall som skapats inom din organisation.'}
                 {activeCategory === 'global' && 'Färdiga mallar och standarder från SafeQMS.'}
+                {activeCategory === 'process' && 'Skapa en ny process baserat på en mall.'}
               </p>
             </div>
             <button className="close-btn" onClick={onClose}>
@@ -201,7 +237,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
                       onClick={() => handleUseTemplate(template)}
                     >
                       <div className="template-preview">
-                        <FileText size={32} />
+                        {activeCategory === 'process' ? <Activity size={32} /> : <FileText size={32} />}
                       </div>
                       <div className="template-info">
                         <h4>{template.title}</h4>

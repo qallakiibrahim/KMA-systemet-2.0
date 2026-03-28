@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument, getDokumentById } from '../api/dokument';
+import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument, getDokumentById, getGlobalTemplates } from '../api/dokument';
+import { getProcesses, createProcess, getGlobalProcesses } from '../../process/api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { supabase } from '../../../supabase';
 import DocumentEditor from '../components/DocumentEditor';
@@ -37,6 +38,7 @@ const formatSize = (bytes) => {
 const DokumentList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [dokuments, setDokuments] = useState([]);
+  const [processes, setProcesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -63,11 +65,29 @@ const DokumentList = () => {
 
   const fetchDokuments = async () => {
     try {
-      const data = await getDokuments();
-      setDokuments(data);
+      const [docsData, processesData, globalDocs, globalProcs] = await Promise.all([
+        getDokuments(),
+        getProcesses(),
+        getGlobalTemplates(),
+        getGlobalProcesses()
+      ]);
+      
+      // Merge global items if they are not already in the list
+      const mergedDocs = [...docsData];
+      globalDocs.forEach(gd => {
+        if (!mergedDocs.find(d => d.id === gd.id)) mergedDocs.push(gd);
+      });
+      
+      const mergedProcs = [...processesData];
+      globalProcs.forEach(gp => {
+        if (!mergedProcs.find(p => p.id === gp.id)) mergedProcs.push(gp);
+      });
+
+      setDokuments(mergedDocs);
+      setProcesses(mergedProcs);
     } catch (error) {
-      console.error('Failed to fetch dokuments', error);
-      toast.error('Kunde inte hämta dokument');
+      console.error('Failed to fetch data', error);
+      toast.error('Kunde inte hämta data');
     } finally {
       setLoading(false);
     }
@@ -518,6 +538,7 @@ const DokumentList = () => {
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
           templates={dokuments}
+          processTemplates={processes}
           onCreated={(newDoc) => {
             setDokuments([newDoc, ...dokuments]);
             setEditingDokument(newDoc);
