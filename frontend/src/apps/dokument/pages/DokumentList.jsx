@@ -53,7 +53,8 @@ const DokumentList = () => {
     iso_chapter: '',
     status: 'utkast',
     file_type: '',
-    file_size: 0
+    file_size: 0,
+    is_template: false
   });
   const { currentUser, userProfile } = useAuth();
 
@@ -159,7 +160,8 @@ const DokumentList = () => {
         iso_chapter: doc.iso_chapter || '',
         status: doc.status || 'utkast',
         file_type: doc.file_type || '',
-        file_size: doc.file_size || 0
+        file_size: doc.file_size || 0,
+        is_template: doc.is_template || false
       });
     } else {
       setEditingDokument(null);
@@ -171,7 +173,8 @@ const DokumentList = () => {
         iso_chapter: '',
         status: 'utkast',
         file_type: '',
-        file_size: 0
+        file_size: 0,
+        is_template: false
       });
     }
     setIsModalOpen(true);
@@ -204,8 +207,7 @@ const DokumentList = () => {
           ...formData,
           creator_uid: currentUser?.id || null,
           company_id: companyId,
-          is_template: userProfile?.role === 'superadmin',
-          is_global: userProfile?.role === 'superadmin'
+          is_global: userProfile?.role === 'superadmin' && formData.is_template
         };
         const created = await createDokument(newDoc);
         setDokuments([created, ...dokuments]);
@@ -220,7 +222,8 @@ const DokumentList = () => {
         category: 'general',
         iso_chapter: '',
         file_type: '',
-        file_size: 0
+        file_size: 0,
+        is_template: false
       });
     } catch (error) {
       console.error('Failed to save dokument', error);
@@ -617,6 +620,22 @@ const DokumentList = () => {
                       <option value="arkiverad">Arkiverad</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="form-group mt-4 pt-4 border-t">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      name="is_template"
+                      checked={formData.is_template}
+                      onChange={(e) => setFormData({...formData, is_template: e.target.checked})}
+                      className="rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm font-medium">Gör till mall</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1 ml-6">
+                    Dokumentet kommer att visas i mallbiblioteket så att andra kan använda det.
+                  </p>
                 </div>
 
                 <div className="form-group">

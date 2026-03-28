@@ -165,6 +165,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
   const [category, setCategory] = useState(document?.category || 'general');
   const [isoChapter, setIsoChapter] = useState(document?.iso_chapter || '');
   const [status, setStatus] = useState(document?.status || 'utkast');
+  const [isTemplate, setIsTemplate] = useState(document?.is_template || false);
   const [attachments, setAttachments] = useState(document?.attachments || []);
   const [externalLinks, setExternalLinks] = useState(document?.external_links || []);
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
@@ -218,6 +219,8 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
         category,
         iso_chapter: isoChapter,
         status,
+        is_template: isTemplate,
+        is_global: userProfile?.role === 'superadmin' && isTemplate,
         external_links: externalLinks,
         company_id: userProfile?.company_id,
         creator_uid: currentUser?.id,
@@ -428,6 +431,21 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
               <div className="metadata-info">
                 <p><strong>Skapad:</strong> {new Date(document?.created_at || new Date()).toLocaleDateString()}</p>
                 <p><strong>Ägare:</strong> {userProfile?.display_name}</p>
+              </div>
+
+              <div className="form-group mt-4 pt-4 border-t">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={isTemplate}
+                    onChange={(e) => setIsTemplate(e.target.checked)}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm font-medium">Gör till mall</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  Dokumentet kommer att visas i mallbiblioteket så att andra kan använda det.
+                </p>
               </div>
             </div>
 
