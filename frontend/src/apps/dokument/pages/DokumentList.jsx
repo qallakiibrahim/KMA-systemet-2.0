@@ -77,7 +77,7 @@ const DokumentList = () => {
   useEffect(() => {
     const docId = searchParams.get('id');
     if (docId && dokuments.length > 0 && !isEditorOpen) {
-      const docToOpen = dokuments.find(d => d.id === docId);
+      const docToOpen = dokuments.find(d => String(d.id) === String(docId));
       if (docToOpen) {
         // If it has no file_url, it's a created document
         if (!docToOpen.file_url) {
@@ -87,8 +87,8 @@ const DokumentList = () => {
           searchParams.delete('id');
           setSearchParams(searchParams, { replace: true });
         } else if (docToOpen.file_url) {
-          // If it's an uploaded file, open it in a new tab
-          window.open(docToOpen.file_url, '_blank', 'noopener,noreferrer');
+          // If it's an uploaded file, open the modal to edit metadata
+          openModal(docToOpen);
           // Remove the id from the URL so it doesn't keep opening
           searchParams.delete('id');
           setSearchParams(searchParams, { replace: true });
@@ -395,10 +395,20 @@ const DokumentList = () => {
                       <span className="date">📅 {new Date(d.created_at || new Date()).toLocaleDateString('sv-SE')}</span>
                       {d.file_size > 0 && <span className="size"> • 📦 {formatSize(d.file_size)}</span>}
                     </div>
-                    <a href={d.file_url || `/dokument?id=${d.id}`} target="_blank" rel="noopener noreferrer" className="btn-open-doc">
-                      <ExternalLink size={16} />
-                      <span>Öppna</span>
-                    </a>
+                    {d.file_url ? (
+                      <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="btn-open-doc">
+                        <ExternalLink size={16} />
+                        <span>Öppna</span>
+                      </a>
+                    ) : (
+                      <button onClick={() => {
+                        setEditingDokument(d);
+                        setIsEditorOpen(true);
+                      }} className="btn-open-doc">
+                        <ExternalLink size={16} />
+                        <span>Öppna</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -441,9 +451,18 @@ const DokumentList = () => {
                         <button className="btn-icon" onClick={() => openModal(d)} title="Redigera">
                           <Edit2 size={16} />
                         </button>
-                        <a href={d.file_url || `/dokument?id=${d.id}`} target="_blank" rel="noopener noreferrer" className="btn-icon" title="Öppna">
-                          <ExternalLink size={16} />
-                        </a>
+                        {d.file_url ? (
+                          <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="Öppna">
+                            <ExternalLink size={16} />
+                          </a>
+                        ) : (
+                          <button onClick={() => {
+                            setEditingDokument(d);
+                            setIsEditorOpen(true);
+                          }} className="btn-icon" title="Öppna">
+                            <ExternalLink size={16} />
+                          </button>
+                        )}
                         <button className="btn-icon delete" onClick={() => handleDelete(d.id)} title="Radera">
                           <Trash2 size={16} />
                         </button>

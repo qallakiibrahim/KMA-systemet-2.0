@@ -80,7 +80,8 @@ const LibraryList = () => {
       
       // Redirect to the new item so they can edit it
       if (createdItem && createdItem.id) {
-        navigate(`/${type}?id=${createdItem.id}`);
+        const route = type === 'document' ? 'dokument' : type;
+        navigate(`/${route}?id=${createdItem.id}`);
       }
     } catch (error) {
       console.error('Import failed', error);
@@ -113,7 +114,7 @@ const LibraryList = () => {
           <button className="btn-secondary btn-sm" onClick={() => handleImport(item, type)}>
             <Download size={14} /> Importera
           </button>
-          <a href={`/${type}?id=${item.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+          <a href={item.file_url || `/${type === 'document' ? 'dokument' : type}?id=${item.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
             <ExternalLink size={14} /> Öppna
           </a>
         </div>
