@@ -40,7 +40,6 @@ const DokumentList = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  console.log('DokumentList state:', { isCreateModalOpen, isModalOpen, isEditorOpen });
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingDokument, setEditingDokument] = useState(null);
   const [isUploading, setIsUploading] = useState(false);

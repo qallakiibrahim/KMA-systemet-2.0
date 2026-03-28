@@ -39,7 +39,6 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
   }, [activeCategory, companyTemplates, globalTemplates, searchTerm]);
 
   const handleCreateNew = async (visual = false) => {
-    console.log('Creating new document, visual:', visual);
     setIsCreating(true);
     try {
       const newDoc = {
@@ -77,7 +76,6 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
   };
 
   const handleUseTemplate = async (template) => {
-    console.log('Using template:', template.title);
     setIsCreating(true);
     try {
       const { id, created_at, updated_at, ...templateData } = template;
