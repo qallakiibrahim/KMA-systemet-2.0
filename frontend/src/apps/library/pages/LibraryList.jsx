@@ -56,6 +56,7 @@ const LibraryList = () => {
       return toast.error('Du måste vara kopplad till ett företag för att importera mallar.');
     }
 
+    console.log('Importing item:', item.title, 'Type:', type);
     try {
       const { id, created_at, updated_at, ...itemData } = item;
       const newItem = {
@@ -64,8 +65,15 @@ const LibraryList = () => {
         is_template: false,
         is_global: false,
         title: `${item.title} (Kopia)`,
-        created_by: currentUser.id
+        status: 'utkast'
       };
+
+      // Set correct user ID field based on type
+      if (type === 'document') {
+        newItem.creator_uid = currentUser?.id;
+      } else {
+        newItem.created_by = currentUser?.id;
+      }
 
       let createdItem;
       if (type === 'process') {
@@ -85,7 +93,7 @@ const LibraryList = () => {
       }
     } catch (error) {
       console.error('Import failed', error);
-      toast.error('Kunde inte importera mallen');
+      toast.error('Kunde inte importera mallen: ' + (error.message || 'Okänt fel'));
     }
   };
 

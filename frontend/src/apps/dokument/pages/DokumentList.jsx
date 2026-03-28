@@ -65,12 +65,21 @@ const DokumentList = () => {
 
   const fetchDokuments = async () => {
     try {
-      const [docsData, processesData, globalDocs, globalProcs] = await Promise.all([
+      const results = await Promise.allSettled([
         getDokuments(),
         getProcesses(),
         getGlobalTemplates(),
         getGlobalProcesses()
       ]);
+      
+      const docsData = results[0].status === 'fulfilled' ? results[0].value : [];
+      const processesData = results[1].status === 'fulfilled' ? results[1].value : [];
+      const globalDocs = results[2].status === 'fulfilled' ? results[2].value : [];
+      const globalProcs = results[3].status === 'fulfilled' ? results[3].value : [];
+
+      if (results.some(r => r.status === 'rejected')) {
+        console.warn('Some data fetches failed:', results.filter(r => r.status === 'rejected'));
+      }
       
       // Merge global items if they are not already in the list
       const mergedDocs = [...docsData];

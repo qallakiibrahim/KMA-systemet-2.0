@@ -83,12 +83,29 @@ const ProcessListContent = () => {
   useEffect(() => {
     const processId = searchParams.get('id');
     if (processId && processes.length > 0) {
+      console.log('URL has processId:', processId);
       const processToOpen = processes.find(p => String(p.id) === String(processId));
       if (processToOpen) {
+        console.log('Found process from URL:', processToOpen.title);
         setNavigationStack([processToOpen]);
         // Remove the id from the URL so it doesn't keep reopening when closed
-        searchParams.delete('id');
-        setSearchParams(searchParams, { replace: true });
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('id');
+        setSearchParams(newParams, { replace: true });
+      } else {
+        // If not found in list, try fetching directly
+        console.log('Process not found in list, fetching directly...');
+        import('../api/process').then(({ getProcessById }) => {
+          getProcessById(processId).then(fetchedProc => {
+            if (fetchedProc) {
+              console.log('Fetched process directly:', fetchedProc.title);
+              setNavigationStack([fetchedProc]);
+              const newParams = new URLSearchParams(searchParams);
+              newParams.delete('id');
+              setSearchParams(newParams, { replace: true });
+            }
+          }).catch(err => console.error('Failed to fetch process from URL', err));
+        });
       }
     }
   }, [searchParams, processes, setSearchParams]);

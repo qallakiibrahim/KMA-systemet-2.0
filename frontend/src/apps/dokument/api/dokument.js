@@ -32,23 +32,26 @@ export const getDokuments = async () => {
 
 export const getGlobalTemplates = async () => {
   try {
-    // Fetch items that are either global templates or have "mall" in the title and no company_id
+    // Try the full query first
     const { data, error } = await supabase
       .from(tableName)
       .select('*, attachments(*)')
       .or('is_global.eq.true,and(company_id.is.null,title.ilike.%mall%)');
       
     if (error) {
-      if (error.message.includes('relationship') || error.message.includes('column') || error.code === 'PGRST204') {
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from(tableName)
-          .select('*')
-          .or('is_global.eq.true,and(company_id.is.null,title.ilike.%mall%)');
-          
-        if (fallbackError) throw fallbackError;
-        return fallbackData;
-      }
-      throw error;
+      console.warn('Full global templates query failed, trying fallback...', error);
+      // Fallback: just fetch all and filter in JS if columns are missing
+      const { data: allDocs, error: allDocsError } = await supabase
+        .from(tableName)
+        .select('*');
+        
+      if (allDocsError) throw allDocsError;
+      
+      return allDocs.filter(d => 
+        d.is_global === true || 
+        (!d.company_id && d.title?.toLowerCase().includes('mall')) ||
+        d.is_template === true
+      );
     }
     return data;
   } catch (error) {

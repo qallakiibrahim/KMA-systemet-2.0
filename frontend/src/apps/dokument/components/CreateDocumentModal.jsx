@@ -12,8 +12,7 @@ import './CreateDocumentModal.css';
 
 const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], processTemplates = [] }) => {
   const navigate = useNavigate();
-  try {
-    const { userProfile, currentUser } = useAuth();
+  const { userProfile, currentUser } = useAuth();
   const [activeCategory, setActiveCategory] = useState('new'); // 'new', 'company', 'global', 'process'
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -21,8 +20,6 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
   // Safety check for templates
   const safeTemplates = Array.isArray(templates) ? templates : [];
   const safeProcessTemplates = Array.isArray(processTemplates) ? processTemplates : [];
-
-  if (!isOpen) return null;
 
   const companyTemplates = useMemo(() => 
     safeTemplates.filter(t => (t.is_template || t.title?.toLowerCase().includes('mall')) && t.company_id === userProfile?.company_id && !t.is_global),
@@ -56,6 +53,17 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
       t.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [activeCategory, companyTemplates, globalTemplates, companyProcessTemplates, globalProcessTemplates, searchTerm]);
+
+  if (!isOpen) return null;
+
+  try {
+    console.log('CreateDocumentModal open. Active category:', activeCategory);
+    console.log('Templates count:', {
+      company: companyTemplates.length,
+      global: globalTemplates.length,
+      companyProcess: companyProcessTemplates.length,
+      globalProcess: globalProcessTemplates.length
+    });
 
   const handleCreateNew = async (visual = false) => {
     setIsCreating(true);
@@ -96,6 +104,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
 
   const handleUseTemplate = async (template) => {
     setIsCreating(true);
+    console.log('Using template:', template.title, 'Category:', activeCategory);
     try {
       const { id, created_at, updated_at, ...templateData } = template;
       const isProcess = activeCategory === 'process' || template.type === 'process';
@@ -104,18 +113,23 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
         ...templateData,
         title: `${template.title} (Kopia)`,
         company_id: userProfile?.company_id,
-        creator_uid: currentUser?.id,
         is_template: false,
         is_global: false,
         status: 'utkast'
       };
 
       if (isProcess) {
+        // Processes use 'created_by'
+        newItem.created_by = currentUser?.id;
+        console.log('Creating process from template...', newItem);
         const created = await createProcess(newItem);
         toast.success('Processmall importerad!');
         onClose();
         navigate(`/process?id=${created.id}`);
       } else {
+        // Documents use 'creator_uid'
+        newItem.creator_uid = currentUser?.id;
+        console.log('Creating document from template...', newItem);
         const created = await createDokument(newItem);
         onCreated(created);
         onClose();
@@ -123,7 +137,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
       }
     } catch (error) {
       console.error('Failed to use template:', error);
-      toast.error('Kunde inte använda mallen');
+      toast.error('Kunde inte använda mallen: ' + (error.message || 'Okänt fel'));
     } finally {
       setIsCreating(false);
     }

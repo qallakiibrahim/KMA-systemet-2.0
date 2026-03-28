@@ -19,7 +19,20 @@ export const getGlobalProcesses = async () => {
       .select('*')
       .or('is_global.eq.true,and(company_id.is.null,title.ilike.%mall%)');
       
-    if (error) throw error;
+    if (error) {
+      console.warn('Full global processes query failed, trying fallback...', error);
+      const { data: allProcs, error: allProcsError } = await supabase
+        .from(tableName)
+        .select('*');
+        
+      if (allProcsError) throw allProcsError;
+      
+      return allProcs.filter(p => 
+        p.is_global === true || 
+        (!p.company_id && p.title?.toLowerCase().includes('mall')) ||
+        p.is_template === true
+      );
+    }
     return data;
   } catch (error) {
     console.error('Error fetching global processes:', error);
@@ -70,6 +83,17 @@ export const updateProcess = async (id, data) => {
     throw error;
   }
   return updated;
+};
+
+export const getProcessById = async (id) => {
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('*')
+    .eq('id', id)
+    .single();
+    
+  if (error) throw error;
+  return data;
 };
 
 export const deleteProcess = async (id) => {
