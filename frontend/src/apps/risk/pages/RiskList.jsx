@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { getRisker, createRisk, updateRisk, deleteRisk } from '../api/risk';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
@@ -23,6 +23,7 @@ const RiskList = () => {
   });
   const { currentUser, userProfile } = useAuth();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const fetchRisker = async () => {
     try {
@@ -42,12 +43,25 @@ const RiskList = () => {
 
   useEffect(() => {
     if (!loading && location.state?.openId) {
-      const riskToOpen = risker.find(r => r.id === location.state.openId);
+      const riskToOpen = risker.find(r => String(r.id) === String(location.state.openId));
       if (riskToOpen) {
         handleEdit(riskToOpen);
       }
     }
   }, [loading, location.state, risker]);
+
+  useEffect(() => {
+    const riskId = searchParams.get('id');
+    if (riskId && risker.length > 0) {
+      const riskToOpen = risker.find(r => String(r.id) === String(riskId));
+      if (riskToOpen) {
+        handleEdit(riskToOpen);
+        // Remove the id from the URL so it doesn't keep reopening when closed
+        searchParams.delete('id');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, risker, setSearchParams]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -136,6 +150,8 @@ const RiskList = () => {
     });
     setIsModalOpen(true);
   };
+
+  const canEdit = !selectedRisk?.is_global || userProfile?.role === 'superadmin';
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -275,12 +291,13 @@ const RiskList = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>{selectedRisk ? 'Redigera risk' : 'Registrera ny risk'}</h2>
+              <h2>{selectedRisk ? (canEdit ? 'Redigera risk' : 'Visa risk') : 'Registrera ny risk'}</h2>
               <button className="close-btn" onClick={handleCloseModal}>
                 <X size={24} />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="risk-form">
+              <fieldset disabled={!canEdit} style={{ border: 'none', padding: 0, margin: 0 }}>
               <div className="form-group">
                 <label htmlFor="title">Titel</label>
                 <input
@@ -387,13 +404,16 @@ const RiskList = () => {
               </div>
 
               <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal}>
+                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={false}>
                   Avbryt
                 </button>
-                <button type="submit" className="btn-primary">
-                  {selectedRisk ? 'Uppdatera Risk' : 'Spara Risk'}
-                </button>
+                {canEdit && (
+                  <button type="submit" className="btn-primary">
+                    {selectedRisk ? 'Uppdatera Risk' : 'Spara Risk'}
+                  </button>
+                )}
               </div>
+              </fieldset>
             </form>
           </div>
         </div>

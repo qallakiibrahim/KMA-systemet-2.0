@@ -188,7 +188,10 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [showConfirmDelete, setShowConfirmDelete] = useState(null);
 
+  const canEdit = !document?.is_global || userProfile?.role === 'superadmin';
+
   const editor = useEditor({
+    editable: canEdit,
     extensions: [
       StarterKit,
       Underline,
@@ -309,28 +312,33 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
               placeholder="Dokumentrubrik..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              disabled={!canEdit}
             />
           </div>
         </div>
         <div className="header-right">
-          <div className="status-toggle">
-            <button 
-              className={`status-btn ${status === 'utkast' ? 'active' : ''}`}
-              onClick={() => setStatus('utkast')}
-            >
-              Utkast
-            </button>
-            <button 
-              className={`status-btn ${status === 'godkänd' ? 'active' : ''}`}
-              onClick={() => setStatus('godkänd')}
-            >
-              Publicerad
-            </button>
-          </div>
-          <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
-            <Save size={18} />
-            <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
-          </button>
+          {canEdit && (
+            <>
+              <div className="status-toggle">
+                <button 
+                  className={`status-btn ${status === 'utkast' ? 'active' : ''}`}
+                  onClick={() => setStatus('utkast')}
+                >
+                  Utkast
+                </button>
+                <button 
+                  className={`status-btn ${status === 'godkänd' ? 'active' : ''}`}
+                  onClick={() => setStatus('godkänd')}
+                >
+                  Publicerad
+                </button>
+              </div>
+              <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
+                <Save size={18} />
+                <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
+              </button>
+            </>
+          )}
           <button className="btn-icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
             {isSidebarOpen ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
           </button>
@@ -339,7 +347,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
 
       <div className="editor-main">
         <div className="editor-content-wrapper">
-          <MenuBar editor={editor} />
+          {canEdit && <MenuBar editor={editor} />}
           <div className="editor-scroller">
             <div className="editor-paper">
               <EditorContent editor={editor} />

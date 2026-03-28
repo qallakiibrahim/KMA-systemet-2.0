@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Library, Search, Download, FileText, Activity, Shield, AlertTriangle, Plus, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Library, Search, Download, FileText, Activity, Shield, AlertTriangle, Plus, Filter, ExternalLink } from 'lucide-react';
 import { getProcesses, createProcess } from '../../process/api/process';
 import { getDokuments, createDokument } from '../../dokument/api/dokument';
 import { getRisker, createRisk } from '../../risk/api/risk';
@@ -8,6 +9,7 @@ import { toast } from 'react-toastify';
 import '../styles/Library.css';
 
 const LibraryList = () => {
+  const navigate = useNavigate();
   const { userProfile, currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,15 +67,21 @@ const LibraryList = () => {
         created_by: currentUser.id
       };
 
+      let createdItem;
       if (type === 'process') {
-        await createProcess(newItem);
+        createdItem = await createProcess(newItem);
       } else if (type === 'document') {
-        await createDokument(newItem);
+        createdItem = await createDokument(newItem);
       } else if (type === 'risk') {
-        await createRisk(newItem);
+        createdItem = await createRisk(newItem);
       }
 
       toast.success(`${item.title} har importerats till ditt företag!`);
+      
+      // Redirect to the new item so they can edit it
+      if (createdItem && createdItem.id) {
+        navigate(`/${type}?id=${createdItem.id}`);
+      }
     } catch (error) {
       console.error('Import failed', error);
       toast.error('Kunde inte importera mallen');
@@ -105,6 +113,9 @@ const LibraryList = () => {
           <button className="btn-secondary btn-sm" onClick={() => handleImport(item, type)}>
             <Download size={14} /> Importera
           </button>
+          <a href={`/${type}?id=${item.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+            <ExternalLink size={14} /> Öppna
+          </a>
         </div>
       </div>
     );

@@ -193,7 +193,7 @@ const nodeTypes = {
 };
 
 const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const { getViewport } = useReactFlow();
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
@@ -404,22 +404,24 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
         </button>
         <h2>{process.title}</h2>
         <div className="header-actions">
-          {!isEditMode ? (
-            <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
-              <Edit2 size={18} />
-              <span>Redigera</span>
-            </button>
-          ) : (
-            <>
-              <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
-                <X size={18} />
-                <span>Avbryt</span>
+          {(!process.is_global || userProfile?.role === 'superadmin') && (
+            !isEditMode ? (
+              <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
+                <Edit2 size={18} />
+                <span>Redigera</span>
               </button>
-              <button className="btn-primary" onClick={saveProcess} disabled={isSaving}>
-                <Save size={18} />
-                <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
-              </button>
-            </>
+            ) : (
+              <>
+                <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
+                  <X size={18} />
+                  <span>Avbryt</span>
+                </button>
+                <button className="btn-primary" onClick={saveProcess} disabled={isSaving}>
+                  <Save size={18} />
+                  <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
+                </button>
+              </>
+            )
           )}
         </div>
       </div>

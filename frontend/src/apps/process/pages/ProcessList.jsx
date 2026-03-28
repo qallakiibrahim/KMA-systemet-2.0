@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ReactFlow, { 
   addEdge, 
   Background, 
@@ -37,6 +38,7 @@ const nodeTypes = {
 };
 
 const ProcessListContent = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [processes, setProcesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -77,6 +79,19 @@ const ProcessListContent = () => {
   useEffect(() => {
     fetchProcesses();
   }, []);
+
+  useEffect(() => {
+    const processId = searchParams.get('id');
+    if (processId && processes.length > 0) {
+      const processToOpen = processes.find(p => String(p.id) === String(processId));
+      if (processToOpen) {
+        setNavigationStack([processToOpen]);
+        // Remove the id from the URL so it doesn't keep reopening when closed
+        searchParams.delete('id');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, processes, setSearchParams]);
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
