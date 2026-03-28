@@ -106,7 +106,17 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
     setIsCreating(true);
     console.log('Using template:', template.title, 'Category:', activeCategory);
     try {
-      const { id, created_at, updated_at, ...templateData } = template;
+      // Strip out metadata and relationship fields that shouldn't be inserted
+      const { 
+        id, 
+        created_at, 
+        updated_at, 
+        attachments, 
+        creator_uid: oldCreator, 
+        company_id: oldCompany,
+        ...templateData 
+      } = template;
+      
       const isProcess = activeCategory === 'process' || template.type === 'process';
       
       const newItem = {

@@ -79,7 +79,18 @@ const LibraryList = () => {
 
     console.log('Importing item:', item.title, 'Type:', type);
     try {
-      const { id, created_at, updated_at, ...itemData } = item;
+      // Strip out metadata and relationship fields that shouldn't be inserted
+      const { 
+        id, 
+        created_at, 
+        updated_at, 
+        attachments, 
+        creator_uid: oldCreator, 
+        created_by: oldCreatedBy,
+        company_id: oldCompany,
+        ...itemData 
+      } = item;
+
       const newItem = {
         ...itemData,
         company_id: userProfile.company_id,

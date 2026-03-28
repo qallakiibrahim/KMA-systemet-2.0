@@ -45,10 +45,13 @@ export const getGlobalProcesses = async () => {
 };
 
 export const createProcess = async (data) => {
+  // Strip out attachments if they are present (they are a relationship, not a column)
+  const { attachments, ...insertData } = data;
+  
   // Defensive: try to insert, if it fails due to missing columns, try a minimal version
   const { data: inserted, error } = await supabase
     .from(tableName)
-    .insert([data])
+    .insert([insertData])
     .select()
     .single();
     
