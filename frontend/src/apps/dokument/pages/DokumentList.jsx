@@ -10,6 +10,7 @@ import {
   PlusCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import CreateDocumentModal from '../components/CreateDocumentModal';
 import '../styles/DokumentList.css';
 
 const FileIcon = ({ type, size = 24 }) => {
@@ -37,6 +38,7 @@ const DokumentList = () => {
   const [dokuments, setDokuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingDokument, setEditingDokument] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -283,7 +285,7 @@ const DokumentList = () => {
             />
           </div>
           <div className="flex gap-2">
-            <button className="btn-secondary" onClick={() => setIsEditorOpen(true)}>
+            <button className="btn-secondary" onClick={() => setIsCreateModalOpen(true)}>
               <PlusCircle size={20} />
               <span>Nytt Levande Dokument</span>
             </button>
@@ -475,6 +477,17 @@ const DokumentList = () => {
           </div>
         )}
       </div>
+
+      <CreateDocumentModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        templates={dokuments}
+        onCreated={(newDoc) => {
+          setDokuments([newDoc, ...dokuments]);
+          setEditingDokument(newDoc);
+          setIsEditorOpen(true);
+        }}
+      />
 
       {isEditorOpen && (
         <DocumentEditor 
