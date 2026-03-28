@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument, getDokumentById, getGlobalTemplates } from '../api/dokument';
 import { getProcesses, createProcess, getGlobalProcesses } from '../../process/api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
@@ -9,7 +9,7 @@ import {
   Plus, Edit2, Trash2, X, FileText, Download, ExternalLink, 
   File, UploadCloud, Loader, Search, Filter, Grid, List as ListIcon,
   FileCode, FileImage, FileAudio, FileVideo, FileArchive, FileSpreadsheet,
-  PlusCircle
+  PlusCircle, Activity
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import CreateDocumentModal from '../components/CreateDocumentModal';
