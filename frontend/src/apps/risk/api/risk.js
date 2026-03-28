@@ -56,7 +56,7 @@ export const createRisk = async (data) => {
     // If it's a missing column error, try without SaaS columns
     if (error.message.includes('column') && error.message.includes('does not exist')) {
       console.warn('Retrying risk creation without SaaS columns...');
-      const { company_id, is_template, is_global, ...minimalData } = data;
+      const { company_id, is_template, is_global, responsible_uid, creator_uid, created_by, responsible_name, ...minimalData } = data;
       const { data: retryInserted, error: retryError } = await supabase
         .from(tableName)
         .insert([minimalData])
@@ -72,15 +72,35 @@ export const createRisk = async (data) => {
 };
 
 export const updateRisk = async (id, data) => {
-  const { data: updated, error } = await supabase
-    .from(tableName)
-    .update(data)
-    .eq('id', id)
-    .select()
-    .single();
+  try {
+    const { data: updated, error } = await supabase
+      .from(tableName)
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return updated;
+  } catch (error) {
+    console.error('Supabase updateRisk error:', error);
     
-  if (error) throw error;
-  return updated;
+    // If it's a missing column error, try without SaaS columns
+    if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
+      console.warn('Retrying risk update without SaaS columns...');
+      const { company_id, is_template, is_global, responsible_uid, creator_uid, created_by, responsible_name, ...minimalData } = data;
+      const { data: retryUpdated, error: retryError } = await supabase
+        .from(tableName)
+        .update(minimalData)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (retryError) throw retryError;
+      return retryUpdated;
+    }
+    throw error;
+  }
 };
 
 export const deleteRisk = async (id) => {

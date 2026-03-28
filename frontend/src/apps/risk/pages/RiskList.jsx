@@ -19,7 +19,8 @@ const RiskList = () => {
     impact: 1, 
     status: 'open', 
     category: 'general',
-    deadline: ''
+    deadline: '',
+    responsible_name: ''
   });
   const { currentUser, userProfile } = useAuth();
   const location = useLocation();
@@ -92,7 +93,8 @@ const RiskList = () => {
         impact: parseInt(formData.impact),
         risk_score: parseInt(formData.likelihood) * parseInt(formData.impact),
         deadline: formData.deadline || null,
-        responsible_uid: currentUser?.id || null,
+        creator_uid: currentUser?.id || null,
+        responsible_name: formData.responsible_name || userProfile?.full_name || currentUser?.email || 'Okänd',
         company_id: companyId,
         is_template: userProfile?.role === 'superadmin',
         is_global: userProfile?.role === 'superadmin'
@@ -146,7 +148,8 @@ const RiskList = () => {
       impact: risk.impact,
       status: risk.status,
       category: risk.category,
-      deadline: risk.deadline || ''
+      deadline: risk.deadline || '',
+      responsible_name: risk.responsible_name || ''
     });
     setIsModalOpen(true);
   };
@@ -156,7 +159,7 @@ const RiskList = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedRisk(null);
-    setFormData({ title: '', description: '', likelihood: 1, impact: 1, status: 'open', category: 'general', deadline: '' });
+    setFormData({ title: '', description: '', likelihood: 1, impact: 1, status: 'open', category: 'general', deadline: '', responsible_name: '' });
   };
 
   const handleDelete = async (id) => {
@@ -388,6 +391,18 @@ const RiskList = () => {
                   name="deadline"
                   value={formData.deadline}
                   onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="responsible_name">Ansvarig</label>
+                <input
+                  type="text"
+                  id="responsible_name"
+                  name="responsible_name"
+                  value={formData.responsible_name}
+                  onChange={handleInputChange}
+                  placeholder="Namn på ansvarig person"
                 />
               </div>
 
