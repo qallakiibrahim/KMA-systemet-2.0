@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument } from '../api/dokument';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { supabase } from '../../../supabase';
 import DocumentEditor from '../components/DocumentEditor';
 import { 
   Plus, Edit2, Trash2, X, FileText, Download, ExternalLink, 
@@ -39,6 +40,7 @@ const DokumentList = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  console.log('DokumentList state:', { isCreateModalOpen, isModalOpen, isEditorOpen });
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingDokument, setEditingDokument] = useState(null);
   const [isUploading, setIsUploading] = useState(false);

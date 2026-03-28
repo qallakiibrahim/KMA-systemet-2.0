@@ -14,28 +14,32 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
+  // Safety check for templates
+  const safeTemplates = Array.isArray(templates) ? templates : [];
+
   if (!isOpen) return null;
 
   const companyTemplates = useMemo(() => 
-    templates.filter(t => t.is_template && t.company_id === userProfile?.company_id && !t.is_global),
-    [templates, userProfile]
+    safeTemplates.filter(t => t.is_template && t.company_id === userProfile?.company_id && !t.is_global),
+    [safeTemplates, userProfile]
   );
 
   const globalTemplates = useMemo(() => 
-    templates.filter(t => t.is_global && t.is_template),
-    [templates]
+    safeTemplates.filter(t => t.is_global && t.is_template),
+    [safeTemplates]
   );
 
   const filteredTemplates = useMemo(() => {
     const list = activeCategory === 'company' ? companyTemplates : globalTemplates;
     if (!searchTerm) return list;
     return list.filter(t => 
-      t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [activeCategory, companyTemplates, globalTemplates, searchTerm]);
 
   const handleCreateNew = async (visual = false) => {
+    console.log('Creating new document, visual:', visual);
     setIsCreating(true);
     try {
       const newDoc = {
@@ -73,6 +77,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [] }) => 
   };
 
   const handleUseTemplate = async (template) => {
+    console.log('Using template:', template.title);
     setIsCreating(true);
     try {
       const { id, created_at, updated_at, ...templateData } = template;
