@@ -17,8 +17,6 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex: 1;
-  min-width: 0;
 }
 
 .menu-btn {
@@ -28,7 +26,6 @@
   cursor: pointer;
   color: var(--text-primary);
   padding: 0.5rem;
-  flex-shrink: 0;
 }
 
 .header-left .search-bar {
@@ -38,26 +35,22 @@
   background-color: var(--bg-secondary);
   padding: 0.5rem 1rem;
   border-radius: 2rem;
-  max-width: 300px;
-  width: 100%;
-  flex-shrink: 1;
-  min-width: 0;
+  transition: all 0.2s;
 }
 
 .header-left .search-bar input {
   background: none;
   border: none;
   outline: none;
-  width: 100%;
+  width: 200px;
   color: var(--text-primary);
-  min-width: 0;
+  transition: width 0.2s;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  flex-shrink: 0;
 }
 
 .icon-btn {
@@ -222,6 +215,10 @@
   
   .header-left {
     gap: 0.5rem;
+  }
+
+  .header-left .search-bar input {
+    width: 120px;
   }
 
   .header-right {
