@@ -5,7 +5,7 @@ import { getAvvikelser } from '../../apps/avvikelse/api/avvikelse';
 import { createNotification } from '../../apps/notification/api/notification';
 import { useAuth } from './AuthContext';
 import { toast } from 'react-toastify';
-import { isBefore, addDays, parseISO, startOfDay } from 'date-fns';
+import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
 
 export const useDeadlines = () => {
   const { user } = useAuth();
@@ -22,9 +22,17 @@ export const useDeadlines = () => {
       ]);
 
       const today = startOfDay(new Date());
-      const threeDaysFromNow = addDays(today, 3);
 
-      const notify = async (title, message) => {
+      const notify = async (id, type, title, message, daysLeft, link) => {
+        // Skapa en unik nyckel för denna specifika notifikation (typ, id och hur många dagar kvar)
+        // Detta förhindrar att vi skickar samma notifikation flera gånger
+        const notificationState = daysLeft < 0 ? 'overdue' : daysLeft;
+        const storageKey = `notified_${type}_${id}_${notificationState}`;
+        
+        if (localStorage.getItem(storageKey)) {
+          return; // Redan notifierad för denna status
+        }
+
         await createNotification({
           title,
           message,
@@ -32,38 +40,69 @@ export const useDeadlines = () => {
           is_read: false,
           created_at: new Date().toISOString()
         });
-        toast.warning(title);
+        
+        if (daysLeft < 0) {
+          toast.error(title);
+        } else if (daysLeft <= 1) {
+          toast.warning(title);
+        } else {
+          toast.info(title);
+        }
+
+        // Markera som notifierad
+        localStorage.setItem(storageKey, 'true');
+      };
+
+      const checkItem = async (item, type, titleField, dateField, linkPrefix) => {
+        if ((item.status === 'done' || item.status === 'closed') || !item[dateField]) return;
+
+        const deadline = startOfDay(parseISO(item[dateField]));
+        const daysLeft = differenceInCalendarDays(deadline, today);
+        const title = item[titleField];
+        const link = `/${linkPrefix}`;
+
+        // Bästa praxis för notifikationsfrekvens:
+        // 1. Försenad (daysLeft < 0)
+        // 2. Mycket brådskande (daysLeft === 1)
+        // 3. Påminnelse (daysLeft === 3)
+        
+        if (daysLeft < 0) {
+          await notify(
+            item.id, type, 
+            `Försenad: ${title}`, 
+            `Deadline för ${title} passerades för ${Math.abs(daysLeft)} dagar sedan (${item[dateField]}).`,
+            daysLeft, link
+          );
+        } else if (daysLeft === 1) {
+          await notify(
+            item.id, type, 
+            `Brådskande: ${title}`, 
+            `Deadline för ${title} är imorgon!`,
+            daysLeft, link
+          );
+        } else if (daysLeft === 3) {
+          await notify(
+            item.id, type, 
+            `Påminnelse: ${title}`, 
+            `Det är 3 dagar kvar till deadline för ${title}.`,
+            daysLeft, link
+          );
+        }
       };
 
       // Check Tasks
       for (const task of tasks) {
-        if (task.status !== 'done' && task.dueDate) {
-          const dueDate = parseISO(task.dueDate);
-          if (isBefore(dueDate, threeDaysFromNow) && isBefore(today, dueDate)) {
-             // Only notify once per session/day if possible, but for now just notify
-             // In a real app, we'd track if we already notified for this specific deadline
-          }
-        }
+        await checkItem(task, 'task', 'title', 'dueDate', 'tasks');
       }
 
       // Check Risks
       for (const risk of risker) {
-        if (risk.status !== 'closed' && risk.deadline) {
-          const deadline = parseISO(risk.deadline);
-          if (isBefore(deadline, threeDaysFromNow) && isBefore(today, deadline)) {
-            await notify(`Risk-deadline närmar sig: ${risk.title}`, `Deadline för risk "${risk.title}" är ${risk.deadline}`);
-          }
-        }
+        await checkItem(risk, 'risk', 'title', 'deadline', 'risker');
       }
 
       // Check Deviations
       for (const a of avvikelser) {
-        if (a.status !== 'closed' && a.deadline) {
-          const deadline = parseISO(a.deadline);
-          if (isBefore(deadline, threeDaysFromNow) && isBefore(today, deadline)) {
-            await notify(`Avvikelse-deadline närmar sig: ${a.titel}`, `Deadline för avvikelse "${a.titel}" är ${a.deadline}`);
-          }
-        }
+        await checkItem(a, 'avvikelse', 'titel', 'deadline', 'avvikelser');
       }
 
       setLastCheck(new Date());
