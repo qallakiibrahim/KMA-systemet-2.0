@@ -93,13 +93,6 @@ const Header = ({ onMenuClick }) => {
         </div>
       </div>
       <div className="header-right">
-        <div className="user-profile" onClick={handleProfileClick} style={{ cursor: 'pointer' }}>
-          <div className="user-info-text">
-            <span className="user-name">{userProfile?.display_name || userProfile?.username || user?.email?.split('@')[0] || 'Användare'}</span>
-            <span className="user-role-badge">{userProfile?.role === 'superadmin' ? 'Superadmin' : userProfile?.role === 'admin' ? 'Admin' : ''}</span>
-          </div>
-          <User size={24} />
-        </div>
         <div className="notification-wrapper" ref={notificationRef}>
           <button className="icon-btn notification-btn" onClick={handleNotificationClick}>
             <Bell size={20} />
@@ -140,6 +133,13 @@ const Header = ({ onMenuClick }) => {
               </div>
             </div>
           )}
+        </div>
+        <div className="user-profile" onClick={handleProfileClick} style={{ cursor: 'pointer' }}>
+          <div className="user-info-text">
+            <span className="user-name">{userProfile?.display_name || userProfile?.username || user?.email?.split('@')[0] || 'Användare'}</span>
+            <span className="user-role-badge">{userProfile?.role === 'superadmin' ? 'Superadmin' : userProfile?.role === 'admin' ? 'Admin' : ''}</span>
+          </div>
+          <User size={24} />
         </div>
       </div>
     </header>
