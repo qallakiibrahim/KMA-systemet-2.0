@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../api/AuthContext';
 import { useTasks } from '../api/useTasks';
@@ -12,6 +12,7 @@ const Header = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef(null);
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -29,6 +30,19 @@ const Header = ({ onMenuClick }) => {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const overdueTasksCount = tasks.filter(
     task => task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done'
   ).length;
@@ -43,13 +57,28 @@ const Header = ({ onMenuClick }) => {
     navigate('/profile');
   };
 
-  const markAsRead = async (id) => {
+  const markAsRead = async (id, link) => {
     try {
       await updateNotification(id, { is_read: true });
       setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
+      
+      if (link) {
+        navigate(link);
+      }
+      setShowNotifications(false);
     } catch (error) {
       console.error('Failed to mark notification as read', error);
+      // Still close the dropdown and navigate if applicable even if marking as read fails
+      if (link) {
+        navigate(link);
+      }
+      setShowNotifications(false);
     }
+  };
+
+  const handleOverdueClick = () => {
+    navigate('/process'); // Assuming tasks are related to processes or there's a task view
+    setShowNotifications(false);
   };
 
   return (
@@ -64,7 +93,7 @@ const Header = ({ onMenuClick }) => {
         </div>
       </div>
       <div className="header-right">
-        <div className="notification-wrapper">
+        <div className="notification-wrapper" ref={notificationRef}>
           <button className="icon-btn notification-btn" onClick={handleNotificationClick}>
             <Bell size={20} />
             {unreadCount > 0 && (
@@ -80,7 +109,7 @@ const Header = ({ onMenuClick }) => {
               </div>
               <div className="notification-list">
                 {overdueTasksCount > 0 && (
-                  <div className="notification-item unread">
+                  <div className="notification-item unread" onClick={handleOverdueClick}>
                     <div className="notification-content">
                       <strong>Försenade uppgifter</strong>
                       <p>Du har {overdueTasksCount} försenade uppgifter.</p>
@@ -91,7 +120,7 @@ const Header = ({ onMenuClick }) => {
                   <div className="notification-empty">Inga nya notiser</div>
                 ) : (
                   notifications.map(n => (
-                    <div key={n.id} className={`notification-item ${!n.is_read ? 'unread' : ''}`} onClick={() => !n.is_read && markAsRead(n.id)}>
+                    <div key={n.id} className={`notification-item ${!n.is_read ? 'unread' : ''}`} onClick={() => markAsRead(n.id, n.link)}>
                       <div className="notification-content">
                         <strong>{n.title}</strong>
                         <p>{n.message}</p>
