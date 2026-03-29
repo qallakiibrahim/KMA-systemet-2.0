@@ -1,19 +1,46 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { User, Mail, Shield, Building, Calendar, CheckCircle, Settings, CreditCard, Globe, MapPin, Phone, Save, Activity } from 'lucide-react';
+import { User, Mail, Shield, Building, Calendar, CheckCircle, Settings, CreditCard, Globe, MapPin, Phone, Save, Activity, Edit2, X } from 'lucide-react';
 import CompanyList from '../../company/pages/CompanyList';
 import AdminPanel from '../../admin/pages/AdminPanel';
+import { toast } from 'react-toastify';
 import '../styles/Profile.css';
 
 const Profile = () => {
-  const { user, userProfile, loading } = useAuth();
+  const { user, userProfile, loading, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('personal');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    display_name: '',
+    username: ''
+  });
 
   if (loading) return <div className="loading">Laddar profil...</div>;
   if (!userProfile) return <div className="loading">Kunde inte ladda profil. Försök logga ut och in igen.</div>;
 
   const canManageCompany = userProfile.role === 'admin' || userProfile.role === 'superadmin';
   const isSuperAdmin = userProfile.role === 'superadmin';
+
+  const handleEditClick = () => {
+    setEditData({
+      display_name: userProfile.display_name || '',
+      username: userProfile.username || ''
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await updateProfile({
+        display_name: editData.display_name,
+        username: editData.username
+      });
+      toast.success('Profilen har uppdaterats');
+      setIsEditing(false);
+    } catch (error) {
+      toast.error('Kunde inte uppdatera profilen');
+    }
+  };
 
   const renderPermissions = (permissions) => {
     if (!permissions || permissions.length === 0) return 'Inga specifika behörigheter';
@@ -69,17 +96,56 @@ const Profile = () => {
         {activeTab === 'personal' && (
           <div className="profile-grid">
             <div className="profile-card">
-              <h3><User size={20} /> Personlig Information</h3>
-              <div className="info-list">
-                <div className="info-item">
-                  <span className="label">E-post:</span>
-                  <span className="value">{user?.email}</span>
-                </div>
-                <div className="info-item">
-                  <span className="label">Användarnamn:</span>
-                  <span className="value">{userProfile.username || '-'}</span>
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3><User size={20} /> Personlig Information</h3>
+                {!isEditing && (
+                  <button className="btn-icon-mini" onClick={handleEditClick} title="Redigera profil">
+                    <Edit2 size={16} />
+                  </button>
+                )}
               </div>
+              
+              {isEditing ? (
+                <div className="edit-profile-form">
+                  <div className="form-group">
+                    <label>Visningsnamn</label>
+                    <input 
+                      type="text" 
+                      value={editData.display_name} 
+                      onChange={(e) => setEditData({...editData, display_name: e.target.value})}
+                      className="form-control"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Användarnamn</label>
+                    <input 
+                      type="text" 
+                      value={editData.username} 
+                      onChange={(e) => setEditData({...editData, username: e.target.value})}
+                      className="form-control"
+                    />
+                  </div>
+                  <div className="form-actions" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn-primary" onClick={handleSaveProfile}>Spara</button>
+                    <button className="btn-secondary" onClick={() => setIsEditing(false)}>Avbryt</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="info-list">
+                  <div className="info-item">
+                    <span className="label">Namn:</span>
+                    <span className="value">{userProfile.display_name || '-'}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">E-post:</span>
+                    <span className="value">{user?.email}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">Användarnamn:</span>
+                    <span className="value">{userProfile.username || '-'}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="profile-card">

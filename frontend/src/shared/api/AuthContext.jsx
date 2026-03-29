@@ -347,8 +347,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfile = async (updates) => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      await refreshProfile();
+      return data;
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, currentUser: user, userProfile, loading, login, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, currentUser: user, userProfile, loading, login, logout, refreshProfile, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
