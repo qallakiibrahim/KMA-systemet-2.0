@@ -17,6 +17,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex: 1;
 }
 
 .menu-btn {
@@ -36,21 +37,23 @@
   padding: 0.5rem 1rem;
   border-radius: 2rem;
   transition: all 0.2s;
+  max-width: 300px;
+  width: 100%;
 }
 
 .header-left .search-bar input {
   background: none;
   border: none;
   outline: none;
-  width: 200px;
+  width: 100%;
   color: var(--text-primary);
-  transition: width 0.2s;
 }
 
 .header-right {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  margin-left: auto;
 }
 
 .icon-btn {
@@ -215,10 +218,6 @@
   
   .header-left {
     gap: 0.5rem;
-  }
-
-  .header-left .search-bar input {
-    width: 120px;
   }
 
   .header-right {
