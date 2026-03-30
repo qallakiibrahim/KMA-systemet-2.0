@@ -143,20 +143,6 @@ const AdminPanel = ({ isEmbedded = false }) => {
     }
   };
 
-  const handleSelectAiKey = async () => {
-    if (typeof window.aistudio !== 'undefined') {
-      try {
-        await window.aistudio.openSelectKey();
-        toast.success('AI-nyckel vald!');
-      } catch (error) {
-        console.error('Error selecting AI key:', error);
-        toast.error('Kunde inte öppna nyckelväljaren.');
-      }
-    } else {
-      toast.info('Denna funktion är endast tillgänglig i AI Studio-miljön.');
-    }
-  };
-
   const filteredCompanies = companies.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (c.org_nr || '').includes(searchTerm)
@@ -321,9 +307,6 @@ const AdminPanel = ({ isEmbedded = false }) => {
             <p>Hantera systemet, företag och licenser</p>
           </div>
           <div className="admin-actions">
-            <button className="btn-secondary" onClick={handleSelectAiKey} title="Välj din egen Gemini API-nyckel">
-              <Key size={18} /> AI-inställningar
-            </button>
             {activeTab === 'companies' && (
               <button className="btn-primary" onClick={() => setIsCompanyModalOpen(true)}>
                 <Plus size={18} /> Nytt Företag

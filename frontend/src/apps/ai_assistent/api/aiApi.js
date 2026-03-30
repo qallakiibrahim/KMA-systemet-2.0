@@ -22,43 +22,25 @@ export const chatWithAI = async (messages) => {
       return { response: 'Inga meddelanden att skicka.' };
     }
 
-    const history = validMessages.slice(0, -1).map(msg => ({
+    const contents = validMessages.map(msg => ({
       role: msg.role === 'ai' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
 
-    const lastMessage = validMessages[validMessages.length - 1].content;
-
     try {
-      const chat = ai.chats.create({
+      const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
+        contents: contents,
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
-        },
-        history: history
+        }
       });
-
-      const response = await chat.sendMessage({ message: lastMessage });
       
       if (response && response.text) {
         return { response: response.text };
       }
     } catch (chatError) {
       console.error('AI Chat Error:', chatError);
-      
-      // Fallback to basic generateContent
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: [
-          { role: 'user', parts: [{ text: SYSTEM_INSTRUCTION }] },
-          ...history.map(h => ({ role: h.role, parts: h.parts })),
-          { role: 'user', parts: [{ text: lastMessage }] }
-        ]
-      });
-
-      if (response && response.text) {
-        return { response: response.text };
-      }
       throw chatError;
     }
 

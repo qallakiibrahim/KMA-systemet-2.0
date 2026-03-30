@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { toast } from 'react-toastify';
-import { ensureApiKey } from '../utils/aiUtils';
 
 const AuthContext = createContext();
 
@@ -257,8 +256,10 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
-        // Trigger API key selection on initial load if logged in
-        ensureApiKey();
+        if (window.opener && window.name === 'google-login') {
+          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
+          window.close();
+        }
       } else {
         setLoading(false);
       }
@@ -270,6 +271,10 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
+        if (window.opener && window.name === 'google-login') {
+          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
+          window.close();
+        }
       } else {
         setUserProfile(null);
         setLoading(false);
@@ -286,11 +291,24 @@ export const AuthProvider = ({ children }) => {
       });
     };
 
+    const handleMessage = (event) => {
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            setUser(session.user);
+            fetchUserProfile(session.user);
+          }
+        });
+      }
+    };
+
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('message', handleMessage);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('message', handleMessage);
     };
   }, []);
 
