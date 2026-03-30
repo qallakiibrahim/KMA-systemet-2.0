@@ -348,25 +348,50 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   };
 
   const handleCreateSubProcess = async () => {
+    if (!selectedNode) return;
+    
     const title = prompt('Ange namn på den nya underprocessen:', `${selectedNode.data.label} - Detaljer`);
     if (!title) return;
 
+    setIsSaving(true);
     try {
       const newSubProcess = {
         title,
         description: `Underprocess till ${process.title} (${selectedNode.data.label})`,
         status: 'active',
         parent_id: process.id,
-        created_by: currentUser?.id
+        created_by: currentUser?.id,
+        company_id: userProfile?.company_id || null,
+        is_template: userProfile?.role === 'superadmin',
+        is_global: userProfile?.role === 'superadmin'
       };
       
       const created = await createProcess(newSubProcess);
-      setAllProcesses([...allProcesses, created]);
-      setSubProcess(created.id);
+      setAllProcesses(prev => [...prev, created]);
+      
+      // Update local nodes state
+      const updatedNodes = nodes.map((node) => {
+        if (node.id === selectedNode.id) {
+          return { ...node, data: { ...node.data, subProcessId: created.id } };
+        }
+        return node;
+      });
+      
+      setNodes(updatedNodes);
+      setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, subProcessId: created.id } });
+      
+      // Automatically save the parent process to persist the link
+      const viewport = getViewport();
+      const steps = { nodes: updatedNodes, edges, viewport };
+      const updatedParent = await updateProcess(process.id, { steps });
+      onUpdate(updatedParent);
+      
       toast.success(`Underprocess "${title}" skapad och kopplad!`);
     } catch (error) {
       console.error('Failed to create sub-process', error);
       toast.error('Kunde inte skapa underprocess');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -399,27 +424,34 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
     <div className="process-visualizer">
       <div className="visualizer-header">
         <div className="header-title-group">
-          <button className="btn-secondary" onClick={onBack}>
+          <button className="btn-secondary btn-sm" onClick={onBack}>
             <ChevronLeft size={18} />
             <span className="hide-on-mobile">Tillbaka</span>
           </button>
-          <h2>{process.title}</h2>
+          <div className="header-titles">
+            {process.parent_id && (
+              <span className="parent-title">
+                {allProcesses.find(p => p.id === process.parent_id)?.title || 'Överliggande process'}
+              </span>
+            )}
+            <h2>{process.title}</h2>
+          </div>
         </div>
         <div className="header-actions">
           {(!process.is_global || userProfile?.role === 'superadmin') && (
             !isEditMode ? (
-              <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
-                <Edit2 size={18} />
+              <button className="btn-secondary btn-sm" onClick={() => setIsEditMode(true)}>
+                <Edit2 size={16} />
                 <span>Redigera</span>
               </button>
             ) : (
               <>
-                <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
-                  <X size={18} />
+                <button className="btn-secondary btn-sm" onClick={() => setIsEditMode(false)}>
+                  <X size={16} />
                   <span>Avbryt</span>
                 </button>
-                <button className="btn-primary" onClick={saveProcess} disabled={isSaving}>
-                  <Save size={18} />
+                <button className="btn-primary btn-sm" onClick={saveProcess} disabled={isSaving}>
+                  <Save size={16} />
                   <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
                 </button>
               </>
@@ -514,7 +546,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
               <div className="form-group">
                 <label>Kopplad Underprocess</label>
                 {isEditMode ? (
-                  <div className="flex-row gap-2">
+                  <div className="sub-process-edit-group">
                     <select 
                       value={selectedNode.data.subProcessId || ''} 
                       onChange={(e) => setSubProcess(e.target.value)}
@@ -526,11 +558,12 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
                       ))}
                     </select>
                     <button 
-                      className="btn-icon-small" 
-                      title="Skapa ny underprocess"
+                      className="btn-primary btn-sm btn-full mt-2" 
                       onClick={handleCreateSubProcess}
+                      disabled={isSaving}
                     >
-                      <PlusCircle size={20} />
+                      <PlusCircle size={16} />
+                      <span>Skapa ny underprocess</span>
                     </button>
                   </div>
                 ) : (
@@ -543,10 +576,13 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
                   )
                 )}
                 {selectedNode.data.subProcessId && (
-                  <button className="btn-secondary btn-full mt-2" onClick={handleDrillDown}>
+                  <button className="btn-primary btn-full mt-2" onClick={handleDrillDown}>
                     <ExternalLink size={16} />
                     <span>Öppna underprocess</span>
                   </button>
+                )}
+                {!selectedNode.data.subProcessId && !isEditMode && (
+                  <p className="hint mt-2">Klicka på "Redigera" för att koppla en underprocess till detta steg.</p>
                 )}
               </div>
 
