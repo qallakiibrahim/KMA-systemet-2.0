@@ -257,11 +257,17 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
         if (window.opener && window.name === 'google-login') {
-          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
+          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', session }, '*');
           window.close();
         }
       } else {
-        setLoading(false);
+        // Don't stop loading if we are in the middle of an OAuth callback
+        const isOAuthCallback = window.location.search.includes('code=') || window.location.hash.includes('access_token=');
+        if (!isOAuthCallback) {
+          setLoading(false);
+        } else {
+          setTimeout(() => setLoading(false), 5000); // Fallback if auth fails
+        }
       }
     });
 
@@ -272,12 +278,17 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
         if (window.opener && window.name === 'google-login') {
-          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
+          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', session }, '*');
           window.close();
         }
       } else {
         setUserProfile(null);
-        setLoading(false);
+        const isOAuthCallback = window.location.search.includes('code=') || window.location.hash.includes('access_token=');
+        if (!isOAuthCallback) {
+          setLoading(false);
+        } else {
+          setTimeout(() => setLoading(false), 5000); // Fallback if auth fails
+        }
       }
     });
 
@@ -291,8 +302,18 @@ export const AuthProvider = ({ children }) => {
       });
     };
 
-    const handleMessage = (event) => {
+    const handleMessage = async (event) => {
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        if (event.data.session) {
+          try {
+            await supabase.auth.setSession({
+              access_token: event.data.session.access_token,
+              refresh_token: event.data.session.refresh_token
+            });
+          } catch (err) {
+            console.error('Error setting session from popup:', err);
+          }
+        }
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (session?.user) {
             setUser(session.user);

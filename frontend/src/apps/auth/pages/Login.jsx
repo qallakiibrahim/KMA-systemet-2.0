@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Auth.css';
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/process');
+    }
+  }, [user, navigate]);
 
   const handleLogin = async () => {
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
