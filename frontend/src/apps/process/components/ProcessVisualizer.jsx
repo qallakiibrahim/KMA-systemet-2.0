@@ -398,11 +398,13 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   return (
     <div className="process-visualizer">
       <div className="visualizer-header">
-        <button className="btn-icon" onClick={onBack}>
-          <ChevronLeft size={20} />
-          <span>Tillbaka</span>
-        </button>
-        <h2>{process.title}</h2>
+        <div className="header-title-group">
+          <button className="btn-secondary" onClick={onBack}>
+            <ChevronLeft size={18} />
+            <span className="hide-on-mobile">Tillbaka</span>
+          </button>
+          <h2>{process.title}</h2>
+        </div>
         <div className="header-actions">
           {(!process.is_global || userProfile?.role === 'superadmin') && (
             !isEditMode ? (
