@@ -342,8 +342,10 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   };
 
   const handleDrillDown = () => {
-    if (selectedNode?.data?.subProcessId && onDrillDown) {
-      onDrillDown(selectedNode.data.subProcessId);
+    const subProcessId = selectedNode?.data?.subProcessId;
+    if (subProcessId && onDrillDown) {
+      const subProcess = allProcesses.find(p => p.id === subProcessId);
+      onDrillDown(subProcessId, subProcess);
     }
   };
 
@@ -384,7 +386,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
       const viewport = getViewport();
       const steps = { nodes: updatedNodes, edges, viewport };
       const updatedParent = await updateProcess(process.id, { steps });
-      onUpdate(updatedParent);
+      onUpdate(updatedParent, created);
       
       toast.success(`Underprocess "${title}" skapad och kopplad!`);
     } catch (error) {

@@ -156,10 +156,20 @@ const ProcessListContent = () => {
     }
   }, [isEditMode, processes]);
 
-  const handleDrillDown = (subProcessId) => {
-    const subProcess = processes.find(p => p.id === subProcessId);
+  const handleDrillDown = (subProcessId, subProcessObject) => {
+    const subProcess = subProcessObject || processes.find(p => p.id === subProcessId);
     if (subProcess) {
       setNavigationStack(prev => [...prev, subProcess]);
+    } else {
+      // Fallback: fetch directly if not found in state
+      import('../api/process').then(({ getProcessById }) => {
+        getProcessById(subProcessId).then(fetchedProc => {
+          if (fetchedProc) {
+            setProcesses(prev => [fetchedProc, ...prev]);
+            setNavigationStack(prev => [...prev, fetchedProc]);
+          }
+        }).catch(err => console.error('Failed to fetch sub-process', err));
+      });
     }
   };
 
@@ -275,8 +285,14 @@ const ProcessListContent = () => {
       <ProcessVisualizer 
         process={activeProcess} 
         onBack={handleGoBack}
-        onUpdate={(updated) => {
-          setProcesses(prev => prev.map(p => p.id === updated.id ? updated : p));
+        onUpdate={(updated, newProcess) => {
+          setProcesses(prev => {
+            let next = prev.map(p => p.id === updated.id ? updated : p);
+            if (newProcess && !next.some(p => p.id === newProcess.id)) {
+              next = [newProcess, ...next];
+            }
+            return next;
+          });
           setNavigationStack(prev => prev.map(p => p.id === updated.id ? updated : p));
         }}
         onDrillDown={handleDrillDown}
