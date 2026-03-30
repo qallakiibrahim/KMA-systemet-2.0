@@ -47,12 +47,26 @@ const StartEndNode = ({ data }) => (
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
       {data.docs && data.docs.length > 0 && (
-        <div className="node-badge docs" title={`${data.docs.length} dokument`}>
+        <div 
+          className="node-badge docs clickable" 
+          title={`${data.docs.length} dokument - Klicka för att se`}
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onQuickAction?.('docs', data.docs);
+          }}
+        >
           <FileText size={10} /> {data.docs.length}
         </div>
       )}
       {data.subProcessId && (
-        <div className="node-badge sub-process" title="Har underprocess">
+        <div 
+          className="node-badge sub-process clickable" 
+          title="Klicka för att öppna underprocess"
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onQuickAction?.('sub-process', data.subProcessId);
+          }}
+        >
           <ExternalLink size={10} />
         </div>
       )}
@@ -74,12 +88,26 @@ const StepNode = ({ data }) => (
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
       {data.docs && data.docs.length > 0 && (
-        <div className="node-badge docs" title={`${data.docs.length} dokument`}>
+        <div 
+          className="node-badge docs clickable" 
+          title={`${data.docs.length} dokument - Klicka för att se`}
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onQuickAction?.('docs', data.docs);
+          }}
+        >
           <FileText size={10} /> {data.docs.length}
         </div>
       )}
       {data.subProcessId && (
-        <div className="node-badge sub-process" title="Har underprocess">
+        <div 
+          className="node-badge sub-process clickable" 
+          title="Klicka för att öppna underprocess"
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onQuickAction?.('sub-process', data.subProcessId);
+          }}
+        >
           <ExternalLink size={10} />
         </div>
       )}
@@ -205,8 +233,22 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    const handleQuickAction = (type, payload) => {
+      if (type === 'sub-process') {
+        const subProcess = allProcesses.find(p => p.id === payload);
+        onDrillDown(payload, subProcess);
+      } else if (type === 'docs') {
+        // Just selecting the node is enough as it opens the properties panel
+        // But we could also auto-scroll to docs if we wanted
+      }
+    };
+
     if (process.steps && process.steps.nodes) {
-      setNodes(process.steps.nodes);
+      const nodesWithActions = process.steps.nodes.map(node => ({
+        ...node,
+        data: { ...node.data, onQuickAction: handleQuickAction }
+      }));
+      setNodes(nodesWithActions);
       setEdges(process.steps.edges || []);
       if (process.steps.viewport) {
         setDefaultViewport(process.steps.viewport);
@@ -217,7 +259,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
         { 
           id: 'start', 
           type: 'startEnd', 
-          data: { label: 'Start' }, 
+          data: { label: 'Start', onQuickAction: handleQuickAction }, 
           position: { x: 250, y: 50 } 
         }
       ]);
@@ -237,7 +279,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
       }
     };
     fetchData();
-  }, [process.id]); // Only re-run if the process ID changes
+  }, [process.id, allProcesses.length]); // Re-run if process ID or process count changes
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -569,13 +611,9 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
                     </button>
                   </div>
                 ) : (
-                  selectedNode.data.subProcessId ? (
-                    <div className="read-only-value">
-                      {allProcesses.find(p => p.id === selectedNode.data.subProcessId)?.title || 'Kopplad underprocess'}
-                    </div>
-                  ) : (
-                    <div className="read-only-value text-muted">Ingen koppling</div>
-                  )
+                  <div className="read-only-value">
+                    {allProcesses.find(p => p.id === selectedNode.data.subProcessId)?.title || (selectedNode.data.subProcessId ? 'Laddar...' : 'Ingen koppling')}
+                  </div>
                 )}
                 {selectedNode.data.subProcessId && (
                   <button className="btn-primary btn-full mt-2" onClick={handleDrillDown}>

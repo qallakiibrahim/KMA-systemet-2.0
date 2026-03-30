@@ -440,8 +440,14 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.node-badge.sub-process {
-  background: #6366f1; /* Indigo for sub-processes */
+.node-badge.clickable {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.node-badge.clickable:hover {
+  transform: scale(1.2);
+  background: var(--primary-hover);
 }
 
 .sub-process-select {
