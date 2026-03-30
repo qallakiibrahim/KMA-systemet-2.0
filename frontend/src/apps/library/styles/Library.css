@@ -2,6 +2,9 @@
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .library-header {
@@ -51,6 +54,7 @@
   align-items: center;
   margin-bottom: 2rem;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .search-box {
@@ -82,27 +86,42 @@
   align-items: center;
 }
 
-.tab-group {
+.filter-tabs {
   display: flex;
-  background-color: var(--bg-secondary);
-  padding: 0.25rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  width: 100%;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
 }
 
-.tab-group button {
+.filter-tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+.filter-tab {
   padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  background: none;
-  color: var(--text-secondary);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
   font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
-.tab-group button.active {
-  background-color: var(--primary-color);
+.filter-tab:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.filter-tab.active {
+  background: var(--primary-color);
   color: white;
 }
 
@@ -247,31 +266,12 @@
     min-width: 0;
   }
   
-  .tab-group {
-    justify-content: flex-start;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    display: flex;
-    flex-wrap: nowrap;
+  .filter-tabs {
     margin: 0 -1rem;
-    padding: 0.25rem 1rem;
+    padding: 0 1rem 0.5rem 1rem;
     width: calc(100% + 2rem);
     max-width: none;
     min-width: 0;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    gap: 0.5rem;
-  }
-
-  .tab-group::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tab-group button {
-    flex: 0 0 auto;
-    white-space: nowrap;
   }
 
   .library-grid {

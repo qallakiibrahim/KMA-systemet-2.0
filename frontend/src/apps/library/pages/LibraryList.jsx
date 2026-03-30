@@ -206,11 +206,11 @@ const LibraryList = () => {
         </div>
         
         <div className="filter-group">
-          <div className="tab-group">
-            <button className={activeTab === 'all' ? 'active' : ''} onClick={() => setActiveTab('all')}>Alla</button>
-            <button className={activeTab === 'process' ? 'active' : ''} onClick={() => setActiveTab('process')}>Processer</button>
-            <button className={activeTab === 'document' ? 'active' : ''} onClick={() => setActiveTab('document')}>Dokument</button>
-            <button className={activeTab === 'risk' ? 'active' : ''} onClick={() => setActiveTab('risk')}>Risker</button>
+          <div className="filter-tabs">
+            <button className={`filter-tab ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>Alla</button>
+            <button className={`filter-tab ${activeTab === 'process' ? 'active' : ''}`} onClick={() => setActiveTab('process')}>Processer</button>
+            <button className={`filter-tab ${activeTab === 'document' ? 'active' : ''}`} onClick={() => setActiveTab('document')}>Dokument</button>
+            <button className={`filter-tab ${activeTab === 'risk' ? 'active' : ''}`} onClick={() => setActiveTab('risk')}>Risker</button>
           </div>
           
           <select className="filter-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
