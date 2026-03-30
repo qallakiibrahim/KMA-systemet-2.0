@@ -33,7 +33,7 @@ const FileIcon = ({ type, size = 16 }) => {
 };
 
 // Custom Node Types
-const StartEndNode = ({ data }) => (
+const StartEndNode = ({ id, data }) => (
   <div className="custom-node start-end">
     <Handle type="target" position={Position.Top} id="t-top" />
     <Handle type="source" position={Position.Top} id="s-top" />
@@ -52,7 +52,7 @@ const StartEndNode = ({ data }) => (
           title={`${data.docs.length} dokument - Klicka för att se`}
           onClick={(e) => {
             e.stopPropagation();
-            data.onQuickAction?.('docs', data.docs);
+            data.onQuickAction?.('docs', data.docs, id);
           }}
         >
           <FileText size={10} /> {data.docs.length}
@@ -64,7 +64,7 @@ const StartEndNode = ({ data }) => (
           title="Klicka för att öppna underprocess"
           onClick={(e) => {
             e.stopPropagation();
-            data.onQuickAction?.('sub-process', data.subProcessId);
+            data.onQuickAction?.('sub-process', data.subProcessId, id);
           }}
         >
           <ExternalLink size={10} />
@@ -74,7 +74,7 @@ const StartEndNode = ({ data }) => (
   </div>
 );
 
-const StepNode = ({ data }) => (
+const StepNode = ({ id, data }) => (
   <div className="custom-node step">
     <Handle type="target" position={Position.Top} id="t-top" />
     <Handle type="source" position={Position.Top} id="s-top" />
@@ -93,7 +93,7 @@ const StepNode = ({ data }) => (
           title={`${data.docs.length} dokument - Klicka för att se`}
           onClick={(e) => {
             e.stopPropagation();
-            data.onQuickAction?.('docs', data.docs);
+            data.onQuickAction?.('docs', data.docs, id);
           }}
         >
           <FileText size={10} /> {data.docs.length}
@@ -105,7 +105,7 @@ const StepNode = ({ data }) => (
           title="Klicka för att öppna underprocess"
           onClick={(e) => {
             e.stopPropagation();
-            data.onQuickAction?.('sub-process', data.subProcessId);
+            data.onQuickAction?.('sub-process', data.subProcessId, id);
           }}
         >
           <ExternalLink size={10} />
@@ -115,7 +115,7 @@ const StepNode = ({ data }) => (
   </div>
 );
 
-const DecisionNode = ({ data }) => (
+const DecisionNode = ({ id, data }) => (
   <div className="custom-node decision">
     <Handle type="target" position={Position.Top} style={{ top: -10, left: '50%' }} id="t-top" />
     <Handle type="source" position={Position.Top} style={{ top: -10, left: '50%' }} id="s-top" />
@@ -132,12 +132,26 @@ const DecisionNode = ({ data }) => (
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
       {data.docs && data.docs.length > 0 && (
-        <div className="node-badge docs" title={`${data.docs.length} dokument`}>
+        <div 
+          className="node-badge docs clickable" 
+          title={`${data.docs.length} dokument - Klicka för att se`}
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onQuickAction?.('docs', data.docs, id);
+          }}
+        >
           <FileText size={10} /> {data.docs.length}
         </div>
       )}
       {data.subProcessId && (
-        <div className="node-badge sub-process" title="Har underprocess">
+        <div 
+          className="node-badge sub-process clickable" 
+          title="Klicka för att öppna underprocess"
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onQuickAction?.('sub-process', data.subProcessId, id);
+          }}
+        >
           <ExternalLink size={10} />
         </div>
       )}
@@ -145,7 +159,7 @@ const DecisionNode = ({ data }) => (
   </div>
 );
 
-const DocumentNode = ({ data }) => (
+const DocumentNode = ({ id, data }) => (
   <div className="custom-node document">
     <Handle type="target" position={Position.Top} id="t-top" />
     <Handle type="source" position={Position.Top} id="s-top" />
@@ -159,7 +173,14 @@ const DocumentNode = ({ data }) => (
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
       {data.docs && data.docs.length > 0 && (
-        <div className="node-badge docs" title={`${data.docs.length} dokument`}>
+        <div 
+          className="node-badge docs clickable" 
+          title={`${data.docs.length} dokument - Klicka för att se`}
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onQuickAction?.('docs', data.docs, id);
+          }}
+        >
           <FileText size={10} /> {data.docs.length}
         </div>
       )}
@@ -167,7 +188,7 @@ const DocumentNode = ({ data }) => (
   </div>
 );
 
-const DataNode = ({ data }) => (
+const DataNode = ({ id, data }) => (
   <div className="custom-node data">
     <Handle type="target" position={Position.Top} id="t-top" />
     <Handle type="source" position={Position.Top} id="s-top" />
@@ -181,7 +202,14 @@ const DataNode = ({ data }) => (
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
       {data.docs && data.docs.length > 0 && (
-        <div className="node-badge docs" title={`${data.docs.length} dokument`}>
+        <div 
+          className="node-badge docs clickable" 
+          title={`${data.docs.length} dokument - Klicka för att se`}
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onQuickAction?.('docs', data.docs, id);
+          }}
+        >
           <FileText size={10} /> {data.docs.length}
         </div>
       )}
@@ -189,7 +217,7 @@ const DataNode = ({ data }) => (
   </div>
 );
 
-const DatabaseNode = ({ data }) => (
+const DatabaseNode = ({ id, data }) => (
   <div className="custom-node database">
     <Handle type="target" position={Position.Top} id="t-top" />
     <Handle type="source" position={Position.Top} id="s-top" />
@@ -203,7 +231,14 @@ const DatabaseNode = ({ data }) => (
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
       {data.docs && data.docs.length > 0 && (
-        <div className="node-badge docs" title={`${data.docs.length} dokument`}>
+        <div 
+          className="node-badge docs clickable" 
+          title={`${data.docs.length} dokument - Klicka för att se`}
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onQuickAction?.('docs', data.docs, id);
+          }}
+        >
           <FileText size={10} /> {data.docs.length}
         </div>
       )}
@@ -222,7 +257,7 @@ const nodeTypes = {
 
 const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) => {
   const { currentUser, userProfile } = useAuth();
-  const { getViewport } = useReactFlow();
+  const { getViewport, getNode } = useReactFlow();
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -233,13 +268,13 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const handleQuickAction = (type, payload) => {
+    const handleQuickAction = (type, payload, nodeId) => {
       if (type === 'sub-process') {
         const subProcess = allProcesses.find(p => p.id === payload);
         onDrillDown(payload, subProcess);
       } else if (type === 'docs') {
-        // Just selecting the node is enough as it opens the properties panel
-        // But we could also auto-scroll to docs if we wanted
+        const node = getNode(nodeId);
+        if (node) setSelectedNode(node);
       }
     };
 
