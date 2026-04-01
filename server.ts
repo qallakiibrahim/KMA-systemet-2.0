@@ -51,6 +51,7 @@ NODE_ENV: ${process.env.NODE_ENV}
             window.process.env = window.process.env || {};
             window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
             window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
+            window.__GEMINI_API_KEY__ = ${JSON.stringify(process.env.GEMINI_API_KEY || process.env.API_KEY || '')};
           </script>
         `;
         template = template.replace('</head>', `${envScript}</head>`);
@@ -75,6 +76,7 @@ NODE_ENV: ${process.env.NODE_ENV}
           window.process.env = window.process.env || {};
           window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
           window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
+          window.__GEMINI_API_KEY__ = ${JSON.stringify(process.env.GEMINI_API_KEY || process.env.API_KEY || '')};
         </script>
       `;
       template = template.replace('</head>', `${envScript}</head>`);

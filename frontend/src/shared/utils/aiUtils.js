@@ -5,6 +5,11 @@ import { GoogleGenAI } from '@google/genai';
  * The platform injects the selected key into process.env.GEMINI_API_KEY.
  */
 export const getRawApiKey = () => {
+  // Try window.__GEMINI_API_KEY__ (injected by server.ts)
+  if (typeof window !== 'undefined' && window.__GEMINI_API_KEY__) {
+    return window.__GEMINI_API_KEY__;
+  }
+  
   // Try window.process.env (injected by server.ts)
   if (typeof window !== 'undefined' && window.process?.env?.GEMINI_API_KEY) {
     return window.process.env.GEMINI_API_KEY;

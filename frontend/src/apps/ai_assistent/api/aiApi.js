@@ -16,13 +16,18 @@ export const chatWithAI = async (messages) => {
       return { response: 'AI-tjänsten saknar API-nyckel. Kontrollera att du har anslutit din nyckel i inställningarna. Om du nyss har anslutit den, prova att ladda om sidan.' };
     }
     
-    const validMessages = messages.filter(msg => msg.content && msg.role);
-    
-    if (validMessages.length === 0) {
+    // Gemini API requires the first message to be from the user.
+    // If the first message is from AI, we skip it or prepend a dummy user message.
+    let chatMessages = [...validMessages];
+    if (chatMessages.length > 0 && chatMessages[0].role === 'ai') {
+      chatMessages.shift(); // Skip the initial AI greeting
+    }
+
+    if (chatMessages.length === 0) {
       return { response: 'Inga meddelanden att skicka.' };
     }
 
-    const contents = validMessages.map(msg => ({
+    const contents = chatMessages.map(msg => ({
       role: msg.role === 'ai' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
@@ -30,7 +35,7 @@ export const chatWithAI = async (messages) => {
     try {
       console.log('Sending to AI model:', contents);
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-flash-latest',
         contents: contents,
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
