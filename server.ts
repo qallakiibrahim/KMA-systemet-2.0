@@ -48,11 +48,8 @@ NODE_ENV: ${process.env.NODE_ENV}
           // Inject environment variables into the template AFTER Vite transformation
           const envScript = `
             <script>
-              window.process = window.process || {};
-              window.process.env = window.process.env || {};
-              window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
-              window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
               window.__GEMINI_API_KEY__ = ${JSON.stringify(process.env.GEMINI_API_KEY || process.env.API_KEY || '')};
+              console.log('AI API Key injected into window.__GEMINI_API_KEY__');
             </script>
           `;
           template = template.replace('</head>', `${envScript}</head>`);
@@ -77,11 +74,8 @@ NODE_ENV: ${process.env.NODE_ENV}
       
       const envScript = `
         <script>
-          window.process = window.process || {};
-          window.process.env = window.process.env || {};
-          window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
-          window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
           window.__GEMINI_API_KEY__ = ${JSON.stringify(process.env.GEMINI_API_KEY || process.env.API_KEY || '')};
+          console.log('AI API Key injected into window.__GEMINI_API_KEY__ (prod)');
         </script>
       `;
       template = template.replace('</head>', `${envScript}</head>`);

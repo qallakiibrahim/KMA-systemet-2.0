@@ -5,21 +5,11 @@ import { GoogleGenAI } from '@google/genai';
  * The platform injects the selected key into process.env.GEMINI_API_KEY.
  */
 export const getRawApiKey = () => {
-  // Try window.__GEMINI_API_KEY__ (injected by server.ts)
-  if (typeof window !== 'undefined' && window.__GEMINI_API_KEY__) {
-    return window.__GEMINI_API_KEY__;
-  }
-  
-  // Try window.process.env (injected by server.ts)
-  if (typeof window !== 'undefined' && window.process?.env?.GEMINI_API_KEY) {
-    return window.process.env.GEMINI_API_KEY;
-  }
-  
-  // Try standard process.env (replaced by Vite define)
-  const key = process.env.GEMINI_API_KEY;
+  // Use the robustly injected global variable from server.ts
+  const key = typeof window !== 'undefined' ? window.__GEMINI_API_KEY__ : null;
 
   if (!key) {
-    console.warn('AI API Key not found in environment variables.');
+    console.warn('AI API Key not found in window.__GEMINI_API_KEY__. Check server injection.');
   }
 
   return key;
