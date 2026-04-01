@@ -21,7 +21,7 @@ async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: 'spa',
+      appType: 'custom',
       root: path.resolve(__dirname, 'frontend')
     });
     app.use(vite.middlewares);
@@ -33,17 +33,6 @@ async function startServer() {
         const fs = await import('fs');
         const templatePath = path.resolve(__dirname, 'frontend/index.html');
         let template = fs.readFileSync(templatePath, 'utf-8');
-        
-        // Inject environment variables into the template
-        const envScript = `
-          <script>
-            window.process = window.process || {};
-            window.process.env = window.process.env || {};
-            window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
-            window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
-          </script>
-        `;
-        template = template.replace('</head>', `${envScript}</head>`);
         
         template = await vite.transformIndexHtml(url, template);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
@@ -60,15 +49,6 @@ async function startServer() {
       const templatePath = path.join(distPath, 'index.html');
       let template = fs.readFileSync(templatePath, 'utf-8');
       
-      const envScript = `
-        <script>
-          window.process = window.process || {};
-          window.process.env = window.process.env || {};
-          window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
-          window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
-        </script>
-      `;
-      template = template.replace('</head>', `${envScript}</head>`);
       res.status(200).set({ 'Content-Type': 'text/html' }).send(template);
     });
   }
