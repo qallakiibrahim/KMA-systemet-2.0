@@ -16,6 +16,8 @@ export const chatWithAI = async (messages) => {
       return { response: 'AI-tjänsten saknar API-nyckel. Kontrollera att du har anslutit din nyckel i inställningarna. Om du nyss har anslutit den, prova att ladda om sidan.' };
     }
     
+    const validMessages = messages.filter(msg => msg.content && msg.role);
+    
     // Gemini API requires the first message to be from the user.
     // If the first message is from AI, we skip it or prepend a dummy user message.
     let chatMessages = [...validMessages];

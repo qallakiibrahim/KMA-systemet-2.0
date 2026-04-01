@@ -32,36 +32,41 @@ NODE_ENV: ${process.env.NODE_ENV}
       appType: 'custom',
       root: path.resolve(__dirname, 'frontend')
     });
-    app.use(vite.middlewares);
 
-    // Fallback for SPA routing in dev mode
-    app.use('*', async (req, res, next) => {
+    // Handle HTML serving with injection BEFORE Vite middlewares
+    app.use(async (req, res, next) => {
       const url = req.originalUrl;
-      try {
-        const fs = await import('fs');
-        const templatePath = path.resolve(__dirname, 'frontend/index.html');
-        let template = fs.readFileSync(templatePath, 'utf-8');
-        
-        template = await vite.transformIndexHtml(url, template);
-        
-        // Inject environment variables into the template AFTER Vite transformation
-        const envScript = `
-          <script>
-            window.process = window.process || {};
-            window.process.env = window.process.env || {};
-            window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
-            window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
-            window.__GEMINI_API_KEY__ = ${JSON.stringify(process.env.GEMINI_API_KEY || process.env.API_KEY || '')};
-          </script>
-        `;
-        template = template.replace('</head>', `${envScript}</head>`);
-        
-        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
-      } catch (e) {
-        vite.ssrFixStacktrace(e);
-        next(e);
+      // Only handle HTML requests or the root
+      if (req.method === 'GET' && (url === '/' || url.endsWith('.html') || !url.includes('.'))) {
+        try {
+          const fs = await import('fs');
+          const templatePath = path.resolve(__dirname, 'frontend/index.html');
+          let template = fs.readFileSync(templatePath, 'utf-8');
+          
+          template = await vite.transformIndexHtml(url, template);
+          
+          // Inject environment variables into the template AFTER Vite transformation
+          const envScript = `
+            <script>
+              window.process = window.process || {};
+              window.process.env = window.process.env || {};
+              window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
+              window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
+              window.__GEMINI_API_KEY__ = ${JSON.stringify(process.env.GEMINI_API_KEY || process.env.API_KEY || '')};
+            </script>
+          `;
+          template = template.replace('</head>', `${envScript}</head>`);
+          
+          return res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+        } catch (e) {
+          vite.ssrFixStacktrace(e);
+          return next(e);
+        }
       }
+      next();
     });
+
+    app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'frontend/dist');
     app.use(express.static(distPath, { index: false }));
