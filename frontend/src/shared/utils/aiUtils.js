@@ -5,9 +5,13 @@ import { GoogleGenAI } from '@google/genai';
  * The platform injects the selected key into process.env.GEMINI_API_KEY.
  */
 export const getRawApiKey = () => {
-  // Use window.process.env to avoid Vite's static replacement at build time
-  const env = typeof window !== 'undefined' && window.process && window.process.env ? window.process.env : process.env;
-  const key = env.GEMINI_API_KEY || env.API_KEY;
+  // Try window.process.env (injected by server.ts)
+  if (typeof window !== 'undefined' && window.process?.env?.GEMINI_API_KEY) {
+    return window.process.env.GEMINI_API_KEY;
+  }
+  
+  // Try standard process.env (replaced by Vite define)
+  const key = process.env.GEMINI_API_KEY;
 
   if (!key) {
     console.warn('AI API Key not found in environment variables.');
