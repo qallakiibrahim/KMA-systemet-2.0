@@ -28,6 +28,7 @@ export const chatWithAI = async (messages) => {
     }));
 
     try {
+      console.log('Sending to AI model:', contents);
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: contents,
@@ -36,11 +37,12 @@ export const chatWithAI = async (messages) => {
         }
       });
       
+      console.log('AI Response received:', response);
       if (response && response.text) {
         return { response: response.text };
       }
     } catch (chatError) {
-      console.error('AI Chat Error:', chatError);
+      console.error('AI Chat Error Details:', chatError);
       throw chatError;
     }
 

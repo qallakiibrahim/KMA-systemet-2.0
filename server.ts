@@ -14,6 +14,14 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  const fs = await import('fs');
+  const envCheck = `
+GEMINI_API_KEY present: ${!!process.env.GEMINI_API_KEY}
+API_KEY present: ${!!process.env.API_KEY}
+NODE_ENV: ${process.env.NODE_ENV}
+  `;
+  fs.writeFileSync('env-check.txt', envCheck);
+
   console.log('GEMINI_API_KEY present:', !!process.env.GEMINI_API_KEY);
   console.log('API_KEY present:', !!process.env.API_KEY);
 
@@ -35,6 +43,18 @@ async function startServer() {
         let template = fs.readFileSync(templatePath, 'utf-8');
         
         template = await vite.transformIndexHtml(url, template);
+        
+        // Inject environment variables into the template AFTER Vite transformation
+        const envScript = `
+          <script>
+            window.process = window.process || {};
+            window.process.env = window.process.env || {};
+            window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
+            window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
+          </script>
+        `;
+        template = template.replace('</head>', `${envScript}</head>`);
+        
         res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
       } catch (e) {
         vite.ssrFixStacktrace(e);
@@ -49,6 +69,15 @@ async function startServer() {
       const templatePath = path.join(distPath, 'index.html');
       let template = fs.readFileSync(templatePath, 'utf-8');
       
+      const envScript = `
+        <script>
+          window.process = window.process || {};
+          window.process.env = window.process.env || {};
+          window.process.env.API_KEY = ${JSON.stringify(process.env.API_KEY || '')};
+          window.process.env.GEMINI_API_KEY = ${JSON.stringify(process.env.GEMINI_API_KEY || '')};
+        </script>
+      `;
+      template = template.replace('</head>', `${envScript}</head>`);
       res.status(200).set({ 'Content-Type': 'text/html' }).send(template);
     });
   }
