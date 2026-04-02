@@ -53,19 +53,42 @@ export const chatWithAI = async (messages, userProfile) => {
 
     let currentContents = [...contents];
     let finalResponseText = '';
+    const maxRetries = 3;
 
     // Loop to handle potential multiple rounds of function calling
     for (let i = 0; i < 5; i++) {
       console.log(`AI Loop ${i + 1}, sending contents:`, currentContents);
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: currentContents,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-          tools: [{ functionDeclarations: aiToolDeclarations }],
+      let response;
+      let retryCount = 0;
+      let success = false;
+
+      while (retryCount < maxRetries && !success) {
+        try {
+          response = await ai.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: currentContents,
+            config: {
+              systemInstruction: SYSTEM_INSTRUCTION,
+              tools: [{ functionDeclarations: aiToolDeclarations }],
+            }
+          });
+          success = true;
+        } catch (err) {
+          const isRetryable = err.message?.includes('503') || 
+                             err.message?.includes('high demand') || 
+                             err.message?.includes('UNAVAILABLE');
+          
+          if (isRetryable && retryCount < maxRetries - 1) {
+            retryCount++;
+            const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+            console.warn(`AI Model busy (503), retrying in ${delay}ms... (Attempt ${retryCount}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            throw err;
+          }
         }
-      });
+      }
 
       console.log('AI Response received:', response);
       
@@ -139,6 +162,8 @@ export const chatWithAI = async (messages, userProfile) => {
     if (error.message) {
       if (error.message.includes('API_KEY_INVALID') || error.message.includes('API key not valid')) {
         errorMessage = 'AI-nyckeln är ogiltig. Kontrollera att GEMINI_API_KEY i "Settings" är korrekt.';
+      } else if (error.message.includes('503') || error.message.includes('high demand') || error.message.includes('UNAVAILABLE')) {
+        errorMessage = 'AI-modellen är tillfälligt överbelastad. Vänta några sekunder och försök igen.';
       } else if (error.message.includes('model not found') || error.message.includes('404')) {
         errorMessage = 'AI-modellen kunde inte nås. Kontrollera din åtkomst eller försök igen senare.';
       } else {
