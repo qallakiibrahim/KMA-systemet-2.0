@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User } from 'lucide-react';
 import { chatWithAI } from '../../apps/ai_assistent/api/aiApi';
+import { useAuth } from '../api/AuthContext';
 import '../styles/Chatbot.css';
 
 const AIAssistant = () => {
+  const { userProfile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
@@ -30,7 +32,7 @@ const AIAssistant = () => {
     setIsLoading(true);
 
     try {
-      const response = await chatWithAI(newMessages);
+      const response = await chatWithAI(newMessages, userProfile);
       setMessages(prev => [...prev, { role: 'ai', content: response.response }]);
     } catch (error) {
       console.error('AI Error', error);

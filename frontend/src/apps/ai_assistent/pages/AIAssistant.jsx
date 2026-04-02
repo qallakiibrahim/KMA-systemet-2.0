@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Send, Bot, User } from 'lucide-react';
 import { chatWithAI } from '../api/aiApi';
+import { useAuth } from '../../../shared/api/AuthContext';
 import '../styles/AIAssistant.css';
 
 const AIAssistant = () => {
+  const { userProfile } = useAuth();
   const [messages, setMessages] = useState([
     { role: 'ai', content: 'Hej! Jag är din AI-assistent. Hur kan jag hjälpa dig idag?' }
   ]);
@@ -21,7 +23,7 @@ const AIAssistant = () => {
     setIsLoading(true);
 
     try {
-      const response = await chatWithAI(newMessages);
+      const response = await chatWithAI(newMessages, userProfile);
       setMessages(prev => [...prev, { role: 'ai', content: response.response }]);
     } catch (error) {
       console.error('Failed to chat with AI', error);
