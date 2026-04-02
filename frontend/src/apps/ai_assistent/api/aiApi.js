@@ -37,7 +37,7 @@ export const chatWithAI = async (messages) => {
     try {
       console.log('Sending to AI model:', contents);
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-flash-latest',
         contents: contents,
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,

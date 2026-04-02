@@ -7,21 +7,37 @@ import { GoogleGenAI } from '@google/genai';
 export const getRawApiKey = () => {
   // 1. Try the robustly injected global variable from server.ts (works in preview)
   if (typeof window !== 'undefined' && window.__GEMINI_API_KEY__) {
+    console.log('AI API Key found via window.__GEMINI_API_KEY__');
     return window.__GEMINI_API_KEY__;
   }
 
-  // 2. Try standard Vite environment variable (works in Vercel if prefixed with VITE_)
-  const viteKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (viteKey) return viteKey;
-
-  // 3. Fallback to process.env (for other environments)
-  const key = typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : null;
-
-  if (!key && typeof window !== 'undefined') {
-    console.warn('AI API Key not found. Please set GEMINI_API_KEY in Settings (for preview) or VITE_GEMINI_API_KEY (for Vercel).');
+  // 2. Try standard Vite environment variables (works in Vercel)
+  // We check multiple possible names that Vite/Vercel might use
+  const viteKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+  if (viteKey) {
+    console.log('AI API Key found via import.meta.env');
+    return viteKey;
   }
 
-  return key;
+  // 3. Try process.env (replaced by Vite define at build time)
+  // This is what we defined in vite.config.ts
+  const processKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : null;
+  if (processKey) {
+    console.log('AI API Key found via process.env');
+    return processKey;
+  }
+
+  // 4. Last resort: check if it was injected into window.process
+  if (typeof window !== 'undefined' && window.process?.env?.GEMINI_API_KEY) {
+    console.log('AI API Key found via window.process.env');
+    return window.process.env.GEMINI_API_KEY;
+  }
+
+  if (typeof window !== 'undefined') {
+    console.warn('AI API Key not found. Please ensure VITE_GEMINI_API_KEY is set in Vercel and a new deployment is triggered.');
+  }
+
+  return null;
 };
 
 /**
