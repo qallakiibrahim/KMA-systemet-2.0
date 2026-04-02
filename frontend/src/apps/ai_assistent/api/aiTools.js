@@ -20,7 +20,7 @@ export const aiToolsImplementation = {
   get_risks: async ({ company_id }) => {
     console.log('AI Tool: get_risks', { company_id });
     const { data, error } = await supabase
-      .from('risks')
+      .from('risker')
       .select('*')
       .eq('company_id', company_id)
       .order('created_at', { ascending: false });
