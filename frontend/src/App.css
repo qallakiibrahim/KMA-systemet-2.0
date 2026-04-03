@@ -168,10 +168,30 @@ body {
 .btn-circle {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 0.625rem;
   padding: 0;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.close-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.625rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.close-btn:hover {
+  background-color: var(--bg-hover);
+  transform: scale(1.05);
 }
 
 /* Responsive Add Button Pattern */
@@ -183,7 +203,7 @@ body {
   .btn-responsive {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 0.625rem;
     padding: 0;
     flex-shrink: 0;
   }

@@ -26,6 +26,14 @@ const RiskList = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const fetchRisker = async () => {
     try {
       const data = await getRisker();
@@ -208,10 +216,14 @@ const RiskList = () => {
           <h1>Riskhantering</h1>
           <p className="subtitle">Identifiera, analysera och hantera risker</p>
         </div>
-        <button className="btn btn-primary btn-responsive" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          <span>Registrera Risk</span>
-        </button>
+        <div className="header-actions">
+          {isMobile && (
+            <button className="btn btn-primary btn-responsive" onClick={() => setIsModalOpen(true)}>
+              <Plus size={20} />
+              <span>Registrera Risk</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="kanban-board">
@@ -222,9 +234,23 @@ const RiskList = () => {
                 {column.icon}
                 <h2>{column.title}</h2>
               </div>
-              <span className="column-count">
-                {risker.filter(r => r.status === column.id).length}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {!isMobile && (
+                  <button 
+                    className="btn-icon-mini" 
+                    onClick={() => {
+                      setFormData({...formData, status: column.id});
+                      setIsModalOpen(true);
+                    }}
+                    title={`Lägg till i ${column.title}`}
+                  >
+                    <Plus size={16} />
+                  </button>
+                )}
+                <span className="column-count">
+                  {risker.filter(r => r.status === column.id).length}
+                </span>
+              </div>
             </div>
 
             <div className="column-content">

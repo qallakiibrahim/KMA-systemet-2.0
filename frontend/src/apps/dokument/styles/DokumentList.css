@@ -219,7 +219,7 @@
   font-weight: 700;
   text-transform: uppercase;
   padding: 0.2rem 0.6rem;
-  border-radius: 1rem;
+  border-radius: 0.25rem;
   letter-spacing: 0.02em;
 }
 
@@ -280,26 +280,6 @@
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
-}
-
-.close-btn {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-}
-
-.close-btn:hover {
-  background-color: var(--bg-hover);
-  transform: scale(1.05);
 }
 
 .modal-body {

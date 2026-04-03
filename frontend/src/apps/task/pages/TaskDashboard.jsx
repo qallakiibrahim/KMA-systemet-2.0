@@ -22,6 +22,14 @@ const TaskDashboard = () => {
     }
   }, [loading, location.state, tasks]);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleAddSubmit = (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
@@ -120,9 +128,11 @@ const TaskDashboard = () => {
     <div className="task-dashboard-container">
       <div className="dashboard-header">
         <h1>Uppgifter</h1>
-        <button className="btn btn-primary btn-responsive" onClick={() => setIsAdding(true)}>
-          <Plus size={20} /> <span>Ny uppgift</span>
-        </button>
+        {isMobile && (
+          <button className="btn btn-primary btn-responsive" onClick={() => setIsAdding(true)}>
+            <Plus size={20} /> <span>Ny uppgift</span>
+          </button>
+        )}
       </div>
 
       {isAdding && (
@@ -192,11 +202,27 @@ const TaskDashboard = () => {
         {columns.map(col => (
           <div key={col.id} className="kanban-column">
             <div className="column-header">
-              {col.icon}
-              <h3>{col.title}</h3>
-              <span className="task-count">
-                {tasks.filter(t => t.status === col.id).length}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {col.icon}
+                <h3>{col.title}</h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {!isMobile && (
+                  <button 
+                    className="btn-icon-mini" 
+                    onClick={() => {
+                      setNewTask({...newTask, status: col.id});
+                      setIsAdding(true);
+                    }}
+                    title={`Lägg till i ${col.title}`}
+                  >
+                    <Plus size={16} />
+                  </button>
+                )}
+                <span className="task-count">
+                  {tasks.filter(t => t.status === col.id).length}
+                </span>
+              </div>
             </div>
             <div className="column-content">
               {tasks.filter(t => t.status === col.id).map(renderTaskCard)}

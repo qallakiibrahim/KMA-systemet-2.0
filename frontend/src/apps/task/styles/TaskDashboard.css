@@ -52,7 +52,7 @@
 .task-count {
   background-color: var(--bg-primary);
   padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
+  border-radius: 0.25rem;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-primary);

@@ -64,6 +64,14 @@ const DokumentList = () => {
   });
   const { currentUser, userProfile } = useAuth();
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const fetchDokuments = async () => {
     try {
       const results = await Promise.allSettled([
@@ -365,16 +373,18 @@ const DokumentList = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
-            <button className="btn btn-secondary btn-responsive" onClick={handleCreateNewClick}>
-              <PlusCircle size={20} />
-              <span>Nytt Levande Dokument</span>
-            </button>
-            <button className="btn btn-primary btn-responsive" onClick={() => openModal()}>
-              <Plus size={20} />
-              <span>Ladda upp Fil</span>
-            </button>
-          </div>
+          {isMobile && (
+            <div className="flex gap-2">
+              <button className="btn btn-secondary btn-responsive" onClick={handleCreateNewClick}>
+                <PlusCircle size={20} />
+                <span>Nytt Levande Dokument</span>
+              </button>
+              <button className="btn btn-primary btn-responsive" onClick={() => openModal()}>
+                <Plus size={20} />
+                <span>Ladda upp Fil</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -419,6 +429,24 @@ const DokumentList = () => {
         </div>
         
         <div className="view-toggle">
+          {!isMobile && (
+            <div className="flex gap-2 mr-4">
+              <button 
+                className="view-btn" 
+                onClick={handleCreateNewClick}
+                title="Nytt Levande Dokument"
+              >
+                <PlusCircle size={18} />
+              </button>
+              <button 
+                className="view-btn" 
+                onClick={() => openModal()}
+                title="Ladda upp Fil"
+              >
+                <UploadCloud size={18} />
+              </button>
+            </div>
+          )}
           <button 
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}

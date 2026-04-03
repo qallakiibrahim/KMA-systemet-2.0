@@ -220,14 +220,6 @@
   margin: 0;
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.5rem;
-}
-
 .avvikelse-form {
   padding: 1.5rem;
   display: flex;
@@ -301,7 +293,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 0.4rem;
   transition: all 0.2s;
 }
 
