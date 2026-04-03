@@ -374,33 +374,39 @@ const ProcessListContent = () => {
           </p>
         </div>
         <div className="header-actions">
-          {isMobile ? (
-            <button className="btn-primary btn-circle" onClick={() => setShowMobileAddMenu(!showMobileAddMenu)}>
-              {showMobileAddMenu ? <X size={24} /> : <Plus size={24} />}
+          {/* Quick Add Button - Always visible when not editing */}
+          {!isEditMode && (
+            <button 
+              className="btn-primary btn-circle" 
+              onClick={() => setShowMobileAddMenu(true)}
+              title="Lägg till ny process"
+            >
+              <Plus size={24} />
+            </button>
+          )}
+
+          {/* Edit/Save/Cancel Buttons */}
+          {!isEditMode ? (
+            <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
+              <Edit2 size={18} />
+              {!isMobile && <span>Redigera karta</span>}
             </button>
           ) : (
-            !isEditMode ? (
-              <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
-                <Edit2 size={18} />
-                <span>Redigera karta</span>
+            <>
+              <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
+                <X size={18} />
+                {!isMobile && <span>Avbryt</span>}
               </button>
-            ) : (
-              <>
-                <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
-                  <X size={18} />
-                  <span>Avbryt</span>
-                </button>
-                <button className="btn-primary" onClick={saveMap} disabled={isSaving}>
-                  <Save size={18} />
-                  <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>
-                </button>
-              </>
-            )
+              <button className="btn-primary" onClick={saveMap} disabled={isSaving}>
+                <Save size={18} />
+                {!isMobile && <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>}
+              </button>
+            </>
           )}
         </div>
       </div>
 
-      {isMobile && showMobileAddMenu && (
+      {showMobileAddMenu && (
         <div className="mobile-add-overlay" onClick={() => setShowMobileAddMenu(false)}>
           <div className="mobile-add-menu" onClick={e => e.stopPropagation()}>
             <h3>Lägg till ny process</h3>
