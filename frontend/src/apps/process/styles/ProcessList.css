@@ -50,6 +50,9 @@
   flex: 1;
   position: relative;
   background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Important for flex scrolling */
 }
 
 .swimlanes-bg {
@@ -199,12 +202,14 @@
 /* Mobile List View Styles */
 .mobile-process-list {
   padding: 1rem;
+  padding-bottom: 5rem; /* Extra space at bottom for scrolling */
   display: flex;
   flex-direction: column;
   gap: 2rem;
   overflow-y: auto;
-  height: 100%;
+  flex: 1;
   background: var(--bg-secondary);
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-category-section {
