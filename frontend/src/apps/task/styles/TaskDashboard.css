@@ -17,23 +17,6 @@
   background-color: var(--bg-app);
 }
 
-.add-task-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.add-task-btn:hover {
-  background-color: var(--primary-hover);
-}
 
 .kanban-board {
   display: grid;
@@ -272,28 +255,6 @@
   margin-top: 2rem;
 }
 
-.cancel-btn {
-  background: none;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.cancel-btn:hover {
-  background-color: var(--bg-secondary);
-}
-
-.save-btn {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-}
 
 @media (max-width: 768px) {
   .dashboard-header {

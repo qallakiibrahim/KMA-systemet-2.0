@@ -120,8 +120,8 @@ const TaskDashboard = () => {
     <div className="task-dashboard-container">
       <div className="dashboard-header">
         <h1>Uppgifter</h1>
-        <button className="add-task-btn" onClick={() => setIsAdding(true)}>
-          <Plus size={20} /> Ny uppgift
+        <button className="btn btn-primary btn-responsive" onClick={() => setIsAdding(true)}>
+          <Plus size={20} /> <span>Ny uppgift</span>
         </button>
       </div>
 

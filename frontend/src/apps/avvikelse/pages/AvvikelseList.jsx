@@ -522,7 +522,7 @@ const AvvikelseList = () => {
           <p className="subtitle">Hantera och följ upp avvikelser i verksamheten</p>
         </div>
         <div className="header-actions">
-          <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+          <button className="btn btn-primary btn-responsive" onClick={() => setIsModalOpen(true)}>
             <Plus size={20} />
             <span>Rapportera Avvikelse</span>
           </button>

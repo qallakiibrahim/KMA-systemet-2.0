@@ -178,7 +178,7 @@ Data:
           ) : (
             <>
               <p className="ai-insight-text">{aiInsight || 'Välj en API-nyckel i Admin-panelen för att få proaktiva insikter.'}</p>
-              <button className="ai-refresh-btn" onClick={() => generateAiInsight(stats)}>
+              <button className="btn btn-secondary btn-sm" onClick={() => generateAiInsight(stats)}>
                 <RefreshCw size={14} /> Uppdatera insikt
               </button>
             </>

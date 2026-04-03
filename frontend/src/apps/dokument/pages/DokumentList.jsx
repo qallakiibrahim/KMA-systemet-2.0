@@ -366,11 +366,11 @@ const DokumentList = () => {
             />
           </div>
           <div className="flex gap-2">
-            <button className="btn-secondary" onClick={handleCreateNewClick}>
+            <button className="btn btn-secondary btn-responsive" onClick={handleCreateNewClick}>
               <PlusCircle size={20} />
               <span>Nytt Levande Dokument</span>
             </button>
-            <button className="btn-primary" onClick={() => openModal()}>
+            <button className="btn btn-primary btn-responsive" onClick={() => openModal()}>
               <Plus size={20} />
               <span>Ladda upp Fil</span>
             </button>

@@ -377,7 +377,7 @@ const ProcessListContent = () => {
           {/* Quick Add Button - Only on Mobile when not editing */}
           {!isEditMode && isMobile && (
             <button 
-              className="btn-primary btn-circle" 
+              className="btn btn-primary btn-circle btn-responsive" 
               onClick={() => setShowMobileAddMenu(true)}
               title="Lägg till ny process"
             >
@@ -388,17 +388,17 @@ const ProcessListContent = () => {
           {/* Edit/Save/Cancel Buttons - Only on Desktop */}
           {!isMobile && (
             !isEditMode ? (
-              <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
+              <button className="btn btn-secondary" onClick={() => setIsEditMode(true)}>
                 <Edit2 size={18} />
                 <span>Redigera karta</span>
               </button>
             ) : (
               <>
-                <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
+                <button className="btn btn-secondary" onClick={() => setIsEditMode(false)}>
                   <X size={18} />
                   <span>Avbryt</span>
                 </button>
-                <button className="btn-primary" onClick={saveMap} disabled={isSaving}>
+                <button className="btn btn-primary" onClick={saveMap} disabled={isSaving}>
                   <Save size={18} />
                   <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>
                 </button>

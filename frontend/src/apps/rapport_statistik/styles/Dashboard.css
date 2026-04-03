@@ -206,22 +206,3 @@
   gap: 0.5rem;
 }
 
-.ai-refresh-btn {
-  background: none;
-  border: 1px solid var(--border-color);
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-  margin-top: 1rem;
-}
-
-.ai-refresh-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-}

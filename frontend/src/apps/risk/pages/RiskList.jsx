@@ -208,7 +208,7 @@ const RiskList = () => {
           <h1>Riskhantering</h1>
           <p className="subtitle">Identifiera, analysera och hantera risker</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary btn-responsive" onClick={() => setIsModalOpen(true)}>
           <Plus size={20} />
           <span>Registrera Risk</span>
         </button>

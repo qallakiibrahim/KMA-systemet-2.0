@@ -161,7 +161,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
         <Shield size={48} className="text-danger" />
         <h1>Åtkomst nekad</h1>
         <p>Du har inte behörighet att se denna sida. Din roll är: {userProfile?.role || 'okänd'}</p>
-        <button className="btn-primary" onClick={() => window.location.href = '/'}>Tillbaka till start</button>
+        <button className="btn btn-primary" onClick={() => window.location.href = '/'}>Tillbaka till start</button>
       </div>
     );
   }
@@ -308,12 +308,12 @@ const AdminPanel = ({ isEmbedded = false }) => {
           </div>
           <div className="admin-actions">
             {activeTab === 'companies' && (
-              <button className="btn-primary" onClick={() => setIsCompanyModalOpen(true)}>
+              <button className="btn btn-primary" onClick={() => setIsCompanyModalOpen(true)}>
                 <Plus size={18} /> Nytt Företag
               </button>
             )}
             {activeTab === 'users' && (
-              <button className="btn-primary" onClick={() => setIsUserInfoModalOpen(true)}>
+              <button className="btn btn-primary" onClick={() => setIsUserInfoModalOpen(true)}>
                 <Plus size={18} /> Ny Användare
               </button>
             )}
@@ -324,12 +324,12 @@ const AdminPanel = ({ isEmbedded = false }) => {
       {isEmbedded && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem', gap: '1rem' }}>
           {activeTab === 'companies' && (
-            <button className="btn-primary btn-sm" onClick={() => setIsCompanyModalOpen(true)}>
+            <button className="btn btn-primary btn-sm" onClick={() => setIsCompanyModalOpen(true)}>
               <Plus size={16} /> Nytt Företag
             </button>
           )}
           {activeTab === 'users' && (
-            <button className="btn-primary btn-sm" onClick={() => setIsUserInfoModalOpen(true)}>
+            <button className="btn btn-primary btn-sm" onClick={() => setIsUserInfoModalOpen(true)}>
               <Plus size={16} /> Ny Användare
             </button>
           )}
@@ -453,9 +453,9 @@ const AdminPanel = ({ isEmbedded = false }) => {
                       <td>-</td>
                       <td className="text-muted">{company.expires_at ? new Date(company.expires_at).toLocaleDateString() : '-'}</td>
                       <td className="actions-cell">
-                        <button className="btn-secondary btn-sm" onClick={() => openEditCompanyModal(company)}>Redigera</button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => openEditCompanyModal(company)}>Redigera</button>
                         <button 
-                          className="btn-danger btn-sm ml-2" 
+                          className="btn btn-danger btn-sm ml-2" 
                           onClick={() => handleDeleteCompany(company.id, company.name)}
                           disabled={company.name === 'SafeQMS'}
                           title={company.name === 'SafeQMS' ? "Systemägaren kan inte tas bort" : "Ta bort företag"}
@@ -519,7 +519,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
                         {renderPermissions(u.permissions)}
                       </td>
                       <td className="actions-cell">
-                        <button className="btn-secondary btn-sm" onClick={() => openEditModal(u)}>Hantera</button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => openEditModal(u)}>Hantera</button>
                       </td>
                     </tr>
                   ))}
@@ -565,9 +565,9 @@ const AdminPanel = ({ isEmbedded = false }) => {
         <div className="admin-content">
           <div className="content-header">
             <h2>Hantering av Inbjudningar</h2>
-            <button className="add-btn" onClick={() => setIsInviteModalOpen(true)}>
+            <button className="btn btn-primary" onClick={() => setIsInviteModalOpen(true)}>
               <Plus size={18} />
-              Bjud in Användare
+              <span>Bjud in Användare</span>
             </button>
           </div>
           
@@ -662,8 +662,8 @@ const AdminPanel = ({ isEmbedded = false }) => {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="cancel-btn" onClick={() => setIsInviteModalOpen(false)}>Avbryt</button>
-                <button type="submit" className="save-btn">Skicka Inbjudan</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setIsInviteModalOpen(false)}>Avbryt</button>
+                <button type="submit" className="btn btn-primary">Skicka Inbjudan</button>
               </div>
             </form>
           </div>
@@ -733,8 +733,8 @@ const AdminPanel = ({ isEmbedded = false }) => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setIsModalOpen(false)}>Avbryt</button>
-              <button className="save-btn" onClick={handleSaveUser}>Spara ändringar</button>
+              <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Avbryt</button>
+              <button className="btn btn-primary" onClick={handleSaveUser}>Spara ändringar</button>
             </div>
           </div>
         </div>

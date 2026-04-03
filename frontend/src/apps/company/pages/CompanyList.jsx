@@ -177,7 +177,7 @@ const CompanyList = ({ isEmbedded = false }) => {
             <p className="subtitle">Hantera information för {company.name}</p>
           </div>
           {!isEditing && (
-            <button className="btn-primary" onClick={() => setIsEditing(true)}>
+            <button className="btn btn-primary" onClick={() => setIsEditing(true)}>
               Redigera profil
             </button>
           )}
@@ -186,7 +186,7 @@ const CompanyList = ({ isEmbedded = false }) => {
 
       {isEmbedded && !isEditing && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-          <button className="btn-primary btn-sm" onClick={() => setIsEditing(true)}>
+          <button className="btn btn-primary btn-sm" onClick={() => setIsEditing(true)}>
             Redigera Företagsinfo
           </button>
         </div>
@@ -266,7 +266,7 @@ const CompanyList = ({ isEmbedded = false }) => {
                         style={{ display: 'none' }} 
                         disabled={uploading}
                       />
-                      <label htmlFor="logo-upload" className="btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <label htmlFor="logo-upload" className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Upload size={16} /> {uploading ? 'Laddar upp...' : 'Ladda upp logga'}
                       </label>
                       {formData.logo_url && (
@@ -301,8 +301,8 @@ const CompanyList = ({ isEmbedded = false }) => {
                 </div>
 
                 <div className="form-actions" style={{ display: 'flex', gap: '1rem' }}>
-                  <button type="button" className="btn-secondary" onClick={() => setIsEditing(false)}>Avbryt</button>
-                  <button type="submit" className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>Avbryt</button>
+                  <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Save size={18} /> Spara ändringar
                   </button>
                 </div>
