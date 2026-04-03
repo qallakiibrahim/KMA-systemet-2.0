@@ -385,23 +385,25 @@ const ProcessListContent = () => {
             </button>
           )}
 
-          {/* Edit/Save/Cancel Buttons */}
-          {!isEditMode ? (
-            <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
-              <Edit2 size={18} />
-              {!isMobile && <span>Redigera karta</span>}
-            </button>
-          ) : (
-            <>
-              <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
-                <X size={18} />
-                {!isMobile && <span>Avbryt</span>}
+          {/* Edit/Save/Cancel Buttons - Only on Desktop */}
+          {!isMobile && (
+            !isEditMode ? (
+              <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
+                <Edit2 size={18} />
+                <span>Redigera karta</span>
               </button>
-              <button className="btn-primary" onClick={saveMap} disabled={isSaving}>
-                <Save size={18} />
-                {!isMobile && <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>}
-              </button>
-            </>
+            ) : (
+              <>
+                <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
+                  <X size={18} />
+                  <span>Avbryt</span>
+                </button>
+                <button className="btn-primary" onClick={saveMap} disabled={isSaving}>
+                  <Save size={18} />
+                  <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>
+                </button>
+              </>
+            )
           )}
         </div>
       </div>
