@@ -49,9 +49,18 @@ const ProcessListContent = () => {
   const [isSaving, setIsSaving] = useState(false);
   
   const [defaultViewport, setDefaultViewport] = useState({ x: 0, y: 0, zoom: 1 });
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
   const { currentUser, userProfile } = useAuth();
   const { getViewport } = useReactFlow();
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchProcesses = async () => {
     try {
@@ -300,36 +309,94 @@ const ProcessListContent = () => {
     );
   }
 
+  // Mobile List View Component
+  const MobileListView = () => {
+    const categories = [
+      { id: 'management', label: 'Ledningsprocesser', icon: <Settings size={18} /> },
+      { id: 'core', label: 'Huvudprocesser', icon: <Activity size={18} /> },
+      { id: 'support', label: 'Stödprocesser', icon: <PlusCircle size={18} /> }
+    ];
+
+    return (
+      <div className="mobile-process-list">
+        {categories.map(cat => {
+          const catNodes = nodes.filter(n => n.data?.category === cat.id);
+          if (catNodes.length === 0) return null;
+
+          return (
+            <div key={cat.id} className="mobile-category-section">
+              <div className={`mobile-category-header ${cat.id}`}>
+                {cat.icon}
+                <span>{cat.label}</span>
+              </div>
+              <div className="mobile-nodes-grid">
+                {catNodes.map(node => (
+                  <div 
+                    key={node.id} 
+                    className={`mobile-node-card ${cat.id}`}
+                    onClick={() => {
+                      const processId = node.data?.processId || node.id;
+                      const process = processes.find(p => String(p.id) === String(processId));
+                      if (process) setNavigationStack([process]);
+                    }}
+                  >
+                    <div className="mobile-node-info">
+                      <div className="mobile-node-title">{node.data?.label}</div>
+                      {node.data?.description && (
+                        <div className="mobile-node-desc">{node.data.description}</div>
+                      )}
+                    </div>
+                    <ChevronRight size={20} className="mobile-node-arrow" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        {nodes.length === 0 && (
+          <div className="empty-state">
+            <Layout size={48} />
+            <p>Inga processer har lagts till i kartan än.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="process-dashboard">
+    <div className={`process-dashboard ${isMobile ? 'mobile-view' : 'desktop-view'}`}>
       <div className="dashboard-header">
         <div>
           <h1>Processkarta</h1>
-          <p className="subtitle">Övergripande vy över verksamhetens processer</p>
+          <p className="subtitle">
+            {isMobile ? 'Välj en process för att se detaljer' : 'Övergripande vy över verksamhetens processer'}
+          </p>
         </div>
         <div className="header-actions">
-          {!isEditMode ? (
-            <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
-              <Edit2 size={18} />
-              <span>Redigera karta</span>
-            </button>
-          ) : (
-            <>
-              <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
-                <X size={18} />
-                <span>Avbryt</span>
+          {!isMobile && (
+            !isEditMode ? (
+              <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
+                <Edit2 size={18} />
+                <span>Redigera karta</span>
               </button>
-              <button className="btn-primary" onClick={saveMap} disabled={isSaving}>
-                <Save size={18} />
-                <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>
-              </button>
-            </>
+            ) : (
+              <>
+                <button className="btn-secondary" onClick={() => setIsEditMode(false)}>
+                  <X size={18} />
+                  <span>Avbryt</span>
+                </button>
+                <button className="btn-primary" onClick={saveMap} disabled={isSaving}>
+                  <Save size={18} />
+                  <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>
+                </button>
+              </>
+            )
           )}
         </div>
       </div>
 
       <div className="map-wrapper">
-        {isEditMode && (
+        {isEditMode && !isMobile && (
           <div className="map-toolbar">
             <h4>Lägg till objekt</h4>
             <button className="tool-btn management" onClick={() => addProcessNode('management')}>
@@ -350,41 +417,47 @@ const ProcessListContent = () => {
         )}
 
         <div className="map-container">
-          <div className="swimlanes-bg">
-            <div className="swimlane management">
-              <div className="swimlane-label">Ledningsprocesser</div>
-            </div>
-            <div className="swimlane core">
-              <div className="swimlane-label">Huvudprocesser</div>
-            </div>
-            <div className="swimlane support">
-              <div className="swimlane-label">Stödprocesser</div>
-            </div>
-          </div>
-          
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeDragStop={onNodeDragStop}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            nodeTypes={nodeTypes}
-            defaultViewport={defaultViewport}
-            nodesDraggable={isEditMode}
-            nodesConnectable={isEditMode}
-            elementsSelectable={true}
-            panOnDrag={isEditMode}
-            zoomOnScroll={isEditMode}
-            zoomOnPinch={isEditMode}
-            zoomOnDoubleClick={isEditMode}
-            panOnScroll={isEditMode}
-            preventScrolling={false}
-          >
-            <Background />
-            {isEditMode && <Controls />}
-          </ReactFlow>
+          {isMobile ? (
+            <MobileListView />
+          ) : (
+            <>
+              <div className="swimlanes-bg">
+                <div className="swimlane management">
+                  <div className="swimlane-label">Ledningsprocesser</div>
+                </div>
+                <div className="swimlane core">
+                  <div className="swimlane-label">Huvudprocesser</div>
+                </div>
+                <div className="swimlane support">
+                  <div className="swimlane-label">Stödprocesser</div>
+                </div>
+              </div>
+              
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onNodeDragStop={onNodeDragStop}
+                onConnect={onConnect}
+                onNodeClick={onNodeClick}
+                nodeTypes={nodeTypes}
+                defaultViewport={defaultViewport}
+                nodesDraggable={isEditMode}
+                nodesConnectable={isEditMode}
+                elementsSelectable={true}
+                panOnDrag={isEditMode}
+                zoomOnScroll={isEditMode}
+                zoomOnPinch={isEditMode}
+                zoomOnDoubleClick={isEditMode}
+                panOnScroll={isEditMode}
+                preventScrolling={false}
+              >
+                {isEditMode && <Background />}
+                {isEditMode && <Controls />}
+              </ReactFlow>
+            </>
+          )}
         </div>
       </div>
     </div>

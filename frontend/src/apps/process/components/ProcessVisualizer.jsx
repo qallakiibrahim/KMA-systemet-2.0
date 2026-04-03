@@ -593,7 +593,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
             panOnScroll={isEditMode}
             preventScrolling={false}
           >
-            <Background />
+            {isEditMode && <Background />}
             {isEditMode && <Controls />}
             {isEditMode && <MiniMap />}
           </ReactFlow>
