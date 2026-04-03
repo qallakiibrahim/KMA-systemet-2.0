@@ -63,6 +63,14 @@ const AdminPanel = ({ isEmbedded = false }) => {
   
   const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -307,12 +315,12 @@ const AdminPanel = ({ isEmbedded = false }) => {
             <p>Hantera systemet, företag och licenser</p>
           </div>
           <div className="admin-actions">
-            {activeTab === 'companies' && (
+            {isMobile && activeTab === 'companies' && (
               <button className="btn btn-primary" onClick={() => setIsCompanyModalOpen(true)}>
                 <Plus size={18} /> Nytt Företag
               </button>
             )}
-            {activeTab === 'users' && (
+            {isMobile && activeTab === 'users' && (
               <button className="btn btn-primary" onClick={() => setIsUserInfoModalOpen(true)}>
                 <Plus size={18} /> Ny Användare
               </button>
@@ -413,14 +421,21 @@ const AdminPanel = ({ isEmbedded = false }) => {
 
         {activeTab === 'companies' && (
           <div className="companies-tab">
-            <div className="search-bar">
-              <Search size={18} className="search-icon" />
-              <input 
-                type="text" 
-                placeholder="Sök på företagsnamn eller org.nr..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem' }}>
+              <div className="search-bar" style={{ flex: 1, marginBottom: 0 }}>
+                <Search size={18} className="search-icon" />
+                <input 
+                  type="text" 
+                  placeholder="Sök på företagsnamn eller org.nr..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              {!isMobile && (
+                <button className="btn btn-primary" onClick={() => setIsCompanyModalOpen(true)}>
+                  <Plus size={18} /> Nytt Företag
+                </button>
+              )}
             </div>
 
             <div className="table-container">
@@ -478,14 +493,21 @@ const AdminPanel = ({ isEmbedded = false }) => {
 
         {activeTab === 'users' && (
           <div className="users-tab">
-            <div className="search-bar">
-              <Search size={18} className="search-icon" />
-              <input 
-                type="text" 
-                placeholder="Sök på namn eller e-post..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem' }}>
+              <div className="search-bar" style={{ flex: 1, marginBottom: 0 }}>
+                <Search size={18} className="search-icon" />
+                <input 
+                  type="text" 
+                  placeholder="Sök på namn eller e-post..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              {!isMobile && (
+                <button className="btn btn-primary" onClick={() => setIsUserInfoModalOpen(true)}>
+                  <Plus size={18} /> Ny Användare
+                </button>
+              )}
             </div>
 
             <div className="table-container">

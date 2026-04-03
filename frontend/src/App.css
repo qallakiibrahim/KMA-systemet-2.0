@@ -194,6 +194,34 @@ body {
   transform: scale(1.05);
 }
 
+.btn-icon-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 0.625rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.btn-icon-mini:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+  transform: scale(1.05);
+}
+
+.btn-icon-mini.delete:hover {
+  background-color: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+}
+
 /* Responsive Add Button Pattern */
 @media (max-width: 768px) {
   .btn-responsive span {

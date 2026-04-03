@@ -54,6 +54,14 @@ const AvvikelseList = () => {
   const { currentUser, userProfile } = useAuth();
   const location = useLocation();
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const fetchAvvikelser = async () => {
     try {
       const data = await getAvvikelser();
@@ -522,10 +530,12 @@ const AvvikelseList = () => {
           <p className="subtitle">Hantera och följ upp avvikelser i verksamheten</p>
         </div>
         <div className="header-actions">
-          <button className="btn btn-primary btn-responsive" onClick={() => setIsModalOpen(true)}>
-            <Plus size={20} />
-            <span>Rapportera Avvikelse</span>
-          </button>
+          {isMobile && (
+            <button className="btn btn-primary btn-responsive" onClick={() => setIsModalOpen(true)}>
+              <Plus size={20} />
+              <span>Rapportera Avvikelse</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -535,8 +545,21 @@ const AvvikelseList = () => {
           return (
             <div key={col.id} className="kanban-column">
               <div className="kanban-column-header">
-                <h3>{col.title}</h3>
-                <span className="kanban-count">{columnAvvikelser.length}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3>{col.title}</h3>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {!isMobile && col.id === 2 && (
+                    <button 
+                      className="btn-icon-mini" 
+                      onClick={() => setIsModalOpen(true)}
+                      title="Rapportera ny avvikelse"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  )}
+                  <span className="kanban-count">{columnAvvikelser.length}</span>
+                </div>
               </div>
               <div className="kanban-cards">
                 {columnAvvikelser.map(a => {

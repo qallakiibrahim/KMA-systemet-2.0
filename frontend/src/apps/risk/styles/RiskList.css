@@ -201,16 +201,6 @@
   cursor: pointer;
 }
 
-.btn-icon-mini {
-  opacity: 0.3;
-  transition: opacity 0.2s;
-  color: var(--text-primary);
-}
-
-.risk-card-mini:hover .btn-icon-mini {
-  opacity: 1;
-}
-
 /* Modal Styling - Clean Utility */
 .modal-content {
   border-radius: 1rem;
