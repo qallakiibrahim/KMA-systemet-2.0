@@ -374,8 +374,8 @@ const ProcessListContent = () => {
           </p>
         </div>
         <div className="header-actions">
-          {/* Quick Add Button - Always visible when not editing */}
-          {!isEditMode && (
+          {/* Quick Add Button - Only on Mobile when not editing */}
+          {!isEditMode && isMobile && (
             <button 
               className="btn-primary btn-circle" 
               onClick={() => setShowMobileAddMenu(true)}
