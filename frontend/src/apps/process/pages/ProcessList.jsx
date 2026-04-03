@@ -50,6 +50,7 @@ const ProcessListContent = () => {
   
   const [defaultViewport, setDefaultViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showMobileAddMenu, setShowMobileAddMenu] = useState(false);
   
   const { currentUser, userProfile } = useAuth();
   const { getViewport } = useReactFlow();
@@ -373,7 +374,11 @@ const ProcessListContent = () => {
           </p>
         </div>
         <div className="header-actions">
-          {!isMobile && (
+          {isMobile ? (
+            <button className="btn-primary btn-circle" onClick={() => setShowMobileAddMenu(!showMobileAddMenu)}>
+              {showMobileAddMenu ? <X size={24} /> : <Plus size={24} />}
+            </button>
+          ) : (
             !isEditMode ? (
               <button className="btn-secondary" onClick={() => setIsEditMode(true)}>
                 <Edit2 size={18} />
@@ -394,6 +399,26 @@ const ProcessListContent = () => {
           )}
         </div>
       </div>
+
+      {isMobile && showMobileAddMenu && (
+        <div className="mobile-add-overlay" onClick={() => setShowMobileAddMenu(false)}>
+          <div className="mobile-add-menu" onClick={e => e.stopPropagation()}>
+            <h3>Lägg till ny process</h3>
+            <button className="tool-btn management" onClick={() => { addProcessNode('management'); setShowMobileAddMenu(false); }}>
+              <Plus size={18} />
+              <span>Ledningsprocess</span>
+            </button>
+            <button className="tool-btn core" onClick={() => { addProcessNode('core'); setShowMobileAddMenu(false); }}>
+              <Plus size={18} />
+              <span>Huvudprocess</span>
+            </button>
+            <button className="tool-btn support" onClick={() => { addProcessNode('support'); setShowMobileAddMenu(false); }}>
+              <Plus size={18} />
+              <span>Stödprocess</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="map-wrapper">
         {isEditMode && !isMobile && (
