@@ -381,7 +381,7 @@ const ProcessListContent = () => {
               onClick={() => setShowMobileAddMenu(true)}
               title="Lägg till ny process"
             >
-              <Plus size={24} />
+              <Plus size={20} />
             </button>
           )}
 
