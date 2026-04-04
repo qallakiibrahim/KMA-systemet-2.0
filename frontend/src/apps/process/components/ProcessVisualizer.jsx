@@ -261,6 +261,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
+  const [rfInstance, setRfInstance] = useState(null);
   const [defaultViewport, setDefaultViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [selectedNode, setSelectedNode] = useState(null);
   const [dokuments, setDokuments] = useState([]);
@@ -328,7 +329,9 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
       if (process.steps.viewport) {
         setDefaultViewport(process.steps.viewport);
         // Explicitly set the viewport if the flow is ready
-        setViewport(process.steps.viewport);
+        if (rfInstance) {
+          rfInstance.setViewport(process.steps.viewport);
+        }
       }
     } else if (nodes.length === 0) {
       // Default nodes if none exist and we haven't initialized yet
@@ -359,6 +362,13 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
     };
     fetchData();
   }, [process.id]); // Re-run only if process ID changes
+
+  const onInit = useCallback((instance) => {
+    setRfInstance(instance);
+    if (process.steps?.viewport) {
+      instance.setViewport(process.steps.viewport);
+    }
+  }, [process.id]);
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -654,6 +664,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
             onNodeDragStop={onNodeDragStop}
             onConnect={onConnect}
             onNodeClick={onNodeClick}
+            onInit={onInit}
             nodeTypes={nodeTypes}
             defaultViewport={defaultViewport}
             nodesDraggable={isEditMode}

@@ -50,6 +50,7 @@ const ProcessListContent = () => {
   const [navigationStack, setNavigationStack] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   
+  const [rfInstance, setRfInstance] = useState(null);
   const [defaultViewport, setDefaultViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showMobileAddMenu, setShowMobileAddMenu] = useState(false);
@@ -87,11 +88,13 @@ const ProcessListContent = () => {
         if (rootMap.steps.viewport) {
           setDefaultViewport(rootMap.steps.viewport);
           // Also explicitly set the viewport if the flow is ready
-          setViewport(rootMap.steps.viewport);
+          if (rfInstance) {
+            rfInstance.setViewport(rootMap.steps.viewport);
+          }
         }
       }
     }
-  }, [processes, isEditMode]);
+  }, [processes, isEditMode, rfInstance]);
 
   // Helper to remove non-serializable data (functions) before saving
   const cleanNodesForStorage = (nodesToClean) => {
@@ -162,6 +165,14 @@ const ProcessListContent = () => {
       }
     }
   }, [searchParams, processes, setSearchParams]);
+
+  const onInit = useCallback((instance) => {
+    setRfInstance(instance);
+    const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
+    if (rootMap?.steps?.viewport) {
+      instance.setViewport(rootMap.steps.viewport);
+    }
+  }, [processes]);
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -342,6 +353,29 @@ const ProcessListContent = () => {
     }
   };
 
+  const handleDeleteRootMap = async () => {
+    const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
+    if (!rootMap) return;
+
+    if (!window.confirm(`Är du säker på att du vill ta bort huvudprocesskartan? Detta tar bort hela vyn men inte de enskilda processerna.`)) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await deleteProcess(rootMap.id);
+      toast.success('Huvudprocesskartan har tagits bort');
+      queryClient.invalidateQueries({ queryKey: ['processes'] });
+      setNodes([]);
+      setEdges([]);
+    } catch (error) {
+      console.error('Failed to delete root map:', error);
+      toast.error('Kunde inte ta bort processkartan');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (isError) {
     return (
       <div className="error-state">
@@ -479,10 +513,18 @@ const ProcessListContent = () => {
           {/* Edit/Save/Cancel Buttons - Only on Desktop */}
           {!isMobile && (
             !isEditMode ? (
-              <button className="btn btn-secondary" onClick={() => setIsEditMode(true)}>
-                <Edit2 size={18} />
-                <span>Redigera karta</span>
-              </button>
+              <div className="flex gap-2">
+                <button className="btn btn-secondary" onClick={() => setIsEditMode(true)}>
+                  <Edit2 size={18} />
+                  <span>Redigera karta</span>
+                </button>
+                {processes.some(p => p.title === 'Huvudprocesskarta') && (
+                  <button className="btn btn-secondary text-red-500 border-red-500 hover:bg-red-50" onClick={handleDeleteRootMap}>
+                    <Trash2 size={18} />
+                    <span>Ta bort karta</span>
+                  </button>
+                )}
+              </div>
             ) : (
               <>
                 <button className="btn btn-secondary" onClick={() => setIsEditMode(false)}>
@@ -565,6 +607,7 @@ const ProcessListContent = () => {
                 onNodeDragStop={onNodeDragStop}
                 onConnect={onConnect}
                 onNodeClick={onNodeClick}
+                onInit={onInit}
                 nodeTypes={nodeTypes}
                 defaultViewport={defaultViewport}
                 nodesDraggable={isEditMode}
