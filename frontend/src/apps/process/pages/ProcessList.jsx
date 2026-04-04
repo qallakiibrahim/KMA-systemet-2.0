@@ -42,7 +42,7 @@ const ProcessListContent = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [pageSize] = useState(-1); // Fetch all processes for the map view to ensure root map is found
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);

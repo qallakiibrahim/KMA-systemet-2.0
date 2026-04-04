@@ -96,7 +96,7 @@ const DokumentList = () => {
   const totalCount = docsData?.count || (Array.isArray(docsData) ? docsData.length : 0);
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  const processesList = processesData || [];
+  const processesList = processesData?.data || (Array.isArray(processesData) ? processesData : []);
   const globalDocs = globalDocsData || [];
   const globalProcesses = globalProcessesData || [];
 
