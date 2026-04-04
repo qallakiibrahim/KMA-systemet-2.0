@@ -55,7 +55,7 @@ const ProcessListContent = () => {
   const [showMobileAddMenu, setShowMobileAddMenu] = useState(false);
   
   const { currentUser, userProfile } = useAuth();
-  const { getViewport, getNodes, getEdges } = useReactFlow();
+  const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
 
   // TanStack Query for data fetching
   const { data: processesData, isLoading: loading, isError, error } = useQuery({
@@ -86,6 +86,8 @@ const ProcessListContent = () => {
         setEdges(rootMap.steps.edges || []);
         if (rootMap.steps.viewport) {
           setDefaultViewport(rootMap.steps.viewport);
+          // Also explicitly set the viewport if the flow is ready
+          setViewport(rootMap.steps.viewport);
         }
       }
     }
@@ -325,6 +327,21 @@ const ProcessListContent = () => {
     }
   };
 
+  const handleDeleteProcess = async (id, title) => {
+    if (!window.confirm(`Är du säker på att du vill ta bort processen "${title}"? Detta går inte att ångra.`)) {
+      return;
+    }
+
+    try {
+      await deleteProcess(id);
+      toast.success('Processen har tagits bort');
+      queryClient.invalidateQueries({ queryKey: ['processes'] });
+    } catch (error) {
+      console.error('Failed to delete process:', error);
+      toast.error('Kunde inte ta bort processen');
+    }
+  };
+
   if (isError) {
     return (
       <div className="error-state">
@@ -393,7 +410,16 @@ const ProcessListContent = () => {
                         <div className="mobile-node-desc">{node.data.description}</div>
                       )}
                     </div>
-                    <ChevronRight size={20} className="mobile-node-arrow" />
+                    <div className="mobile-node-actions" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        className="btn-icon text-red-500" 
+                        onClick={() => handleDeleteProcess(node.data?.processId || node.id, node.data?.label)}
+                        title="Ta bort"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                      <ChevronRight size={20} className="mobile-node-arrow" />
+                    </div>
                   </div>
                 ))}
               </div>

@@ -15,7 +15,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { X, Save, FileText, Plus, Trash2, ChevronLeft, ChevronRight, Settings, ExternalLink, PlusCircle, Edit2, Layout, File, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet, FileCode } from 'lucide-react';
 import { getDokuments } from '../../dokument/api/dokument';
-import { updateProcess, getProcesses, createProcess } from '../api/process';
+import { updateProcess, getProcesses, createProcess, deleteProcess } from '../api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import '../styles/ProcessVisualizer.css';
@@ -257,7 +257,7 @@ const nodeTypes = {
 
 const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) => {
   const { currentUser, userProfile } = useAuth();
-  const { getViewport, getNodes, getEdges } = useReactFlow();
+  const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -327,6 +327,8 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
       setEdges(process.steps.edges || []);
       if (process.steps.viewport) {
         setDefaultViewport(process.steps.viewport);
+        // Explicitly set the viewport if the flow is ready
+        setViewport(process.steps.viewport);
       }
     } else if (nodes.length === 0) {
       // Default nodes if none exist and we haven't initialized yet
@@ -520,6 +522,24 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
     setSelectedNode(null);
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Är du säker på att du vill ta bort processen "${process.title}"? Detta går inte att ångra.`)) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await deleteProcess(process.id);
+      toast.success('Processen har tagits bort');
+      onBack(); // Go back to list or parent
+    } catch (error) {
+      console.error('Failed to delete process:', error);
+      toast.error('Kunde inte ta bort processen');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const saveProcess = async () => {
     setIsSaving(true);
     try {
@@ -581,6 +601,10 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
                 <button className="btn-primary btn-sm" onClick={saveProcess} disabled={isSaving}>
                   <Save size={16} />
                   <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
+                </button>
+                <button className="btn-secondary btn-sm text-red-500 border-red-500 hover:bg-red-50" onClick={handleDelete} disabled={isSaving}>
+                  <Trash2 size={16} />
+                  <span>Ta bort</span>
                 </button>
               </>
             )
