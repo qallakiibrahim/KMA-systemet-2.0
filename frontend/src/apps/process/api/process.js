@@ -97,34 +97,48 @@ export const createProcess = async (data) => {
 };
 
 export const updateProcess = async (id, data) => {
-  const { data: updated, error } = await supabase
-    .from(tableName)
-    .update(data)
-    .eq('id', id)
-    .select()
-    .single();
-    
-  if (error) {
-    console.error('Supabase updateProcess error:', error);
-    
-    // If it's a missing column error, try without SaaS columns
-    if (error.message.includes('column') && error.message.includes('does not exist')) {
-      console.warn('Retrying process update without SaaS columns...');
-      const { company_id, is_template, is_global, category, ...minimalData } = data;
-      const { data: retryUpdated, error: retryError } = await supabase
-        .from(tableName)
-        .update(minimalData)
-        .eq('id', id)
-        .select()
-        .single();
-        
-      if (retryError) throw retryError;
-      return retryUpdated;
+  try {
+    console.log(`Updating process ${id} with data:`, data);
+    // Strip out attachments if they are present (they are a relationship, not a column)
+    const { attachments, ...updateData } = data;
+
+    const { data: updated, error } = await supabase
+      .from(tableName)
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Supabase updateProcess error:', error);
+      
+      // If it's a missing column error, try without SaaS columns
+      if (error.message.includes('column') && error.message.includes('does not exist')) {
+        console.warn('Retrying process update without SaaS columns...');
+        const { company_id, is_template, is_global, category, ...minimalData } = updateData;
+        const { data: retryUpdated, error: retryError } = await supabase
+          .from(tableName)
+          .update(minimalData)
+          .eq('id', id)
+          .select()
+          .single();
+          
+        if (retryError) {
+          console.error('Retry update failed:', retryError);
+          throw retryError;
+        }
+        console.log('Retry update successful:', retryUpdated);
+        return retryUpdated;
+      }
+      
+      throw error;
     }
-    
+    console.log('Update successful:', updated);
+    return updated;
+  } catch (error) {
+    console.error('Error in updateProcess:', error);
     throw error;
   }
-  return updated;
 };
 
 export const getProcessById = async (id) => {

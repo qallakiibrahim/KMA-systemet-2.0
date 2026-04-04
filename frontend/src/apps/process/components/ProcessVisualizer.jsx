@@ -278,7 +278,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
       }
     };
 
-    if (process.steps && process.steps.nodes) {
+    if (process.steps && Array.isArray(process.steps.nodes)) {
       const nodesWithActions = process.steps.nodes.map(node => ({
         ...node,
         data: { ...node.data, onQuickAction: handleQuickAction }
@@ -329,17 +329,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   );
 
   const onNodeDragStop = useCallback((event, node) => {
-    setNodes((nds) =>
-      nds.map((n) => {
-        if (n.id === node.id) {
-          return {
-            ...n,
-            position: node.position,
-          };
-        }
-        return n;
-      })
-    );
+    console.log('Node drag stopped:', node.id, node.position);
   }, []);
 
   const onConnect = useCallback(
@@ -447,7 +437,9 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
         is_global: userProfile?.role === 'superadmin'
       };
       
+      console.log('Creating sub-process:', newSubProcess);
       const created = await createProcess(newSubProcess);
+      console.log('Sub-process created:', created);
       setAllProcesses(prev => [...prev, created]);
       
       // Update local nodes state
@@ -464,6 +456,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
       // Automatically save the parent process to persist the link
       const viewport = getViewport();
       const steps = { nodes: updatedNodes, edges, viewport };
+      console.log('Auto-saving parent process with sub-process link:', steps);
       const updatedParent = await updateProcess(process.id, { steps });
       onUpdate(updatedParent, created);
       
@@ -488,7 +481,9 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
     try {
       const viewport = getViewport();
       const steps = { nodes, edges, viewport };
+      console.log('Saving process map:', steps);
       const updated = await updateProcess(process.id, { steps });
+      console.log('Process map saved successfully:', updated);
       onUpdate(updated);
       toast.success('Process sparad!');
       setIsEditMode(false);

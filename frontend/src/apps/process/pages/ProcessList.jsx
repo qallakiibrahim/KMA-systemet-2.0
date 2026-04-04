@@ -132,17 +132,7 @@ const ProcessListContent = () => {
   );
 
   const onNodeDragStop = useCallback((event, node) => {
-    setNodes((nds) =>
-      nds.map((n) => {
-        if (n.id === node.id) {
-          return {
-            ...n,
-            position: node.position,
-          };
-        }
-        return n;
-      })
-    );
+    console.log('Node drag stopped:', node.id, node.position);
   }, []);
 
   const onConnect = useCallback(
@@ -261,6 +251,7 @@ const ProcessListContent = () => {
         title: 'Huvudprocesskarta'
       };
 
+      console.log('Saving root map:', mapData);
       if (rootMap) {
         await updateProcess(rootMap.id, mapData);
       } else {
@@ -274,6 +265,7 @@ const ProcessListContent = () => {
           ...mapData
         });
       }
+      console.log('Root map saved successfully');
       queryClient.invalidateQueries({ queryKey: ['processes'] });
       toast.success('Processkartan sparad!');
       setIsEditMode(false);
