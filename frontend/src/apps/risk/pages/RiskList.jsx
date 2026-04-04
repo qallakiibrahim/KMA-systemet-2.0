@@ -37,8 +37,8 @@ const RiskList = () => {
     placeholderData: (previousData) => previousData,
   });
 
-  const risker = riskerData?.data || [];
-  const totalCount = riskerData?.count || 0;
+  const risker = riskerData?.data || (Array.isArray(riskerData) ? riskerData : []);
+  const totalCount = riskerData?.count || (Array.isArray(riskerData) ? riskerData.length : 0);
   const totalPages = Math.ceil(totalCount / pageSize);
 
   if (isError) {

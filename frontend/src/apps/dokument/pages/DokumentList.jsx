@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument, getDokumentById, getGlobalTemplates } from '../api/dokument';
 import { getProcesses, createProcess, getGlobalProcesses } from '../../process/api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
@@ -9,7 +10,7 @@ import {
   Plus, Edit2, Trash2, X, FileText, Download, ExternalLink, 
   File, UploadCloud, Loader, Search, Filter, Grid, List as ListIcon,
   FileCode, FileImage, FileAudio, FileVideo, FileArchive, FileSpreadsheet,
-  PlusCircle, Activity
+  PlusCircle, Activity, ChevronLeft, ChevronRight, AlertOctagon
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import CreateDocumentModal from '../components/CreateDocumentModal';
@@ -36,11 +37,11 @@ const formatSize = (bytes) => {
 };
 
 const DokumentList = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [dokuments, setDokuments] = useState([]);
-  const [processes, setProcesses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(12);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -66,104 +67,86 @@ const DokumentList = () => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  // TanStack Query for documents
+  const { data: docsData, isLoading: docsLoading, isError: docsError, error: docsErr } = useQuery({
+    queryKey: ['documents', page, pageSize],
+    queryFn: () => getDokuments(page, pageSize),
+    placeholderData: (previousData) => previousData,
+  });
+
+  // TanStack Query for processes (fetch all for now to merge)
+  const { data: processesData, isLoading: processesLoading } = useQuery({
+    queryKey: ['processes', 1, -1],
+    queryFn: () => getProcesses(1, -1),
+  });
+
+  // TanStack Query for global templates
+  const { data: globalDocsData, isLoading: globalDocsLoading } = useQuery({
+    queryKey: ['globalDocuments'],
+    queryFn: getGlobalTemplates,
+  });
+
+  // TanStack Query for global processes
+  const { data: globalProcessesData, isLoading: globalProcessesLoading } = useQuery({
+    queryKey: ['globalProcesses'],
+    queryFn: getGlobalProcesses,
+  });
+
+  const dokumentsList = docsData?.data || (Array.isArray(docsData) ? docsData : []);
+  const totalCount = docsData?.count || (Array.isArray(docsData) ? docsData.length : 0);
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const processesList = processesData || [];
+  const globalDocs = globalDocsData || [];
+  const globalProcesses = globalProcessesData || [];
+
+  // Merge items
+  const [mergedDokuments, setMergedDokuments] = useState([]);
+  const [mergedProcesses, setMergedProcesses] = useState([]);
+
+  useEffect(() => {
+    // Merge global items if they are not already in the list
+    const mergedD = [...dokumentsList];
+    globalDocs.forEach(gd => {
+      if (!mergedD.find(d => d.id === gd.id)) mergedD.push(gd);
+    });
+    
+    const mergedP = [...processesList];
+    globalProcesses.forEach(gp => {
+      if (!mergedP.find(p => p.id === gp.id)) mergedP.push(gp);
+    });
+
+    setMergedDokuments(mergedD);
+    setMergedProcesses(mergedP);
+  }, [dokumentsList, processesList, globalDocs, globalProcesses]);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchDokuments = async () => {
-    try {
-      const results = await Promise.allSettled([
-        getDokuments(),
-        getProcesses(),
-        getGlobalTemplates(),
-        getGlobalProcesses()
-      ]);
-      
-      const docsData = results[0].status === 'fulfilled' ? results[0].value : [];
-      const processesData = results[1].status === 'fulfilled' ? results[1].value : [];
-      const globalDocs = results[2].status === 'fulfilled' ? results[2].value : [];
-      const globalProcs = results[3].status === 'fulfilled' ? results[3].value : [];
-
-      if (results.some(r => r.status === 'rejected')) {
-        console.warn('Some data fetches failed:', results.filter(r => r.status === 'rejected'));
-      }
-      
-      // Merge global items if they are not already in the list
-      const mergedDocs = [...docsData];
-      globalDocs.forEach(gd => {
-        if (!mergedDocs.find(d => d.id === gd.id)) mergedDocs.push(gd);
-      });
-      
-      const mergedProcs = [...processesData];
-      globalProcs.forEach(gp => {
-        if (!mergedProcs.find(p => p.id === gp.id)) mergedProcs.push(gp);
-      });
-
-      setDokuments(mergedDocs);
-      setProcesses(mergedProcs);
-    } catch (error) {
-      console.error('Failed to fetch data', error);
-      toast.error('Kunde inte hämta data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDokuments();
-  }, []);
-
   useEffect(() => {
     const docId = searchParams.get('id');
-    console.log('URL docId:', docId, 'dokuments.length:', dokuments.length, 'isEditorOpen:', isEditorOpen);
-    
-    if (docId && !isEditorOpen) {
-      const docToOpen = dokuments.find(d => String(d.id) === String(docId));
+    if (docId && !isEditorOpen && mergedDokuments.length > 0) {
+      const docToOpen = mergedDokuments.find(d => String(d.id) === String(docId));
       
       if (docToOpen) {
-        console.log('Found document in list:', docToOpen.title);
-        // If it has no file_url, it's a created document
         if (!docToOpen.file_url) {
           setEditingDokument(docToOpen);
           setIsEditorOpen(true);
-          // Remove the id from the URL so it doesn't keep reopening when closed
           searchParams.delete('id');
           setSearchParams(searchParams, { replace: true });
         } else if (docToOpen.file_url) {
-          // If it's an uploaded file, open the modal to edit metadata
           openModal(docToOpen);
-          // Remove the id from the URL so it doesn't keep opening
           searchParams.delete('id');
           setSearchParams(searchParams, { replace: true });
         }
-      } else if (dokuments.length > 0) {
-        // If not found in current list but we have a list, try fetching it specifically
-        // This is useful for global templates or documents not in the current company view
-        console.log('Document not in list, fetching specifically:', docId);
-        const fetchAndOpen = async () => {
-          try {
-            const doc = await getDokumentById(docId);
-            if (doc) {
-              console.log('Fetched document specifically:', doc.title);
-              if (!doc.file_url) {
-                setEditingDokument(doc);
-                setIsEditorOpen(true);
-              } else {
-                openModal(doc);
-              }
-              searchParams.delete('id');
-              setSearchParams(searchParams, { replace: true });
-            }
-          } catch (error) {
-            console.error('Failed to fetch document by id', error);
-          }
-        };
-        fetchAndOpen();
       }
     }
-  }, [searchParams, dokuments, isEditorOpen, setSearchParams]);
+  }, [searchParams, mergedDokuments, isEditorOpen, setSearchParams]);
+
+  const loading = docsLoading || processesLoading || globalDocsLoading || globalProcessesLoading;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -267,8 +250,8 @@ const DokumentList = () => {
       }
 
       if (editingDokument) {
-        const updated = await updateDokument(editingDokument.id, { ...formData, company_id: companyId });
-        setDokuments(dokuments.map(d => d.id === editingDokument.id ? updated : d));
+        await updateDokument(editingDokument.id, { ...formData, company_id: companyId });
+        queryClient.invalidateQueries({ queryKey: ['documents'] });
         toast.success('Dokument uppdaterat!');
       } else {
         const newDoc = {
@@ -277,8 +260,8 @@ const DokumentList = () => {
           company_id: companyId,
           is_global: userProfile?.role === 'superadmin' && formData.is_template
         };
-        const created = await createDokument(newDoc);
-        setDokuments([created, ...dokuments]);
+        await createDokument(newDoc);
+        queryClient.invalidateQueries({ queryKey: ['documents'] });
         toast.success('Dokument tillagt!');
       }
       setIsModalOpen(false);
@@ -303,7 +286,7 @@ const DokumentList = () => {
     if (window.confirm('Är du säker på att du vill radera detta dokument?')) {
       try {
         await deleteDokument(id);
-        setDokuments(dokuments.filter(d => d.id !== id));
+        queryClient.invalidateQueries({ queryKey: ['documents'] });
         toast.success('Dokument raderat');
       } catch (error) {
         console.error('Failed to delete dokument', error);
@@ -321,7 +304,7 @@ const DokumentList = () => {
     }
   };
 
-  const filteredItems = [...dokuments, ...processes.map(p => ({ ...p, is_process: true }))].filter(item => {
+  const filteredItems = [...mergedDokuments, ...mergedProcesses.map(p => ({ ...p, is_process: true }))].filter(item => {
     const matchesSearch = 
       item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.description?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -333,7 +316,19 @@ const DokumentList = () => {
     return matchesSearch && matchesCategory;
   });
 
-  console.log('DokumentList render, loading:', loading, 'isCreateModalOpen:', isCreateModalOpen, 'items count:', filteredItems.length);
+  if (docsError) {
+    return (
+      <div className="error-state">
+        <AlertOctagon size={48} className="text-level-high" />
+        <h2>Ett fel uppstod vid hämtning av dokument</h2>
+        <p>{docsErr?.message || 'Kunde inte ansluta till databasen'}</p>
+        <button className="btn btn-primary" onClick={() => queryClient.invalidateQueries({ queryKey: ['documents'] })}>
+          Försök igen
+        </button>
+      </div>
+    );
+  }
+
   if (loading) return <div className="loading-spinner">Laddar dokument...</div>;
 
   const handleCreateNewClick = () => {
@@ -578,14 +573,36 @@ const DokumentList = () => {
         )}
       </div>
 
+      {totalPages > 1 && (
+        <div className="pagination" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center' }}>
+          <button 
+            className="pagination-btn" 
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.5 : 1 }}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span className="pagination-info" style={{ fontSize: '0.9rem', fontWeight: 500 }}>Sida {page} av {totalPages}</span>
+          <button 
+            className="pagination-btn" 
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--bg-card)', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.5 : 1 }}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      )}
+
       {isCreateModalOpen && (
         <CreateDocumentModal 
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
-          templates={dokuments}
-          processTemplates={processes}
+          templates={mergedDokuments}
+          processTemplates={mergedProcesses}
           onCreated={(newDoc) => {
-            setDokuments([newDoc, ...dokuments]);
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
             setEditingDokument(newDoc);
             setIsEditorOpen(true);
           }}
@@ -600,11 +617,7 @@ const DokumentList = () => {
             setEditingDokument(null);
           }}
           onSave={(savedDoc) => {
-            if (editingDokument) {
-              setDokuments(dokuments.map(d => d.id === savedDoc.id ? savedDoc : d));
-            } else {
-              setDokuments([savedDoc, ...dokuments]);
-            }
+            queryClient.invalidateQueries({ queryKey: ['documents'] });
             setIsEditorOpen(false);
             setEditingDokument(null);
           }}

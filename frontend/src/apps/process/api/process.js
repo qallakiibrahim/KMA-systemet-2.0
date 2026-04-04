@@ -2,14 +2,33 @@ import { supabase } from '../../../supabase';
 
 const tableName = 'processes';
 
-export const getProcesses = async () => {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
-    .order('created_at', { ascending: false });
+export const getProcesses = async (page = 1, pageSize = 20) => {
+  try {
+    console.log(`Fetching processes: page=${page}, pageSize=${pageSize}`);
+    let query = supabase
+      .from(tableName)
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false });
+
+    if (pageSize !== -1) {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query;
     
-  if (error) throw error;
-  return data;
+    if (error) {
+      console.error('Supabase getProcesses error:', error);
+      throw error;
+    }
+    
+    console.log(`Fetched ${data?.length || 0} processes, total count: ${count}`);
+    return pageSize === -1 ? data : { data, count };
+  } catch (error) {
+    console.error('Error in getProcesses:', error);
+    throw error;
+  }
 };
 
 export const getGlobalProcesses = async () => {

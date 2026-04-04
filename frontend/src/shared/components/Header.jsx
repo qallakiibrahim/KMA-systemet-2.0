@@ -1,34 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../api/AuthContext';
-import { useTasks } from '../api/useTasks';
+import { getTasks } from '../../apps/task/api/tasksApi';
 import { getNotifications, updateNotification } from '../../apps/notification/api/notification';
 import { Bell, User, Search, Menu, X } from 'lucide-react';
 import '../styles/Header.css';
 
 const Header = ({ onMenuClick }) => {
+  const queryClient = useQueryClient();
   const { user, userProfile } = useAuth();
-  const { tasks } = useTasks();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const data = await getNotifications();
-        // Filter notifications for the current user
-        const userNotifications = data.filter(n => n.user_id === user?.id);
-        setNotifications(userNotifications);
-      } catch (error) {
-        console.error('Failed to fetch notifications', error);
-      }
-    };
-    if (user) {
-      fetchNotifications();
+  // TanStack Query for tasks
+  const { data: tasksData } = useQuery({
+    queryKey: ['tasks', 1, -1],
+    queryFn: () => getTasks(1, -1),
+    enabled: !!user,
+  });
+
+  const tasks = tasksData?.data || (Array.isArray(tasksData) ? tasksData : []);
+
+  // TanStack Query for notifications
+  const { data: notificationsData } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: async () => {
+      const data = await getNotifications();
+      return data.filter(n => n.user_id === user?.id);
+    },
+    enabled: !!user,
+  });
+
+  const notifications = notificationsData || [];
+
+  const markAsReadMutation = useMutation({
+    mutationFn: ({ id, data }) => updateNotification(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
     }
-  }, [user]);
+  });
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -59,8 +71,7 @@ const Header = ({ onMenuClick }) => {
 
   const markAsRead = async (id, link) => {
     try {
-      await updateNotification(id, { is_read: true });
-      setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
+      markAsReadMutation.mutate({ id, data: { is_read: true } });
       
       if (link) {
         navigate(link);
@@ -68,7 +79,6 @@ const Header = ({ onMenuClick }) => {
       setShowNotifications(false);
     } catch (error) {
       console.error('Failed to mark notification as read', error);
-      // Still close the dropdown and navigate if applicable even if marking as read fails
       if (link) {
         navigate(link);
       }

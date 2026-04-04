@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays, addWeeks, addMonths, isBefore, addYears } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { useTasks } from '../../../shared/api/useTasks';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getTasks } from '../../task/api/tasksApi';
 import { getEvents, createEvent, updateEvent, deleteEvent } from '../api/calendarApi';
 import { getRisker } from '../../risk/api/risk';
 import { getAvvikelser } from '../../avvikelse/api/avvikelse';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, AlertOctagon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/calendar.css';
@@ -26,12 +27,10 @@ const localizer = dateFnsLocalizer({
 });
 
 const CalendarPage = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { tasks, loading: tasksLoading } = useTasks();
-  const [calendarEvents, setCalendarEvents] = useState([]);
-  const [risker, setRisker] = useState([]);
-  const [avvikelser, setAvvikelser] = useState([]);
-  const [eventsLoading, setEventsLoading] = useState(true);
+  const { currentUser, userProfile } = useAuth();
+  
   const [view, setView] = useState('month');
   const [date, setDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,30 +43,39 @@ const CalendarPage = () => {
     all_day: false,
     recurrence: 'none'
   });
-  const { currentUser, userProfile } = useAuth();
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const [eventsData, riskerData, avvikelserData] = await Promise.all([
-          getEvents(),
-          getRisker(),
-          getAvvikelser()
-        ]);
-        setCalendarEvents(eventsData);
-        setRisker(riskerData);
-        setAvvikelser(avvikelserData);
-      } catch (error) {
-        console.error('Failed to fetch calendar data', error);
-        toast.error('Kunde inte hämta kalenderdata');
-      } finally {
-        setEventsLoading(false);
-      }
-    };
-    fetchEvents();
-  }, []);
+  // TanStack Query for tasks
+  const { data: tasksData, isLoading: tasksLoading } = useQuery({
+    queryKey: ['tasks', 1, -1],
+    queryFn: () => getTasks(1, -1),
+  });
 
-  if (tasksLoading || eventsLoading) return <div className="loading">Laddar kalender...</div>;
+  // TanStack Query for events
+  const { data: eventsData, isLoading: eventsLoading } = useQuery({
+    queryKey: ['calendarEvents'],
+    queryFn: getEvents,
+  });
+
+  // TanStack Query for risks
+  const { data: riskerData, isLoading: risksLoading } = useQuery({
+    queryKey: ['risker', 1, -1],
+    queryFn: () => getRisker(1, -1),
+  });
+
+  // TanStack Query for deviations
+  const { data: avvikelserData, isLoading: avvikelserLoading } = useQuery({
+    queryKey: ['avvikelser', 1, -1],
+    queryFn: () => getAvvikelser(1, -1),
+  });
+
+  const tasks = tasksData?.data || (Array.isArray(tasksData) ? tasksData : []);
+  const calendarEvents = eventsData || [];
+  const risker = riskerData?.data || (Array.isArray(riskerData) ? riskerData : []);
+  const avvikelser = avvikelserData?.data || (Array.isArray(avvikelserData) ? avvikelserData : []);
+
+  const loading = tasksLoading || eventsLoading || risksLoading || avvikelserLoading;
+
+  if (loading) return <div className="loading">Laddar kalender...</div>;
 
   // Map tasks to calendar events
   const taskEvents = tasks
@@ -98,7 +106,7 @@ const CalendarPage = () => {
     .filter(a => a.deadline)
     .map(a => ({
       id: `avvikelse-${a.id}`,
-      title: `[Avvikelse] ${a.titel}`,
+      title: `[Avvikelse] ${a.title}`,
       start: new Date(a.deadline),
       end: new Date(a.deadline),
       allDay: true,
@@ -231,8 +239,7 @@ const CalendarPage = () => {
 
       if (selectedEvent) {
         // Update existing event
-        const updated = await updateEvent(selectedEvent.id, formData);
-        setCalendarEvents(calendarEvents.map(ev => ev.id === selectedEvent.id ? { ...ev, ...formData } : ev));
+        await updateEvent(selectedEvent.id, formData);
         toast.success('Händelse uppdaterad!');
       } else {
         // Create new event
@@ -241,10 +248,10 @@ const CalendarPage = () => {
           created_by: currentUser?.id || 'anonymous',
           company_id: userProfile?.company_id || null
         };
-        const created = await createEvent(newEvent);
-        setCalendarEvents([...calendarEvents, created]);
+        await createEvent(newEvent);
         toast.success('Händelse skapad!');
       }
+      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
       setIsModalOpen(false);
       setFormData({ title: '', description: '', start_date: '', end_date: '', all_day: false, recurrence: 'none' });
       setSelectedEvent(null);
@@ -260,7 +267,7 @@ const CalendarPage = () => {
 
     try {
       await deleteEvent(selectedEvent.id);
-      setCalendarEvents(calendarEvents.filter(ev => ev.id !== selectedEvent.id));
+      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
       setIsModalOpen(false);
       setSelectedEvent(null);
       toast.success('Händelse borttagen');

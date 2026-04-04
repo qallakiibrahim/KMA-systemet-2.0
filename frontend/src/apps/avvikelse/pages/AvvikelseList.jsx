@@ -69,8 +69,8 @@ const AvvikelseList = () => {
     placeholderData: (previousData) => previousData,
   });
 
-  const avvikelser = avvikelserData?.data || [];
-  const totalCount = avvikelserData?.count || 0;
+  const avvikelser = avvikelserData?.data || (Array.isArray(avvikelserData) ? avvikelserData : []);
+  const totalCount = avvikelserData?.count || (Array.isArray(avvikelserData) ? avvikelserData.length : 0);
   const totalPages = Math.ceil(totalCount / pageSize);
 
   if (isError) {

@@ -1,17 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useTasks } from '../../../shared/api/useTasks';
-import { Plus, Clock, CheckCircle, Circle, Trash2, Calendar as CalendarIcon } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getTasks, createTask, updateTask, deleteTask } from '../api/tasksApi';
+import { createNotification } from '../../notification/api/notification';
+import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
+import { useAuth } from '../../../shared/api/AuthContext';
+import { Plus, Clock, CheckCircle, Circle, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertOctagon } from 'lucide-react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { toast } from 'react-toastify';
 import '../styles/TaskDashboard.css';
 
 const TaskDashboard = () => {
-  const { tasks, loading, addTask, updateTask, deleteTask } = useTasks();
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
   const location = useLocation();
+  const { currentUser, userProfile } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium' });
+
+  // TanStack Query for data fetching
+  const { data: tasksData, isLoading: loading, isError, error } = useQuery({
+    queryKey: ['tasks', page, pageSize],
+    queryFn: () => getTasks(page, pageSize),
+    placeholderData: (previousData) => previousData,
+  });
+
+  const tasks = tasksData?.data || (Array.isArray(tasksData) ? tasksData : []);
+  const totalCount = tasksData?.count || (Array.isArray(tasksData) ? tasksData.length : 0);
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   useEffect(() => {
     if (!loading && location.state?.openId) {
@@ -21,6 +40,92 @@ const TaskDashboard = () => {
       }
     }
   }, [loading, location.state, tasks]);
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: createTask,
+    onSuccess: async (created) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success("Uppgift tillagd!");
+      
+      // Create in-app notification
+      try {
+        await createNotification({
+          title: `Ny uppgift skapad: ${created.title}`,
+          message: `Du har skapat en ny uppgift: ${created.title}`,
+          user_id: currentUser.id,
+          is_read: false
+        });
+
+        if (currentUser.email) {
+          sendEmailNotification(
+            currentUser.email,
+            `Ny uppgift skapad: ${created.title}`,
+            `<h3>Du har skapat en ny uppgift</h3>
+             <p><strong>Titel:</strong> ${created.title}</p>
+             <p><strong>Beskrivning:</strong> ${created.description || 'Ingen beskrivning'}</p>
+             <p><strong>Förfallodatum:</strong> ${created.dueDate ? new Date(created.dueDate).toLocaleDateString('sv-SE') : 'Inget datum satt'}</p>`
+          );
+        }
+      } catch (err) {
+        console.error("Failed to send notification:", err);
+      }
+    },
+    onError: (err) => {
+      console.error("Create task error:", err);
+      toast.error("Kunde inte lägga till uppgift");
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => updateTask(id, data),
+    onSuccess: async (updated, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      
+      if (variables.data.status === 'done') {
+        toast.success("Uppgift slutförd!");
+        
+        try {
+          // Create in-app notification
+          await createNotification({
+            title: `Uppgift slutförd: ${updated.title}`,
+            message: `Bra jobbat! Du har markerat uppgiften ${updated.title} som klar.`,
+            user_id: currentUser.id,
+            is_read: false
+          });
+
+          if (currentUser.email) {
+            sendEmailNotification(
+              currentUser.email,
+              `Uppgift slutförd: ${updated.title}`,
+              `<h3>Bra jobbat!</h3>
+               <p>Du har markerat uppgiften <strong>${updated.title}</strong> som klar.</p>`
+            );
+          }
+        } catch (err) {
+          console.error("Failed to send notification:", err);
+        }
+      } else {
+        toast.info("Uppgift uppdaterad");
+      }
+    },
+    onError: (err) => {
+      console.error("Update task error:", err);
+      toast.error("Kunde inte uppdatera uppgift");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.info("Uppgift borttagen");
+    },
+    onError: (err) => {
+      console.error("Delete task error:", err);
+      toast.error("Kunde inte ta bort uppgift");
+    }
+  });
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -35,20 +140,25 @@ const TaskDashboard = () => {
     if (!newTask.title.trim()) return;
     
     if (editingTask) {
-      updateTask(editingTask.id, {
-        title: newTask.title,
-        description: newTask.description,
-        dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
-        status: newTask.status,
-        priority: newTask.priority
+      updateMutation.mutate({
+        id: editingTask.id,
+        data: {
+          title: newTask.title,
+          description: newTask.description,
+          dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
+          status: newTask.status,
+          priority: newTask.priority
+        }
       });
     } else {
-      addTask({
+      createMutation.mutate({
         title: newTask.title,
         description: newTask.description,
         dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
         status: newTask.status,
-        priority: newTask.priority
+        priority: newTask.priority,
+        created_by: currentUser.id,
+        company_id: userProfile?.company_id
       });
     }
     
@@ -115,6 +225,19 @@ const TaskDashboard = () => {
       </div>
     );
   };
+
+  if (isError) {
+    return (
+      <div className="error-state">
+        <AlertOctagon size={48} className="text-level-high" />
+        <h2>Ett fel uppstod vid hämtning av uppgifter</h2>
+        <p>{error?.message || 'Kunde inte ansluta till databasen'}</p>
+        <button className="btn btn-primary" onClick={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}>
+          Försök igen
+        </button>
+      </div>
+    );
+  }
 
   if (loading) return <div className="loading">Laddar uppgifter...</div>;
 
@@ -230,6 +353,26 @@ const TaskDashboard = () => {
           </div>
         ))}
       </div>
+      
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button 
+            className="pagination-btn" 
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span className="pagination-info">Sida {page} av {totalPages}</span>
+          <button 
+            className="pagination-btn" 
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactFlow, { 
   addEdge, 
   Background, 
@@ -16,7 +17,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { getProcesses, createProcess, updateProcess, deleteProcess } from '../api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle, AlertOctagon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ProcessVisualizer from '../components/ProcessVisualizer';
 import '../styles/ProcessList.css';
@@ -38,9 +39,10 @@ const nodeTypes = {
 };
 
 const ProcessListContent = () => {
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [processes, setProcesses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -55,6 +57,17 @@ const ProcessListContent = () => {
   const { currentUser, userProfile } = useAuth();
   const { getViewport } = useReactFlow();
 
+  // TanStack Query for data fetching
+  const { data: processesData, isLoading: loading, isError, error } = useQuery({
+    queryKey: ['processes', page, pageSize],
+    queryFn: () => getProcesses(page, pageSize),
+    placeholderData: (previousData) => previousData,
+  });
+
+  const processes = processesData?.data || (Array.isArray(processesData) ? processesData : []);
+  const totalCount = processesData?.count || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -63,13 +76,10 @@ const ProcessListContent = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const fetchProcesses = async () => {
-    try {
-      const data = await getProcesses();
-      setProcesses(data);
-      
+  useEffect(() => {
+    if (processes.length > 0) {
       // Look for the Root Map by specific title
-      const rootMap = data.find(p => p.title === 'Huvudprocesskarta');
+      const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
       
       if (rootMap && rootMap.steps) {
         setNodes(rootMap.steps.nodes || []);
@@ -78,17 +88,8 @@ const ProcessListContent = () => {
           setDefaultViewport(rootMap.steps.viewport);
         }
       }
-    } catch (error) {
-      console.error('Failed to fetch processes', error);
-      toast.error('Kunde inte hämta processer');
-    } finally {
-      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchProcesses();
-  }, []);
+  }, [processes]);
 
   useEffect(() => {
     const processId = searchParams.get('id');
@@ -175,7 +176,6 @@ const ProcessListContent = () => {
       import('../api/process').then(({ getProcessById }) => {
         getProcessById(subProcessId).then(fetchedProc => {
           if (fetchedProc) {
-            setProcesses(prev => [fetchedProc, ...prev]);
             setNavigationStack(prev => [...prev, fetchedProc]);
           }
         }).catch(err => console.error('Failed to fetch sub-process', err));
@@ -236,7 +236,7 @@ const ProcessListContent = () => {
       };
 
       setNodes((nds) => nds.concat(newNode));
-      setProcesses([newProcess, ...processes]);
+      queryClient.invalidateQueries({ queryKey: ['processes'] });
       toast.success('Process skapad och tillagd i kartan');
     } catch (error) {
       console.error('Failed to create process node', error);
@@ -262,10 +262,9 @@ const ProcessListContent = () => {
       };
 
       if (rootMap) {
-        const updated = await updateProcess(rootMap.id, mapData);
-        setProcesses(prev => prev.map(p => p.id === updated.id ? updated : p));
+        await updateProcess(rootMap.id, mapData);
       } else {
-        const created = await createProcess({
+        await createProcess({
           description: 'Systemets övergripande processkarta',
           status: 'active',
           created_by: currentUser?.id,
@@ -274,8 +273,8 @@ const ProcessListContent = () => {
           is_global: userProfile?.role === 'superadmin',
           ...mapData
         });
-        setProcesses([created, ...processes]);
       }
+      queryClient.invalidateQueries({ queryKey: ['processes'] });
       toast.success('Processkartan sparad!');
       setIsEditMode(false);
     } catch (error) {
@@ -285,6 +284,19 @@ const ProcessListContent = () => {
       setIsSaving(false);
     }
   };
+
+  if (isError) {
+    return (
+      <div className="error-state">
+        <AlertOctagon size={48} className="text-level-high" />
+        <h2>Ett fel uppstod vid hämtning av processer</h2>
+        <p>{error?.message || 'Kunde inte ansluta till databasen'}</p>
+        <button className="btn btn-primary" onClick={() => queryClient.invalidateQueries({ queryKey: ['processes'] })}>
+          Försök igen
+        </button>
+      </div>
+    );
+  }
 
   if (loading) return <div className="loading-spinner">Laddar processer...</div>;
 
@@ -358,6 +370,25 @@ const ProcessListContent = () => {
           <div className="empty-state">
             <Layout size={48} />
             <p>Inga processer har lagts till i kartan än.</p>
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="pagination">
+            <button 
+              className="pagination-btn" 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="pagination-info">Sida {page} av {totalPages}</span>
+            <button 
+              className="pagination-btn" 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
         )}
       </div>
