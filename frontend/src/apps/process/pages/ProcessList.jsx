@@ -93,18 +93,42 @@ const ProcessListContent = () => {
 
   // Helper to remove non-serializable data (functions) before saving
   const cleanNodesForStorage = (nodesToClean) => {
-    return nodesToClean.map(node => {
-      const { data, ...rest } = node;
-      const cleanData = {};
-      if (data) {
-        Object.keys(data).forEach(key => {
-          if (typeof data[key] !== 'function') {
-            cleanData[key] = data[key];
-          }
-        });
-      }
-      return { ...rest, data: cleanData };
-    });
+    return nodesToClean.map(node => ({
+      id: node.id,
+      type: node.type,
+      position: { 
+        x: typeof node.position?.x === 'number' ? node.position.x : 0, 
+        y: typeof node.position?.y === 'number' ? node.position.y : 0 
+      },
+      data: Object.keys(node.data || {}).reduce((acc, key) => {
+        if (typeof node.data[key] !== 'function') {
+          acc[key] = node.data[key];
+        }
+        return acc;
+      }, {}),
+      width: node.width,
+      height: node.height,
+      parentId: node.parentId,
+      extent: node.extent,
+    }));
+  };
+
+  const cleanEdgesForStorage = (edgesToClean) => {
+    return edgesToClean.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      type: edge.type,
+      label: edge.label,
+      data: Object.keys(edge.data || {}).reduce((acc, key) => {
+        if (typeof edge.data[key] !== 'function') {
+          acc[key] = edge.data[key];
+        }
+        return acc;
+      }, {}),
+      animated: edge.animated,
+      markerEnd: edge.markerEnd,
+    }));
   };
 
   useEffect(() => {
@@ -268,7 +292,7 @@ const ProcessListContent = () => {
       const mapData = { 
         steps: { 
           nodes: cleanNodesForStorage(currentNodes), 
-          edges: currentEdges, 
+          edges: cleanEdgesForStorage(currentEdges), 
           viewport 
         }, 
         title: 'Huvudprocesskarta'
@@ -294,7 +318,8 @@ const ProcessListContent = () => {
       setIsEditMode(false);
     } catch (error) {
       console.error('Failed to save map', error);
-      toast.error('Kunde inte spara kartan. Kontrollera anslutningen.');
+      const errorMsg = error.message || (typeof error === 'string' ? error : 'Okänt fel');
+      toast.error(`Kunde inte spara kartan: ${errorMsg}`);
     } finally {
       setIsSaving(false);
     }

@@ -98,7 +98,7 @@ export const createProcess = async (data) => {
 
 export const updateProcess = async (id, data) => {
   try {
-    console.log(`Updating process ${id} with data:`, data);
+    console.log(`Updating process ${id} with data:`, JSON.stringify(data, null, 2));
     // Strip out attachments if they are present (they are a relationship, not a column)
     const { attachments, ...updateData } = data;
 
@@ -110,7 +110,12 @@ export const updateProcess = async (id, data) => {
       .single();
       
     if (error) {
-      console.error('Supabase updateProcess error:', error);
+      console.error('Supabase updateProcess error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       
       // If it's a missing column error, try without SaaS columns
       if (error.message.includes('column') && error.message.includes('does not exist')) {
