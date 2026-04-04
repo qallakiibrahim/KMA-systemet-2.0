@@ -55,7 +55,7 @@ const ProcessListContent = () => {
   const [showMobileAddMenu, setShowMobileAddMenu] = useState(false);
   
   const { currentUser, userProfile } = useAuth();
-  const { getViewport } = useReactFlow();
+  const { getViewport, getNodes, getEdges } = useReactFlow();
 
   // TanStack Query for data fetching
   const { data: processesData, isLoading: loading, isError, error } = useQuery({
