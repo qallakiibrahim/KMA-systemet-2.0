@@ -77,11 +77,11 @@ const ProcessListContent = () => {
   }, []);
 
   useEffect(() => {
-    if (processes.length > 0) {
+    if (processes.length > 0 && !isEditMode) {
       // Look for the Root Map by specific title
       const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
       
-      if (rootMap && rootMap.steps) {
+      if (rootMap && rootMap.steps && Array.isArray(rootMap.steps.nodes)) {
         setNodes(rootMap.steps.nodes || []);
         setEdges(rootMap.steps.edges || []);
         if (rootMap.steps.viewport) {
@@ -89,7 +89,23 @@ const ProcessListContent = () => {
         }
       }
     }
-  }, [processes]);
+  }, [processes, isEditMode]);
+
+  // Helper to remove non-serializable data (functions) before saving
+  const cleanNodesForStorage = (nodesToClean) => {
+    return nodesToClean.map(node => {
+      const { data, ...rest } = node;
+      const cleanData = {};
+      if (data) {
+        Object.keys(data).forEach(key => {
+          if (typeof data[key] !== 'function') {
+            cleanData[key] = data[key];
+          }
+        });
+      }
+      return { ...rest, data: cleanData };
+    });
+  };
 
   useEffect(() => {
     const processId = searchParams.get('id');
@@ -245,13 +261,20 @@ const ProcessListContent = () => {
 
       // Find or create the root map process by title
       let rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
+      const currentNodes = getNodes();
+      const currentEdges = getEdges();
       const viewport = getViewport();
+      
       const mapData = { 
-        steps: { nodes, edges, viewport }, 
+        steps: { 
+          nodes: cleanNodesForStorage(currentNodes), 
+          edges: currentEdges, 
+          viewport 
+        }, 
         title: 'Huvudprocesskarta'
       };
 
-      console.log('Saving root map:', mapData);
+      console.log('Saving root map with latest positions:', mapData);
       if (rootMap) {
         await updateProcess(rootMap.id, mapData);
       } else {

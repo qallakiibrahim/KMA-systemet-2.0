@@ -257,7 +257,7 @@ const nodeTypes = {
 
 const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) => {
   const { currentUser, userProfile } = useAuth();
-  const { getViewport, getNode } = useReactFlow();
+  const { getViewport, getNodes, getEdges } = useReactFlow();
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -266,6 +266,22 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   const [dokuments, setDokuments] = useState([]);
   const [allProcesses, setAllProcesses] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Helper to remove non-serializable data (functions) before saving
+  const cleanNodesForStorage = (nodesToClean) => {
+    return nodesToClean.map(node => {
+      const { data, ...rest } = node;
+      const cleanData = {};
+      if (data) {
+        Object.keys(data).forEach(key => {
+          if (typeof data[key] !== 'function') {
+            cleanData[key] = data[key];
+          }
+        });
+      }
+      return { ...rest, data: cleanData };
+    });
+  };
 
   useEffect(() => {
     const handleQuickAction = (type, payload, nodeId) => {
@@ -479,9 +495,17 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   const saveProcess = async () => {
     setIsSaving(true);
     try {
+      const currentNodes = getNodes();
+      const currentEdges = getEdges();
       const viewport = getViewport();
-      const steps = { nodes, edges, viewport };
-      console.log('Saving process map:', steps);
+      
+      const steps = { 
+        nodes: cleanNodesForStorage(currentNodes), 
+        edges: currentEdges, 
+        viewport 
+      };
+      
+      console.log('Saving process map with latest positions:', steps);
       const updated = await updateProcess(process.id, { steps });
       console.log('Process map saved successfully:', updated);
       onUpdate(updated);
