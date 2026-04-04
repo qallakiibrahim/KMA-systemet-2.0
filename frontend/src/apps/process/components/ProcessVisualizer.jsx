@@ -316,7 +316,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
       }
     };
     fetchData();
-  }, [process.id, allProcesses.length]); // Re-run if process ID or process count changes
+  }, [process.id]); // Re-run only if process ID changes
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),

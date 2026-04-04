@@ -308,13 +308,7 @@ const ProcessListContent = () => {
         process={activeProcess} 
         onBack={handleGoBack}
         onUpdate={(updated, newProcess) => {
-          setProcesses(prev => {
-            let next = prev.map(p => p.id === updated.id ? updated : p);
-            if (newProcess && !next.some(p => p.id === newProcess.id)) {
-              next = [newProcess, ...next];
-            }
-            return next;
-          });
+          queryClient.invalidateQueries({ queryKey: ['processes'] });
           setNavigationStack(prev => prev.map(p => p.id === updated.id ? updated : p));
         }}
         onDrillDown={handleDrillDown}

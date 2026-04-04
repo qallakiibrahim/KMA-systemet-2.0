@@ -106,6 +106,22 @@ export const updateProcess = async (id, data) => {
     
   if (error) {
     console.error('Supabase updateProcess error:', error);
+    
+    // If it's a missing column error, try without SaaS columns
+    if (error.message.includes('column') && error.message.includes('does not exist')) {
+      console.warn('Retrying process update without SaaS columns...');
+      const { company_id, is_template, is_global, category, ...minimalData } = data;
+      const { data: retryUpdated, error: retryError } = await supabase
+        .from(tableName)
+        .update(minimalData)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (retryError) throw retryError;
+      return retryUpdated;
+    }
+    
     throw error;
   }
   return updated;
