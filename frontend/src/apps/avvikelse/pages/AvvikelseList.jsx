@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAvvikelser, createAvvikelse, updateAvvikelse, deleteAvvikelse, uploadAttachment } from '../api/avvikelse';
 import { getAuditLogs } from '../../../shared/api/auditLog';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { Plus, Edit2, Trash2, X, AlertTriangle, CheckCircle, Clock, Lock, Bot, Paperclip, FileText, Image as ImageIcon, UploadCloud, Loader } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, AlertTriangle, CheckCircle, Clock, Lock, Bot, Paperclip, FileText, Image as ImageIcon, UploadCloud, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleGenAI } from '@google/genai';
 import { getAiInstance } from '../../../shared/utils/aiUtils';
 import '../styles/AvvikelseList.css';
 
 const AvvikelseList = () => {
-  const [avvikelser, setAvvikelser] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
   const [selectedAvvikelse, setSelectedAvvikelse] = useState(null);
@@ -60,26 +62,60 @@ const AvvikelseList = () => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  // TanStack Query for data fetching
+  const { data: avvikelserData, isLoading: loading, isError } = useQuery({
+    queryKey: ['avvikelser', page, pageSize],
+    queryFn: () => getAvvikelser(page, pageSize),
+    keepPreviousData: true,
+  });
+
+  const avvikelser = avvikelserData?.data || [];
+  const totalCount = avvikelserData?.count || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: createAvvikelse,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['avvikelser'] });
+      toast.success('Avvikelse skapad!');
+      setIsModalOpen(false);
+      resetForm();
+    },
+    onError: (error) => {
+      console.error('Create error:', error);
+      toast.error('Kunde inte skapa avvikelse');
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => updateAvvikelse(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['avvikelser'] });
+      toast.success('Avvikelse uppdaterad!');
+    },
+    onError: (error) => {
+      console.error('Update error:', error);
+      toast.error('Kunde inte uppdatera avvikelse');
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteAvvikelse,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['avvikelser'] });
+      toast.success('Avvikelse raderad');
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+      toast.error('Kunde inte radera avvikelse');
+    }
+  });
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const fetchAvvikelser = async () => {
-    try {
-      const data = await getAvvikelser();
-      setAvvikelser(data);
-    } catch (error) {
-      console.error('Failed to fetch avvikelser', error);
-      toast.error('Kunde inte hämta avvikelser');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAvvikelser();
   }, []);
 
   useEffect(() => {
@@ -250,52 +286,16 @@ const AvvikelseList = () => {
         beskrivning: formData.beskrivning,
         problemdefinition: problemdefinition,
         priority: formData.priority,
-        severity: formData.severity?.toString() || 'Medium',
-        probability: formData.probability?.toString() || 'Medium',
-        status: formData.status,
-        deadline: formData.deadline || null,
+        severity: parseInt(formData.severity) || 1,
+        probability: parseInt(formData.probability) || 1,
+        status: 'open',
         author_uid: currentUser?.id || null,
         company_id: companyId,
+        deadline: formData.deadline || null,
         attachments: formData.attachments || []
       };
       
-      const created = await createAvvikelse(newAvvikelse);
-      setAvvikelser([created, ...avvikelser]);
-      setIsModalOpen(false);
-      setFormData({ 
-        titel: '', 
-        priority: 'Medium', 
-        severity: 1,
-        probability: 1,
-        status: 'open',
-        vem: '',
-        vad: '',
-        nar: '',
-        var: '',
-        varfor: '',
-        hur: '',
-        hur_mycket: '',
-        beskrivning: '',
-        problemdefinition: '',
-        attachments: []
-      });
-      toast.success('Avvikelse skapad!');
-
-      // Send email notification if user has an email
-      if (currentUser?.email) {
-        const subject = `Ny Avvikelse Skapad: ${created.titel}`;
-        const htmlContent = `
-          <h2>En ny avvikelse har registrerats</h2>
-          <p><strong>Titel:</strong> ${created.titel}</p>
-          <p><strong>Prioritet:</strong> ${created.priority}</p>
-          <p><strong>Beskrivning:</strong></p>
-          <p>${created.beskrivning}</p>
-          <p><strong>Problemdefinition (5W2H):</strong></p>
-          <pre>${created.problemdefinition}</pre>
-          <p><br/>Logga in i systemet för att hantera denna avvikelse.</p>
-        `;
-        await sendEmailNotification(currentUser.email, subject, htmlContent);
-      }
+      createMutation.mutate(newAvvikelse);
     } catch (error) {
       console.error('Failed to create avvikelse:', error);
       const errorMsg = error.message || error.details || 'Okänt fel vid sparning';
@@ -311,14 +311,7 @@ const AvvikelseList = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm('Är du säker på att du vill radera denna avvikelse?')) {
-      try {
-        await deleteAvvikelse(id);
-        setAvvikelser(avvikelser.filter(a => a.id !== id));
-        toast.success('Avvikelse raderad');
-      } catch (error) {
-        console.error('Failed to delete avvikelse', error);
-        toast.error('Kunde inte radera avvikelse');
-      }
+      deleteMutation.mutate(id);
     }
   };
 
@@ -408,19 +401,11 @@ const AvvikelseList = () => {
       };
       
       console.log('Sending updates to Supabase:', updates);
-      const updated = await updateAvvikelse(selectedAvvikelse.id, updates);
-      console.log('Update successful, received:', updated);
-      
-      // Update local state immediately
-      setAvvikelser(prev => prev.map(a => a.id === selectedAvvikelse.id ? updated : a));
-      setSelectedAvvikelse(updated);
-      setFollowUpData(currentUppfoljning);
+      updateMutation.mutate({ id: selectedAvvikelse.id, data: updates });
       
       if (stepNumber < 5) {
-        toast.success('Steg sparat!');
         setActiveStep(stepNumber + 1);
       } else {
-        toast.success('Avvikelse godkänd och avslutad!');
         setIsFollowUpModalOpen(false);
       }
     } catch (error) {
@@ -444,10 +429,7 @@ const AvvikelseList = () => {
         deadline: formData.deadline || null,
       };
       
-      const updated = await updateAvvikelse(selectedAvvikelse.id, updates);
-      setAvvikelser(avvikelser.map(a => a.id === selectedAvvikelse.id ? updated : a));
-      setSelectedAvvikelse(updated);
-      toast.success('Avvikelse uppdaterad!');
+      updateMutation.mutate({ id: selectedAvvikelse.id, data: updates });
     } catch (error) {
       console.error('Failed to update avvikelse', error);
       toast.error('Kunde inte uppdatera');
@@ -458,17 +440,15 @@ const AvvikelseList = () => {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      const updated = await updateAvvikelse(id, { status: newStatus });
-      setAvvikelser(avvikelser.map(a => a.id === id ? updated : a));
-      toast.success('Status uppdaterad');
+      updateMutation.mutate({ id, data: { status: newStatus } });
       
       // Send email notification on status change
       if (currentUser?.email) {
-        const subject = `Avvikelse Uppdaterad: ${updated.titel}`;
+        const subject = `Avvikelse Uppdaterad: ${selectedAvvikelse?.titel || 'System'}`;
         const htmlContent = `
           <h2>Status för avvikelse har ändrats</h2>
-          <p><strong>Titel:</strong> ${updated.titel}</p>
-          <p><strong>Ny Status:</strong> ${updated.status}</p>
+          <p><strong>Titel:</strong> ${selectedAvvikelse?.titel || 'System'}</p>
+          <p><strong>Ny Status:</strong> ${newStatus}</p>
           <p><br/>Logga in i systemet för mer information.</p>
         `;
         await sendEmailNotification(currentUser.email, subject, htmlContent);
@@ -622,6 +602,28 @@ const AvvikelseList = () => {
           );
         })}
       </div>
+
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button 
+            className="pagination-btn" 
+            disabled={page === 1} 
+            onClick={() => setPage(prev => Math.max(1, prev - 1))}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span className="pagination-info">
+            Sida {page} av {totalPages}
+          </span>
+          <button 
+            className="pagination-btn" 
+            disabled={page === totalPages} 
+            onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="modal-overlay">

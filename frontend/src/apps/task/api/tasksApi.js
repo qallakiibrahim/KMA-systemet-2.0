@@ -2,14 +2,22 @@ import { supabase } from '../../../supabase';
 
 const tableName = 'tasks';
 
-export const getTasks = async () => {
-  const { data, error } = await supabase
+export const getTasks = async (page = 1, pageSize = 20) => {
+  let query = supabase
     .from(tableName)
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('created_at', { ascending: false });
+
+  if (pageSize !== -1) {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
+  }
+
+  const { data, error, count } = await query;
     
   if (error) throw error;
-  return data;
+  return pageSize === -1 ? data : { data, count };
 };
 
 export const createTask = async (data) => {

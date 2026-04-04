@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getRisker, createRisk, updateRisk, deleteRisk } from '../api/risk';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { Plus, Trash2, X, AlertOctagon, ShieldAlert, Activity, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, X, AlertOctagon, ShieldAlert, Activity, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../styles/RiskList.css';
 
 const RiskList = () => {
-  const [risker, setRisker] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
   const [formData, setFormData] = useState({ 
@@ -28,26 +30,60 @@ const RiskList = () => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  // TanStack Query for data fetching
+  const { data: riskerData, isLoading: loading, isError } = useQuery({
+    queryKey: ['risker', page, pageSize],
+    queryFn: () => getRisker(page, pageSize),
+    keepPreviousData: true,
+  });
+
+  const risker = riskerData?.data || [];
+  const totalCount = riskerData?.count || 0;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: createRisk,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['risker'] });
+      toast.success('Risk skapad!');
+      handleCloseModal();
+    },
+    onError: (error) => {
+      console.error('Create error:', error);
+      toast.error('Kunde inte skapa risk');
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => updateRisk(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['risker'] });
+      toast.success('Risk uppdaterad!');
+      handleCloseModal();
+    },
+    onError: (error) => {
+      console.error('Update error:', error);
+      toast.error('Kunde inte uppdatera risk');
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteRisk,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['risker'] });
+      toast.success('Risk raderad');
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+      toast.error('Kunde inte radera risk');
+    }
+  });
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const fetchRisker = async () => {
-    try {
-      const data = await getRisker();
-      setRisker(data);
-    } catch (error) {
-      console.error('Failed to fetch risker', error);
-      toast.error('Kunde inte hämta risker');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchRisker();
   }, []);
 
   useEffect(() => {
@@ -109,33 +145,10 @@ const RiskList = () => {
       };
       
       if (selectedRisk) {
-        const updated = await updateRisk(selectedRisk.id, riskData);
-        setRisker(risker.map(r => r.id === selectedRisk.id ? updated : r));
-        toast.success('Risk uppdaterad!');
+        updateMutation.mutate({ id: selectedRisk.id, data: riskData });
       } else {
-        const created = await createRisk(riskData);
-        setRisker([created, ...risker]);
-        toast.success('Risk skapad!');
-
-        // Send email notification if user has an email
-        if (currentUser?.email) {
-          const subject = `Ny Risk Registrerad: ${created.title}`;
-          const htmlContent = `
-            <h2>En ny risk har registrerats i systemet</h2>
-            <p><strong>Titel:</strong> ${created.title}</p>
-            <p><strong>Kategori:</strong> ${created.category}</p>
-            <p><strong>Sannolikhet:</strong> ${created.likelihood}</p>
-            <p><strong>Konsekvens:</strong> ${created.impact}</p>
-            <p><strong>Riskpoäng:</strong> ${created.likelihood * created.impact}</p>
-            <p><strong>Beskrivning:</strong></p>
-            <p>${created.description}</p>
-            <p><br/>Logga in i systemet för att hantera denna risk.</p>
-          `;
-          await sendEmailNotification(currentUser.email, subject, htmlContent);
-        }
+        createMutation.mutate(riskData);
       }
-      
-      handleCloseModal();
     } catch (error) {
       console.error('Failed to save risk:', error);
       const errorMsg = error.message || error.details || 'Okänt fel vid sparning';
@@ -172,26 +185,12 @@ const RiskList = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm('Är du säker på att du vill radera denna risk?')) {
-      try {
-        await deleteRisk(id);
-        setRisker(risker.filter(r => r.id !== id));
-        toast.success('Risk raderad');
-      } catch (error) {
-        console.error('Failed to delete risk', error);
-        toast.error('Kunde inte radera risk');
-      }
+      deleteMutation.mutate(id);
     }
   };
 
   const handleStatusChange = async (id, newStatus) => {
-    try {
-      const updated = await updateRisk(id, { status: newStatus });
-      setRisker(risker.map(r => r.id === id ? updated : r));
-      toast.success('Status uppdaterad');
-    } catch (error) {
-      console.error('Failed to update status', error);
-      toast.error('Kunde inte uppdatera status');
-    }
+    updateMutation.mutate({ id, data: { status: newStatus } });
   };
 
   const getRiskLevel = (score) => {
@@ -315,6 +314,28 @@ const RiskList = () => {
           </div>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button 
+            className="pagination-btn" 
+            disabled={page === 1} 
+            onClick={() => setPage(prev => Math.max(1, prev - 1))}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span className="pagination-info">
+            Sida {page} av {totalPages}
+          </span>
+          <button 
+            className="pagination-btn" 
+            disabled={page === totalPages} 
+            onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="modal-overlay">

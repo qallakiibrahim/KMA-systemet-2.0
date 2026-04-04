@@ -2,28 +2,44 @@ import { supabase } from '../../../supabase';
 
 const tableName = 'documents';
 
-export const getDokuments = async () => {
+export const getDokuments = async (page = 1, pageSize = 20) => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from(tableName)
-      .select('*, attachments(*)')
+      .select('*, attachments(*)', { count: 'exact' })
       .order('created_at', { ascending: false });
+
+    if (pageSize !== -1) {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query;
       
     if (error) {
       // If the error is because the attachments relationship doesn't exist, try without it
       if (error.message.includes('relationship') || error.message.includes('column') || error.code === 'PGRST204') {
         console.warn('Failed to fetch with attachments, retrying without them...', error);
-        const { data: fallbackData, error: fallbackError } = await supabase
+        let fallbackQuery = supabase
           .from(tableName)
-          .select('*')
+          .select('*', { count: 'exact' })
           .order('created_at', { ascending: false });
+
+        if (pageSize !== -1) {
+          const from = (page - 1) * pageSize;
+          const to = from + pageSize - 1;
+          fallbackQuery = fallbackQuery.range(from, to);
+        }
+
+        const { data: fallbackData, error: fallbackError, count: fallbackCount } = await fallbackQuery;
           
         if (fallbackError) throw fallbackError;
-        return fallbackData;
+        return pageSize === -1 ? fallbackData : { data: fallbackData, count: fallbackCount };
       }
       throw error;
     }
-    return data;
+    return pageSize === -1 ? data : { data, count };
   } catch (error) {
     console.error('Error fetching documents:', error);
     throw error;

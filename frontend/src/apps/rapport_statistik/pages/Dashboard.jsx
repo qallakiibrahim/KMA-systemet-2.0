@@ -66,10 +66,10 @@ Data:
     const fetchData = async () => {
       try {
         const [avvikelserData, riskerData, tasksData, dokumentData] = await Promise.all([
-          getAvvikelser(),
-          getRisker(),
-          getTasks(),
-          getDokuments()
+          getAvvikelser(1, -1),
+          getRisker(1, -1),
+          getTasks(1, -1),
+          getDokuments(1, -1)
         ]);
         
         const newStats = {
