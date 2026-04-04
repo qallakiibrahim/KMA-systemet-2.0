@@ -63,17 +63,43 @@ const AvvikelseList = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // TanStack Query for data fetching
-  const { data: avvikelserData, isLoading: loading, isError } = useQuery({
+  const { data: avvikelserData, isLoading: loading, isError, error } = useQuery({
     queryKey: ['avvikelser', page, pageSize],
     queryFn: () => getAvvikelser(page, pageSize),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
   const avvikelser = avvikelserData?.data || [];
   const totalCount = avvikelserData?.count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
+  if (isError) {
+    return (
+      <div className="error-state">
+        <AlertTriangle size={48} className="text-level-high" />
+        <h2>Ett fel uppstod vid hämtning av data</h2>
+        <p>{error?.message || 'Kunde inte ansluta till databasen'}</p>
+        <button className="btn btn-primary" onClick={() => queryClient.invalidateQueries({ queryKey: ['avvikelser'] })}>
+          Försök igen
+        </button>
+      </div>
+    );
+  }
+
   // Mutations
+  const resetForm = () => {
+    setFormData({
+      titel: '',
+      beskrivning: '',
+      plats: '',
+      kategori: 'Arbetsmiljö',
+      severity: 1,
+      probability: 1,
+      deadline: ''
+    });
+    setAttachments([]);
+  };
+
   const createMutation = useMutation({
     mutationFn: createAvvikelse,
     onSuccess: () => {

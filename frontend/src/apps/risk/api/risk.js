@@ -3,6 +3,7 @@ import { supabase } from '../../../supabase';
 const tableName = 'risker';
 
 export const getRisker = async (page = 1, pageSize = 20) => {
+  console.log('getRisker called with:', { page, pageSize });
   let query = supabase
     .from(tableName)
     .select('*', { count: 'exact' })
@@ -16,7 +17,12 @@ export const getRisker = async (page = 1, pageSize = 20) => {
 
   const { data, error, count } = await query;
     
-  if (error) throw error;
+  if (error) {
+    console.error('getRisker error:', error);
+    throw error;
+  }
+  
+  console.log('getRisker result:', { count, dataLength: data?.length });
   return pageSize === -1 ? data : { data, count };
 };
 

@@ -31,15 +31,28 @@ const RiskList = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // TanStack Query for data fetching
-  const { data: riskerData, isLoading: loading, isError } = useQuery({
+  const { data: riskerData, isLoading: loading, isError, error } = useQuery({
     queryKey: ['risker', page, pageSize],
     queryFn: () => getRisker(page, pageSize),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
   const risker = riskerData?.data || [];
   const totalCount = riskerData?.count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
+
+  if (isError) {
+    return (
+      <div className="error-state">
+        <AlertOctagon size={48} className="text-level-high" />
+        <h2>Ett fel uppstod vid hämtning av data</h2>
+        <p>{error?.message || 'Kunde inte ansluta till databasen'}</p>
+        <button className="btn btn-primary" onClick={() => queryClient.invalidateQueries({ queryKey: ['risker'] })}>
+          Försök igen
+        </button>
+      </div>
+    );
+  }
 
   // Mutations
   const createMutation = useMutation({

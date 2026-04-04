@@ -88,6 +88,7 @@ export const uploadAttachment = async (file) => {
 };
 
 export const getAvvikelser = async (page = 1, pageSize = 20) => {
+  console.log('getAvvikelser called with:', { page, pageSize });
   let query = supabase
     .from(tableName)
     .select('*', { count: 'exact' })
@@ -101,7 +102,12 @@ export const getAvvikelser = async (page = 1, pageSize = 20) => {
 
   const { data, error, count } = await query;
     
-  if (error) throw error;
+  if (error) {
+    console.error('getAvvikelser error:', error);
+    throw error;
+  }
+  
+  console.log('getAvvikelser result:', { count, dataLength: data?.length });
   return pageSize === -1 ? data : { data, count };
 };
 
