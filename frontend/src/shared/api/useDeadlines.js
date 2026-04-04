@@ -15,11 +15,15 @@ export const useDeadlines = () => {
     if (!user) return;
 
     try {
-      const [tasks, risker, avvikelser] = await Promise.all([
-        getTasks(),
-        getRisker(),
-        getAvvikelser()
+      const [tasksData, riskerData, avvikelserData] = await Promise.all([
+        getTasks(1, -1),
+        getRisker(1, -1),
+        getAvvikelser(1, -1)
       ]);
+
+      const tasks = tasksData?.data || (Array.isArray(tasksData) ? tasksData : []);
+      const risker = riskerData?.data || (Array.isArray(riskerData) ? riskerData : []);
+      const avvikelser = avvikelserData?.data || (Array.isArray(avvikelserData) ? avvikelserData : []);
 
       const today = startOfDay(new Date());
 

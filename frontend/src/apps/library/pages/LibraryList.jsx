@@ -26,17 +26,17 @@ const LibraryList = () => {
     setLoading(true);
     try {
       const results = await Promise.allSettled([
-        getProcesses(),
-        getDokuments(),
-        getRisker(),
+        getProcesses(1, -1),
+        getDokuments(1, -1),
+        getRisker(1, -1),
         getGlobalProcesses(),
         getGlobalTemplates(),
         getGlobalRisks()
       ]);
 
-      const processes = results[0].status === 'fulfilled' ? results[0].value : [];
-      const documents = results[1].status === 'fulfilled' ? results[1].value : [];
-      const risks = results[2].status === 'fulfilled' ? results[2].value : [];
+      const processes = results[0].status === 'fulfilled' ? (results[0].value?.data || (Array.isArray(results[0].value) ? results[0].value : [])) : [];
+      const documents = results[1].status === 'fulfilled' ? (results[1].value?.data || (Array.isArray(results[1].value) ? results[1].value : [])) : [];
+      const risks = results[2].status === 'fulfilled' ? (results[2].value?.data || (Array.isArray(results[2].value) ? results[2].value : [])) : [];
       const globalProcesses = results[3].status === 'fulfilled' ? results[3].value : [];
       const globalDocuments = results[4].status === 'fulfilled' ? results[4].value : [];
       const globalRisks = results[5].status === 'fulfilled' ? results[5].value : [];

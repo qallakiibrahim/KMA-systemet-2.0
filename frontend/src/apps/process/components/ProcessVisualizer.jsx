@@ -303,10 +303,12 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
 
     const fetchData = async () => {
       try {
-        const [docs, procs] = await Promise.all([
-          getDokuments(),
-          getProcesses()
+        const [docsData, procsData] = await Promise.all([
+          getDokuments(1, -1),
+          getProcesses(1, -1)
         ]);
+        const docs = docsData?.data || (Array.isArray(docsData) ? docsData : []);
+        const procs = procsData?.data || (Array.isArray(procsData) ? procsData : []);
         setDokuments(docs);
         setAllProcesses(procs.filter(p => p.id !== process.id));
       } catch (error) {
