@@ -18,6 +18,7 @@ import { getDokuments } from '../../dokument/api/dokument';
 import { updateProcess, getProcesses, createProcess, deleteProcess } from '../api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
+import ConfirmModal from './ConfirmModal';
 import '../styles/ProcessVisualizer.css';
 
 const FileIcon = ({ type, size = 16 }) => {
@@ -255,7 +256,7 @@ const nodeTypes = {
   database: DatabaseNode,
 };
 
-const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) => {
+const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrillDown }) => {
   const { currentUser, userProfile } = useAuth();
   const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
   const [isEditMode, setIsEditMode] = useState(false);
@@ -267,6 +268,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
   const [dokuments, setDokuments] = useState([]);
   const [allProcesses, setAllProcesses] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: 'process', title: '', nodeId: null });
 
   // Helper to remove non-serializable data (functions) before saving
   const cleanNodesForStorage = (nodesToClean) => {
@@ -527,27 +529,60 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
 
   const deleteSelectedNode = () => {
     if (!selectedNode) return;
+    
+    // If it's a sub-process node, ask if they want to delete the sub-process too
+    if (selectedNode.data?.subProcessId) {
+      const subProc = allProcesses.find(p => p.id === selectedNode.data.subProcessId);
+      setDeleteConfirm({ 
+        isOpen: true, 
+        type: 'node-with-process', 
+        title: subProc?.title || selectedNode.data.label,
+        nodeId: selectedNode.id
+      });
+      return;
+    }
+
     setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
     setEdges((eds) => eds.filter((e) => e.source !== selectedNode.id && e.target !== selectedNode.id));
     setSelectedNode(null);
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Är du säker på att du vill ta bort processen "${process.title}"? Detta går inte att ångra.`)) {
-      return;
-    }
+  const confirmDelete = async () => {
+    const { type, nodeId } = deleteConfirm;
+    setDeleteConfirm({ ...deleteConfirm, isOpen: false });
 
     try {
       setIsSaving(true);
-      await deleteProcess(process.id);
-      toast.success('Processen har tagits bort');
-      onBack(); // Go back to list or parent
+      if (type === 'process') {
+        await deleteProcess(process.id);
+        toast.success('Processen har tagits bort');
+        if (onDelete) {
+          onDelete(process.id);
+        } else {
+          onBack();
+        }
+      } else if (type === 'node-with-process') {
+        const node = nodes.find(n => n.id === nodeId);
+        if (node?.data?.subProcessId) {
+          await deleteProcess(node.data.subProcessId);
+          toast.success('Underprocessen har tagits bort');
+        }
+        setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+        setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+        setSelectedNode(null);
+        // We should also save the current process to persist the removal of the node
+        setTimeout(() => saveProcess(), 100);
+      }
     } catch (error) {
-      console.error('Failed to delete process:', error);
-      toast.error('Kunde inte ta bort processen');
+      console.error('Failed to delete:', error);
+      toast.error('Kunde inte slutföra borttagningen');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleDelete = async () => {
+    setDeleteConfirm({ isOpen: true, type: 'process', title: process.title, nodeId: null });
   };
 
   const saveProcess = async () => {
@@ -598,13 +633,13 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
         <div className="header-actions">
           {(!process.is_global || userProfile?.role === 'superadmin') && (
             !isEditMode ? (
-              <button className="btn-secondary btn-sm" onClick={() => setIsEditMode(true)}>
+              <button className="btn-secondary btn-sm" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
                 <Edit2 size={16} />
                 <span>Redigera</span>
               </button>
             ) : (
               <>
-                <button className="btn-secondary btn-sm" onClick={() => setIsEditMode(false)}>
+                <button className="btn-secondary btn-sm" onClick={() => { setIsEditMode(false); setSelectedNode(null); }}>
                   <X size={16} />
                   <span>Avbryt</span>
                 </button>
@@ -621,6 +656,27 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
           )}
         </div>
       </div>
+
+      <ConfirmModal 
+        isOpen={deleteConfirm.isOpen}
+        title={deleteConfirm.type === 'process' ? 'Ta bort process?' : 'Ta bort objekt?'}
+        message={deleteConfirm.type === 'process'
+          ? `Är du säker på att du vill ta bort processen "${deleteConfirm.title}"? Detta går inte att ångra.`
+          : `Vill du även ta bort den kopplade underprocessen "${deleteConfirm.title}" från systemet, eller bara ta bort objektet från denna ritning?`
+        }
+        confirmText={deleteConfirm.type === 'node-with-process' ? 'Ta bort båda' : 'Ta bort'}
+        cancelText={deleteConfirm.type === 'node-with-process' ? 'Bara objektet' : 'Avbryt'}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (deleteConfirm.type === 'node-with-process') {
+            // Just delete the node
+            setNodes((nds) => nds.filter((n) => n.id !== deleteConfirm.nodeId));
+            setEdges((eds) => eds.filter((e) => e.source !== deleteConfirm.nodeId && e.target !== deleteConfirm.nodeId));
+            setSelectedNode(null);
+          }
+          setDeleteConfirm({ ...deleteConfirm, isOpen: false });
+        }}
+      />
 
       <div className="visualizer-content">
         {isEditMode && (
@@ -651,6 +707,15 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDrillDown }) =>
               <span>Databas</span>
             </button>
             <hr />
+            <button 
+              className="tool-btn text-red-500 hover:bg-red-50" 
+              onClick={deleteSelectedNode}
+              disabled={!selectedNode}
+              title="Ta bort markerat objekt"
+            >
+              <Trash2 size={16} />
+              <span>Ta bort vald</span>
+            </button>
             <p className="hint">Dra mellan noder för att skapa kopplingar</p>
           </div>
         )}

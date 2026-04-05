@@ -20,6 +20,7 @@ import { useAuth } from '../../../shared/api/AuthContext';
 import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle, AlertOctagon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ProcessVisualizer from '../components/ProcessVisualizer';
+import ConfirmModal from '../components/ConfirmModal';
 import '../styles/ProcessList.css';
 
 // Custom Node for the Process Map
@@ -49,6 +50,7 @@ const ProcessListContent = () => {
   const [selectedNode, setSelectedNode] = useState(null);
   const [navigationStack, setNavigationStack] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, title: '', type: 'process' });
   
   const [rfInstance, setRfInstance] = useState(null);
   const [defaultViewport, setDefaultViewport] = useState({ x: 0, y: 0, zoom: 1 });
@@ -339,41 +341,100 @@ const ProcessListContent = () => {
   };
 
   const handleDeleteProcess = async (id, title) => {
-    if (!window.confirm(`Är du säker på att du vill ta bort processen "${title}"? Detta går inte att ångra.`)) {
-      return;
-    }
+    setDeleteConfirm({ isOpen: true, id, title, type: 'process' });
+  };
+
+  const confirmDelete = async () => {
+    const { id, title, type } = deleteConfirm;
+    setDeleteConfirm({ ...deleteConfirm, isOpen: false });
 
     try {
+      if (type === 'rootMap') {
+        const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
+        if (!rootMap) return;
+        setIsSaving(true);
+        await deleteProcess(rootMap.id);
+        toast.success('Huvudprocesskartan har tagits bort');
+        queryClient.invalidateQueries({ queryKey: ['processes'] });
+        setNodes([]);
+        setEdges([]);
+        setIsSaving(false);
+        return;
+      }
+
       await deleteProcess(id);
       toast.success('Processen har tagits bort');
+      
+      // Update root map if it exists
+      const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
+      if (rootMap) {
+        const updatedNodes = (rootMap.steps?.nodes || []).filter(n => String(n.data?.processId || n.id) !== String(id));
+        const updatedSteps = { ...rootMap.steps, nodes: updatedNodes };
+        try {
+          await updateProcess(rootMap.id, { steps: updatedSteps });
+          setNodes(updatedNodes);
+        } catch (err) {
+          console.error('Failed to update root map after deletion', err);
+        }
+      } else {
+        // Just update local state if root map doesn't exist yet
+        setNodes(nds => nds.filter(n => String(n.data?.processId || n.id) !== String(id)));
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['processes'] });
+      if (selectedNode && (selectedNode.data?.processId === id || selectedNode.id === id)) {
+        setSelectedNode(null);
+      }
     } catch (error) {
       console.error('Failed to delete process:', error);
       toast.error('Kunde inte ta bort processen');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteFromVisualizer = async (deletedId) => {
+    // 1. Go back
+    handleGoBack();
+    
+    // 2. Refresh data
+    queryClient.invalidateQueries({ queryKey: ['processes'] });
+    
+    // 3. Update parent (either root map or a parent process)
+    if (navigationStack.length === 1) {
+      // Parent is the Root Map
+      const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
+      if (rootMap) {
+        const updatedNodes = (rootMap.steps?.nodes || []).filter(n => String(n.data?.processId || n.id) !== String(deletedId));
+        const updatedSteps = { ...rootMap.steps, nodes: updatedNodes };
+        try {
+          await updateProcess(rootMap.id, { steps: updatedSteps });
+          setNodes(updatedNodes);
+        } catch (err) {
+          console.error('Failed to update root map', err);
+        }
+      } else {
+        // Just update local state if root map doesn't exist yet
+        setNodes(nds => nds.filter(n => String(n.data?.processId || n.id) !== String(deletedId)));
+      }
+    } else if (navigationStack.length > 1) {
+      // Parent is another process
+      const parent = navigationStack[navigationStack.length - 2];
+      const updatedNodes = (parent.steps?.nodes || []).filter(n => String(n.data?.subProcessId) !== String(deletedId));
+      const updatedSteps = { ...parent.steps, nodes: updatedNodes };
+      
+      try {
+        await updateProcess(parent.id, { steps: updatedSteps });
+        // Update the parent in the stack too
+        setNavigationStack(prev => prev.map(p => p.id === parent.id ? { ...p, steps: updatedSteps } : p));
+      } catch (err) {
+        console.error('Failed to update parent process', err);
+      }
     }
   };
 
   const handleDeleteRootMap = async () => {
-    const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
-    if (!rootMap) return;
-
-    if (!window.confirm(`Är du säker på att du vill ta bort huvudprocesskartan? Detta tar bort hela vyn men inte de enskilda processerna.`)) {
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      await deleteProcess(rootMap.id);
-      toast.success('Huvudprocesskartan har tagits bort');
-      queryClient.invalidateQueries({ queryKey: ['processes'] });
-      setNodes([]);
-      setEdges([]);
-    } catch (error) {
-      console.error('Failed to delete root map:', error);
-      toast.error('Kunde inte ta bort processkartan');
-    } finally {
-      setIsSaving(false);
-    }
+    setDeleteConfirm({ isOpen: true, id: 'root', title: 'Huvudprocesskartan', type: 'rootMap' });
   };
 
   if (isError) {
@@ -402,6 +463,7 @@ const ProcessListContent = () => {
           queryClient.invalidateQueries({ queryKey: ['processes'] });
           setNavigationStack(prev => prev.map(p => p.id === updated.id ? updated : p));
         }}
+        onDelete={handleDeleteFromVisualizer}
         onDrillDown={handleDrillDown}
       />
     );
@@ -499,6 +561,15 @@ const ProcessListContent = () => {
           </p>
         </div>
         <div className="header-actions">
+          {selectedNode && !isEditMode && (
+            <button 
+              className="btn btn-secondary text-red-500 border-red-500 hover:bg-red-50" 
+              onClick={() => handleDeleteProcess(selectedNode.data?.processId || selectedNode.id, selectedNode.data?.label)}
+            >
+              <Trash2 size={18} />
+              <span>Ta bort vald</span>
+            </button>
+          )}
           {/* Quick Add Button - Only on Mobile when not editing */}
           {!isEditMode && isMobile && (
             <button 
@@ -514,7 +585,7 @@ const ProcessListContent = () => {
           {!isMobile && (
             !isEditMode ? (
               <div className="flex gap-2">
-                <button className="btn btn-secondary" onClick={() => setIsEditMode(true)}>
+                <button className="btn btn-secondary" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
                   <Edit2 size={18} />
                   <span>Redigera karta</span>
                 </button>
@@ -527,7 +598,7 @@ const ProcessListContent = () => {
               </div>
             ) : (
               <>
-                <button className="btn btn-secondary" onClick={() => setIsEditMode(false)}>
+                <button className="btn btn-secondary" onClick={() => { setIsEditMode(false); setSelectedNode(null); }}>
                   <X size={18} />
                   <span>Avbryt</span>
                 </button>
@@ -540,6 +611,17 @@ const ProcessListContent = () => {
           )}
         </div>
       </div>
+
+      <ConfirmModal 
+        isOpen={deleteConfirm.isOpen}
+        title={deleteConfirm.type === 'rootMap' ? 'Ta bort processkarta?' : 'Ta bort process?'}
+        message={deleteConfirm.type === 'rootMap' 
+          ? 'Är du säker på att du vill ta bort huvudprocesskartan? Detta tar bort hela vyn men inte de enskilda processerna.'
+          : `Är du säker på att du vill ta bort processen "${deleteConfirm.title}"? Detta går inte att ångra.`
+        }
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
+      />
 
       {showMobileAddMenu && (
         <div className="mobile-add-overlay" onClick={() => setShowMobileAddMenu(false)}>
@@ -578,6 +660,19 @@ const ProcessListContent = () => {
               <span>Stödprocess</span>
             </button>
             <hr />
+            <button 
+              className="tool-btn text-red-500 hover:bg-red-50" 
+              onClick={() => {
+                if (selectedNode) {
+                  handleDeleteProcess(selectedNode.data?.processId || selectedNode.id, selectedNode.data?.label);
+                }
+              }}
+              disabled={!selectedNode}
+              title="Ta bort markerad process"
+            >
+              <Trash2 size={16} />
+              <span>Ta bort vald</span>
+            </button>
             <p className="hint">Dra noder för att flytta. Dra mellan noder för att koppla.</p>
           </div>
         )}
