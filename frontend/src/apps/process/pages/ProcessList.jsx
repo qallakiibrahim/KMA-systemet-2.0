@@ -561,15 +561,6 @@ const ProcessListContent = () => {
           </p>
         </div>
         <div className="header-actions">
-          {selectedNode && !isEditMode && (
-            <button 
-              className="btn btn-secondary text-red-500 border-red-500 hover:bg-red-50" 
-              onClick={() => handleDeleteProcess(selectedNode.data?.processId || selectedNode.id, selectedNode.data?.label)}
-            >
-              <Trash2 size={18} />
-              <span>Ta bort vald</span>
-            </button>
-          )}
           {/* Quick Add Button - Only on Mobile when not editing */}
           {!isEditMode && isMobile && (
             <button 
@@ -589,12 +580,6 @@ const ProcessListContent = () => {
                   <Edit2 size={18} />
                   <span>Redigera karta</span>
                 </button>
-                {processes.some(p => p.title === 'Huvudprocesskarta') && (
-                  <button className="btn btn-secondary text-red-500 border-red-500 hover:bg-red-50" onClick={handleDeleteRootMap}>
-                    <Trash2 size={18} />
-                    <span>Ta bort karta</span>
-                  </button>
-                )}
               </div>
             ) : (
               <>
@@ -644,39 +629,6 @@ const ProcessListContent = () => {
       )}
 
       <div className="map-wrapper">
-        {isEditMode && !isMobile && (
-          <div className="map-toolbar">
-            <h4>Lägg till objekt</h4>
-            <button className="tool-btn management" onClick={() => addProcessNode('management')}>
-              <Plus size={16} />
-              <span>Ledningsprocess</span>
-            </button>
-            <button className="tool-btn core" onClick={() => addProcessNode('core')}>
-              <Plus size={16} />
-              <span>Huvudprocess</span>
-            </button>
-            <button className="tool-btn support" onClick={() => addProcessNode('support')}>
-              <Plus size={16} />
-              <span>Stödprocess</span>
-            </button>
-            <hr />
-            <button 
-              className="tool-btn text-red-500 hover:bg-red-50" 
-              onClick={() => {
-                if (selectedNode) {
-                  handleDeleteProcess(selectedNode.data?.processId || selectedNode.id, selectedNode.data?.label);
-                }
-              }}
-              disabled={!selectedNode}
-              title="Ta bort markerad process"
-            >
-              <Trash2 size={16} />
-              <span>Ta bort vald</span>
-            </button>
-            <p className="hint">Dra noder för att flytta. Dra mellan noder för att koppla.</p>
-          </div>
-        )}
-
         <div className="map-container">
           {isMobile ? (
             <MobileListView />
@@ -721,6 +673,52 @@ const ProcessListContent = () => {
             </>
           )}
         </div>
+
+        {isEditMode && !isMobile && (
+          <div className="map-toolbar">
+            <h4>Lägg till objekt</h4>
+            <button className="tool-btn management" onClick={() => addProcessNode('management')}>
+              <Plus size={16} />
+              <span>Ledningsprocess</span>
+            </button>
+            <button className="tool-btn core" onClick={() => addProcessNode('core')}>
+              <Plus size={16} />
+              <span>Huvudprocess</span>
+            </button>
+            <button className="tool-btn support" onClick={() => addProcessNode('support')}>
+              <Plus size={16} />
+              <span>Stödprocess</span>
+            </button>
+            <hr />
+            <div className="toolbar-actions">
+              <button 
+                className="tool-btn text-red-500 hover:bg-red-50" 
+                onClick={() => {
+                  if (selectedNode) {
+                    handleDeleteProcess(selectedNode.data?.processId || selectedNode.id, selectedNode.data?.label);
+                  }
+                }}
+                disabled={!selectedNode}
+                title="Ta bort markerad process"
+              >
+                <Trash2 size={16} />
+                <span>Ta bort vald</span>
+              </button>
+              
+              {processes.some(p => p.title === 'Huvudprocesskarta') && (
+                <button 
+                  className="tool-btn text-red-500 hover:bg-red-50 mt-2" 
+                  onClick={handleDeleteRootMap}
+                  title="Ta bort hela processkartan"
+                >
+                  <Trash2 size={16} />
+                  <span>Ta bort karta</span>
+                </button>
+              )}
+            </div>
+            <p className="hint">Dra noder för att flytta. Dra mellan noder för att koppla.</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -679,6 +679,34 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       />
 
       <div className="visualizer-content">
+        <div className="flow-container">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeDragStop={onNodeDragStop}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+            onInit={onInit}
+            nodeTypes={nodeTypes}
+            defaultViewport={defaultViewport}
+            nodesDraggable={isEditMode}
+            nodesConnectable={isEditMode}
+            elementsSelectable={true}
+            panOnDrag={isEditMode}
+            zoomOnScroll={isEditMode}
+            zoomOnPinch={isEditMode}
+            zoomOnDoubleClick={isEditMode}
+            panOnScroll={isEditMode}
+            preventScrolling={false}
+          >
+            {isEditMode && <Background />}
+            {isEditMode && <Controls />}
+            {isEditMode && <MiniMap />}
+          </ReactFlow>
+        </div>
+
         {isEditMode && (
           <div className="toolbar">
             <h3>Verktyg</h3>
@@ -719,34 +747,6 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
             <p className="hint">Dra mellan noder för att skapa kopplingar</p>
           </div>
         )}
-
-        <div className="flow-container">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeDragStop={onNodeDragStop}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onInit={onInit}
-            nodeTypes={nodeTypes}
-            defaultViewport={defaultViewport}
-            nodesDraggable={isEditMode}
-            nodesConnectable={isEditMode}
-            elementsSelectable={true}
-            panOnDrag={isEditMode}
-            zoomOnScroll={isEditMode}
-            zoomOnPinch={isEditMode}
-            zoomOnDoubleClick={isEditMode}
-            panOnScroll={isEditMode}
-            preventScrolling={false}
-          >
-            {isEditMode && <Background />}
-            {isEditMode && <Controls />}
-            {isEditMode && <MiniMap />}
-          </ReactFlow>
-        </div>
 
         {selectedNode && (
           <div className="properties-panel">
