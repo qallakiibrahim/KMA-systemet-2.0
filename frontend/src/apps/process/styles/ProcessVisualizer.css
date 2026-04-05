@@ -351,6 +351,21 @@
   background: var(--info-color) !important;
 }
 
+.react-flow__edge-path {
+  transition: stroke-width 0.2s, stroke 0.2s;
+  cursor: pointer;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 3;
+  stroke: var(--primary-color);
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3;
+  stroke: var(--danger-color);
+}
+
 .custom-node {
   padding: 10px 20px;
   border-radius: 5px;

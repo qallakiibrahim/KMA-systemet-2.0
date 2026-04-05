@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import ReactFlow, { 
   addEdge, 
+  updateEdge,
   Background, 
   Controls, 
   MiniMap,
@@ -327,6 +328,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
   const [rfInstance, setRfInstance] = useState(null);
   const [defaultViewport, setDefaultViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedEdge, setSelectedEdge] = useState(null);
   const [dokuments, setDokuments] = useState([]);
   const [allProcesses, setAllProcesses] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -451,15 +453,29 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
   }, []);
 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge({ 
-      ...params, 
-      animated: true,
-      markerEnd: { type: MarkerType.ArrowClosed }
-    }, eds)),
-    []
+    (params) => {
+      // Prevent duplicate edges between same handles
+      const isDuplicate = edges.some(
+        (e) => 
+          e.source === params.source && 
+          e.target === params.target && 
+          e.sourceHandle === params.sourceHandle && 
+          e.targetHandle === params.targetHandle
+      );
+      
+      if (isDuplicate) return;
+
+      setEdges((eds) => addEdge({ 
+        ...params, 
+        animated: true,
+        markerEnd: { type: MarkerType.ArrowClosed }
+      }, eds));
+    },
+    [edges]
   );
 
   const onNodeClick = useCallback((event, node) => {
+    setSelectedEdge(null);
     if (isEditMode) {
       setSelectedNode(node);
     } else {
@@ -471,6 +487,23 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       }
     }
   }, [isEditMode, onDrillDown]);
+
+  const onEdgeClick = useCallback((event, edge) => {
+    if (isEditMode) {
+      setSelectedEdge(edge);
+      setSelectedNode(null);
+    }
+  }, [isEditMode]);
+
+  const onEdgeUpdate = useCallback(
+    (oldEdge, newConnection) => setEdges((els) => updateEdge(oldEdge, newConnection, els)),
+    []
+  );
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNode(null);
+    setSelectedEdge(null);
+  }, []);
 
   const addNode = (type) => {
     const id = `node_${Date.now()}`;
@@ -592,6 +625,12 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
   };
 
   const deleteSelectedNode = () => {
+    if (selectedEdge) {
+      setEdges((eds) => eds.filter((e) => e.id !== selectedEdge.id));
+      setSelectedEdge(null);
+      return;
+    }
+
     if (!selectedNode) return;
     
     // If it's a sub-process node, ask if they want to delete the sub-process too
@@ -758,14 +797,19 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
               ...edge,
               style: {
                 ...edge.style,
-                opacity: searchQuery === '' ? 1 : 0.2
+                opacity: searchQuery === '' ? 1 : 0.2,
+                stroke: selectedEdge?.id === edge.id ? 'var(--danger-color)' : edge.style?.stroke,
+                strokeWidth: selectedEdge?.id === edge.id ? 3 : edge.style?.strokeWidth,
               }
             }))}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeDragStop={onNodeDragStop}
             onConnect={onConnect}
+            onEdgeUpdate={onEdgeUpdate}
             onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
+            onPaneClick={onPaneClick}
             onInit={onInit}
             nodeTypes={nodeTypes}
             defaultViewport={defaultViewport}
@@ -832,7 +876,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
             <button 
               className="tool-btn text-red-500 hover:bg-red-50" 
               onClick={deleteSelectedNode}
-              disabled={!selectedNode}
+              disabled={!selectedNode && !selectedEdge}
               title="Ta bort markerat objekt"
             >
               <Trash2 size={16} />
