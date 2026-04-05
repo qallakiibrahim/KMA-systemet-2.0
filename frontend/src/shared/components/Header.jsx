@@ -5,11 +5,13 @@ import { useAuth } from '../api/AuthContext';
 import { getTasks } from '../../apps/task/api/tasksApi';
 import { getNotifications, updateNotification } from '../../apps/notification/api/notification';
 import { Bell, User, Search, Menu, X } from 'lucide-react';
+import { useSearch } from '../context/SearchContext';
 import '../styles/Header.css';
 
 const Header = ({ onMenuClick }) => {
   const queryClient = useQueryClient();
   const { user, userProfile } = useAuth();
+  const { searchQuery, setSearchQuery } = useSearch();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
@@ -99,7 +101,12 @@ const Header = ({ onMenuClick }) => {
         </button>
         <div className="search-bar">
           <Search size={18} />
-          <input type="text" placeholder="Sök..." />
+          <input 
+            type="text" 
+            placeholder="Sök..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
       <div className="header-right">

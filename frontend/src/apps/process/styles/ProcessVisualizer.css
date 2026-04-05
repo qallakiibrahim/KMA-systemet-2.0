@@ -334,6 +334,21 @@
   pointer-events: all !important;
 }
 
+.react-flow__handle {
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--primary-color) !important;
+  border: 1px solid white !important;
+}
+
+.react-flow__handle-source {
+  background: var(--success-color) !important;
+}
+
+.react-flow__handle-target {
+  background: var(--info-color) !important;
+}
+
 .custom-node {
   padding: 10px 20px;
   border-radius: 5px;
@@ -389,6 +404,48 @@
 .custom-node.database {
   border-radius: 10px / 40px;
   border-color: #8b5cf6;
+}
+
+.custom-node.manual-input {
+  clip-path: polygon(0% 20%, 100% 0%, 100% 100%, 0% 100%);
+  border-color: #f97316;
+}
+
+.custom-node.delay {
+  border-top-right-radius: 40px;
+  border-bottom-right-radius: 40px;
+  border-color: #64748b;
+}
+
+.custom-node.display {
+  clip-path: polygon(15% 0%, 85% 0%, 100% 50%, 85% 100%, 15% 100%, 0% 50%);
+  border-color: #06b6d4;
+}
+
+.custom-node.preparation {
+  clip-path: polygon(15% 0%, 85% 0%, 100% 50%, 85% 100%, 15% 100%, 0% 50%);
+  border-color: #8b5cf6;
+}
+
+.shape.trapezoid {
+  clip-path: polygon(0% 20%, 100% 0%, 100% 100%, 0% 100%);
+  background: var(--bg-primary);
+}
+
+.shape.delay-shape {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  background: var(--bg-primary);
+}
+
+.shape.bullet {
+  clip-path: polygon(0% 0%, 70% 0%, 100% 50%, 70% 100%, 0% 100%);
+  background: var(--bg-primary);
+}
+
+.shape.hexagon {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  background: var(--bg-primary);
 }
 
 .dark .custom-node.start-end {

@@ -18,6 +18,7 @@ import { getDokuments } from '../../dokument/api/dokument';
 import { updateProcess, getProcesses, createProcess, deleteProcess } from '../api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
+import { useSearch } from '../../../shared/context/SearchContext';
 import ConfirmModal from './ConfirmModal';
 import '../styles/ProcessVisualizer.css';
 
@@ -36,14 +37,14 @@ const FileIcon = ({ type, size = 16 }) => {
 // Custom Node Types
 const StartEndNode = ({ id, data }) => (
   <div className="custom-node start-end">
-    <Handle type="target" position={Position.Top} id="t-top" />
-    <Handle type="source" position={Position.Top} id="s-top" />
-    <Handle type="target" position={Position.Bottom} id="t-bottom" />
-    <Handle type="source" position={Position.Bottom} id="s-bottom" />
-    <Handle type="target" position={Position.Left} id="t-left" />
-    <Handle type="source" position={Position.Left} id="s-left" />
-    <Handle type="target" position={Position.Right} id="t-right" />
-    <Handle type="source" position={Position.Right} id="s-right" />
+    <Handle type="target" position={Position.Top} id="t-top" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Top} id="s-top" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Left} id="t-left" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Left} id="s-left" style={{ top: '65%' }} />
+    <Handle type="target" position={Position.Right} id="t-right" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Right} id="s-right" style={{ top: '65%' }} />
     
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
@@ -77,14 +78,14 @@ const StartEndNode = ({ id, data }) => (
 
 const StepNode = ({ id, data }) => (
   <div className="custom-node step">
-    <Handle type="target" position={Position.Top} id="t-top" />
-    <Handle type="source" position={Position.Top} id="s-top" />
-    <Handle type="target" position={Position.Bottom} id="t-bottom" />
-    <Handle type="source" position={Position.Bottom} id="s-bottom" />
-    <Handle type="target" position={Position.Left} id="t-left" />
-    <Handle type="source" position={Position.Left} id="s-left" />
-    <Handle type="target" position={Position.Right} id="t-right" />
-    <Handle type="source" position={Position.Right} id="s-right" />
+    <Handle type="target" position={Position.Top} id="t-top" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Top} id="s-top" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Left} id="t-left" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Left} id="s-left" style={{ top: '65%' }} />
+    <Handle type="target" position={Position.Right} id="t-right" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Right} id="s-right" style={{ top: '65%' }} />
 
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
@@ -118,17 +119,17 @@ const StepNode = ({ id, data }) => (
 
 const DecisionNode = ({ id, data }) => (
   <div className="custom-node decision">
-    <Handle type="target" position={Position.Top} style={{ top: -10, left: '50%' }} id="t-top" />
-    <Handle type="source" position={Position.Top} style={{ top: -10, left: '50%' }} id="s-top" />
+    <Handle type="target" position={Position.Top} style={{ top: -10, left: '35%' }} id="t-top" />
+    <Handle type="source" position={Position.Top} style={{ top: -10, left: '65%' }} id="s-top" />
     
-    <Handle type="target" position={Position.Bottom} style={{ bottom: -10, left: '50%' }} id="t-bottom" />
-    <Handle type="source" position={Position.Bottom} style={{ bottom: -10, left: '50%' }} id="s-bottom" />
+    <Handle type="target" position={Position.Bottom} style={{ bottom: -10, left: '35%' }} id="t-bottom" />
+    <Handle type="source" position={Position.Bottom} style={{ bottom: -10, left: '65%' }} id="s-bottom" />
     
-    <Handle type="target" position={Position.Left} style={{ left: -10, top: '50%' }} id="t-left" />
-    <Handle type="source" position={Position.Left} style={{ left: -10, top: '50%' }} id="s-left" />
+    <Handle type="target" position={Position.Left} style={{ left: -10, top: '35%' }} id="t-left" />
+    <Handle type="source" position={Position.Left} style={{ left: -10, top: '65%' }} id="s-left" />
     
-    <Handle type="target" position={Position.Right} style={{ right: -10, top: '50%' }} id="t-right" />
-    <Handle type="source" position={Position.Right} style={{ right: -10, top: '50%' }} id="s-right" />
+    <Handle type="target" position={Position.Right} style={{ right: -10, top: '35%' }} id="t-right" />
+    <Handle type="source" position={Position.Right} style={{ right: -10, top: '65%' }} id="s-right" />
 
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
@@ -162,14 +163,14 @@ const DecisionNode = ({ id, data }) => (
 
 const DocumentNode = ({ id, data }) => (
   <div className="custom-node document">
-    <Handle type="target" position={Position.Top} id="t-top" />
-    <Handle type="source" position={Position.Top} id="s-top" />
-    <Handle type="target" position={Position.Bottom} id="t-bottom" />
-    <Handle type="source" position={Position.Bottom} id="s-bottom" />
-    <Handle type="target" position={Position.Left} id="t-left" />
-    <Handle type="source" position={Position.Left} id="s-left" />
-    <Handle type="target" position={Position.Right} id="t-right" />
-    <Handle type="source" position={Position.Right} id="s-right" />
+    <Handle type="target" position={Position.Top} id="t-top" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Top} id="s-top" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Left} id="t-left" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Left} id="s-left" style={{ top: '65%' }} />
+    <Handle type="target" position={Position.Right} id="t-right" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Right} id="s-right" style={{ top: '65%' }} />
 
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
@@ -191,14 +192,14 @@ const DocumentNode = ({ id, data }) => (
 
 const DataNode = ({ id, data }) => (
   <div className="custom-node data">
-    <Handle type="target" position={Position.Top} id="t-top" />
-    <Handle type="source" position={Position.Top} id="s-top" />
-    <Handle type="target" position={Position.Bottom} id="t-bottom" />
-    <Handle type="source" position={Position.Bottom} id="s-bottom" />
-    <Handle type="target" position={Position.Left} id="t-left" />
-    <Handle type="source" position={Position.Left} id="s-left" />
-    <Handle type="target" position={Position.Right} id="t-right" />
-    <Handle type="source" position={Position.Right} id="s-right" />
+    <Handle type="target" position={Position.Top} id="t-top" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Top} id="s-top" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Left} id="t-left" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Left} id="s-left" style={{ top: '65%' }} />
+    <Handle type="target" position={Position.Right} id="t-right" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Right} id="s-right" style={{ top: '65%' }} />
 
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
@@ -220,14 +221,14 @@ const DataNode = ({ id, data }) => (
 
 const DatabaseNode = ({ id, data }) => (
   <div className="custom-node database">
-    <Handle type="target" position={Position.Top} id="t-top" />
-    <Handle type="source" position={Position.Top} id="s-top" />
-    <Handle type="target" position={Position.Bottom} id="t-bottom" />
-    <Handle type="source" position={Position.Bottom} id="s-bottom" />
-    <Handle type="target" position={Position.Left} id="t-left" />
-    <Handle type="source" position={Position.Left} id="s-left" />
-    <Handle type="target" position={Position.Right} id="t-right" />
-    <Handle type="source" position={Position.Right} id="s-right" />
+    <Handle type="target" position={Position.Top} id="t-top" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Top} id="s-top" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Left} id="t-left" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Left} id="s-left" style={{ top: '65%' }} />
+    <Handle type="target" position={Position.Right} id="t-right" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Right} id="s-right" style={{ top: '65%' }} />
 
     <div className="node-label">{data.label}</div>
     <div className="node-badges">
@@ -247,6 +248,62 @@ const DatabaseNode = ({ id, data }) => (
   </div>
 );
 
+const ManualInputNode = ({ id, data }) => (
+  <div className="custom-node manual-input">
+    <Handle type="target" position={Position.Top} id="t-top" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Top} id="s-top" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Left} id="t-left" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Left} id="s-left" style={{ top: '65%' }} />
+    <Handle type="target" position={Position.Right} id="t-right" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Right} id="s-right" style={{ top: '65%' }} />
+    <div className="node-label">{data.label}</div>
+  </div>
+);
+
+const DelayNode = ({ id, data }) => (
+  <div className="custom-node delay">
+    <Handle type="target" position={Position.Top} id="t-top" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Top} id="s-top" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Left} id="t-left" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Left} id="s-left" style={{ top: '65%' }} />
+    <Handle type="target" position={Position.Right} id="t-right" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Right} id="s-right" style={{ top: '65%' }} />
+    <div className="node-label">{data.label}</div>
+  </div>
+);
+
+const DisplayNode = ({ id, data }) => (
+  <div className="custom-node display">
+    <Handle type="target" position={Position.Top} id="t-top" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Top} id="s-top" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Left} id="t-left" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Left} id="s-left" style={{ top: '65%' }} />
+    <Handle type="target" position={Position.Right} id="t-right" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Right} id="s-right" style={{ top: '65%' }} />
+    <div className="node-label">{data.label}</div>
+  </div>
+);
+
+const PreparationNode = ({ id, data }) => (
+  <div className="custom-node preparation">
+    <Handle type="target" position={Position.Top} id="t-top" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Top} id="s-top" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ left: '35%' }} />
+    <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ left: '65%' }} />
+    <Handle type="target" position={Position.Left} id="t-left" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Left} id="s-left" style={{ top: '65%' }} />
+    <Handle type="target" position={Position.Right} id="t-right" style={{ top: '35%' }} />
+    <Handle type="source" position={Position.Right} id="s-right" style={{ top: '65%' }} />
+    <div className="node-label">{data.label}</div>
+  </div>
+);
+
 const nodeTypes = {
   startEnd: StartEndNode,
   step: StepNode,
@@ -254,10 +311,15 @@ const nodeTypes = {
   document: DocumentNode,
   data: DataNode,
   database: DatabaseNode,
+  manualInput: ManualInputNode,
+  delay: DelayNode,
+  display: DisplayNode,
+  preparation: PreparationNode,
 };
 
 const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrillDown }) => {
   const { currentUser, userProfile } = useAuth();
+  const { searchQuery } = useSearch();
   const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
@@ -297,6 +359,8 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       id: edge.id,
       source: edge.source,
       target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
       type: edge.type,
       label: edge.label,
       data: Object.keys(edge.data || {}).reduce((acc, key) => {
@@ -633,10 +697,12 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
         <div className="header-actions">
           {(!process.is_global || userProfile?.role === 'superadmin') && (
             !isEditMode ? (
-              <button className="btn-secondary btn-sm" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
-                <Edit2 size={16} />
-                <span>Redigera</span>
-              </button>
+              (userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+                <button className="btn-secondary btn-sm" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
+                  <Edit2 size={16} />
+                  <span>Redigera</span>
+                </button>
+              )
             ) : (
               <>
                 <button className="btn-secondary btn-sm" onClick={() => { setIsEditMode(false); setSelectedNode(null); }}>
@@ -681,8 +747,20 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       <div className="visualizer-content">
         <div className="flow-container">
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={nodes.map(node => ({
+              ...node,
+              style: {
+                ...node.style,
+                opacity: searchQuery === '' || node.data.label.toLowerCase().includes(searchQuery.toLowerCase()) ? 1 : 0.2
+              }
+            }))}
+            edges={edges.map(edge => ({
+              ...edge,
+              style: {
+                ...edge.style,
+                opacity: searchQuery === '' ? 1 : 0.2
+              }
+            }))}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeDragStop={onNodeDragStop}
@@ -733,6 +811,22 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
             <button className="tool-btn" onClick={() => addNode('database')}>
               <div className="shape cylinder"></div>
               <span>Databas</span>
+            </button>
+            <button className="tool-btn" onClick={() => addNode('manualInput')}>
+              <div className="shape trapezoid"></div>
+              <span>Manuell inmatn.</span>
+            </button>
+            <button className="tool-btn" onClick={() => addNode('delay')}>
+              <div className="shape delay-shape"></div>
+              <span>Fördröjning</span>
+            </button>
+            <button className="tool-btn" onClick={() => addNode('display')}>
+              <div className="shape bullet"></div>
+              <span>Visa/Display</span>
+            </button>
+            <button className="tool-btn" onClick={() => addNode('preparation')}>
+              <div className="shape hexagon"></div>
+              <span>Förberedelse</span>
             </button>
             <hr />
             <button 

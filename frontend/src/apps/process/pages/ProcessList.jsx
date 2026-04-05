@@ -19,6 +19,7 @@ import { getProcesses, createProcess, updateProcess, deleteProcess } from '../ap
 import { useAuth } from '../../../shared/api/AuthContext';
 import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle, AlertOctagon } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useSearch } from '../../../shared/context/SearchContext';
 import ProcessVisualizer from '../components/ProcessVisualizer';
 import ConfirmModal from '../components/ConfirmModal';
 import '../styles/ProcessList.css';
@@ -58,6 +59,7 @@ const ProcessListContent = () => {
   const [showMobileAddMenu, setShowMobileAddMenu] = useState(false);
   
   const { currentUser, userProfile } = useAuth();
+  const { searchQuery } = useSearch();
   const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
 
   // TanStack Query for data fetching
@@ -576,10 +578,12 @@ const ProcessListContent = () => {
           {!isMobile && (
             !isEditMode ? (
               <div className="flex gap-2">
-                <button className="btn btn-secondary" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
-                  <Edit2 size={18} />
-                  <span>Redigera karta</span>
-                </button>
+                {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+                  <button className="btn btn-secondary" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
+                    <Edit2 size={18} />
+                    <span>Redigera karta</span>
+                  </button>
+                )}
               </div>
             ) : (
               <>
@@ -647,8 +651,20 @@ const ProcessListContent = () => {
               </div>
               
               <ReactFlow
-                nodes={nodes}
-                edges={edges}
+                nodes={nodes.map(node => ({
+                  ...node,
+                  style: {
+                    ...node.style,
+                    opacity: searchQuery === '' || node.data.label.toLowerCase().includes(searchQuery.toLowerCase()) ? 1 : 0.2
+                  }
+                }))}
+                edges={edges.map(edge => ({
+                  ...edge,
+                  style: {
+                    ...edge.style,
+                    opacity: searchQuery === '' ? 1 : 0.2
+                  }
+                }))}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onNodeDragStop={onNodeDragStop}

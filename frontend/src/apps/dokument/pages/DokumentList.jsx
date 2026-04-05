@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument, getDokumentById, getGlobalTemplates } from '../api/dokument';
 import { getProcesses, createProcess, getGlobalProcesses } from '../../process/api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { useSearch } from '../../../shared/context/SearchContext';
 import { supabase } from '../../../supabase';
 import DocumentEditor from '../components/DocumentEditor';
 import { 
@@ -51,6 +52,7 @@ const DokumentList = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [isDragging, setIsDragging] = useState(false);
+  const { searchQuery, setSearchQuery } = useSearch();
   
   const [formData, setFormData] = useState({ 
     title: '', 
@@ -66,6 +68,10 @@ const DokumentList = () => {
   const { currentUser, userProfile } = useAuth();
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    // No-op, removed local searchTerm
+  }, []);
 
   // TanStack Query for documents
   const { data: docsData, isLoading: docsLoading, isError: docsError, error: docsErr } = useQuery({
@@ -364,8 +370,8 @@ const DokumentList = () => {
             <input 
               type="text" 
               placeholder="Sök i biblioteket..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           {isMobile && (

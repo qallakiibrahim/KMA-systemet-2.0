@@ -5,6 +5,7 @@ import { getTasks, createTask, updateTask, deleteTask } from '../api/tasksApi';
 import { createNotification } from '../../notification/api/notification';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { useSearch } from '../../../shared/context/SearchContext';
 import { Plus, Clock, CheckCircle, Circle, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertOctagon } from 'lucide-react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -17,6 +18,7 @@ const TaskDashboard = () => {
   const [pageSize] = useState(10);
   const location = useLocation();
   const { currentUser, userProfile } = useAuth();
+  const { searchQuery } = useSearch();
   const [isAdding, setIsAdding] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium' });
@@ -29,6 +31,13 @@ const TaskDashboard = () => {
   });
 
   const tasks = tasksData?.data || (Array.isArray(tasksData) ? tasksData : []);
+  
+  const filteredTasks = tasks.filter(task => 
+    searchQuery === '' || 
+    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   const totalCount = tasksData?.count || (Array.isArray(tasksData) ? tasksData.length : 0);
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -343,12 +352,17 @@ const TaskDashboard = () => {
                   </button>
                 )}
                 <span className="task-count">
-                  {tasks.filter(t => t.status === col.id).length}
+                  {filteredTasks.filter(t => t.status === col.id).length}
                 </span>
               </div>
             </div>
             <div className="column-content">
-              {tasks.filter(t => t.status === col.id).map(renderTaskCard)}
+              {filteredTasks.filter(t => t.status === col.id).map(renderTaskCard)}
+              {filteredTasks.filter(t => t.status === col.id).length === 0 && (
+                <div className="empty-column-msg">
+                  {searchQuery ? 'Inga träffar' : 'Inga uppgifter'}
+                </div>
+              )}
             </div>
           </div>
         ))}

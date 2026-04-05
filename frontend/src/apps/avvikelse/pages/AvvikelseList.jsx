@@ -5,6 +5,7 @@ import { getAvvikelser, createAvvikelse, updateAvvikelse, deleteAvvikelse, uploa
 import { getAuditLogs } from '../../../shared/api/auditLog';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { useSearch } from '../../../shared/context/SearchContext';
 import { Plus, Edit2, Trash2, X, AlertTriangle, CheckCircle, Clock, Lock, Bot, Paperclip, FileText, Image as ImageIcon, UploadCloud, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleGenAI } from '@google/genai';
@@ -58,6 +59,7 @@ const AvvikelseList = () => {
   const followUpFileInputRef = useRef(null);
 
   const { currentUser, userProfile } = useAuth();
+  const { searchQuery } = useSearch();
   const location = useLocation();
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -70,6 +72,13 @@ const AvvikelseList = () => {
   });
 
   const avvikelser = avvikelserData?.data || (Array.isArray(avvikelserData) ? avvikelserData : []);
+  
+  const filteredAvvikelser = avvikelser.filter(a => 
+    searchQuery === '' || 
+    a.titel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (a.beskrivning && a.beskrivning.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   const totalCount = avvikelserData?.count || (Array.isArray(avvikelserData) ? avvikelserData.length : 0);
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -564,7 +573,7 @@ const AvvikelseList = () => {
 
       <div className="kanban-board">
         {kanbanColumns.map(col => {
-          const columnAvvikelser = avvikelser.filter(a => getAvvikelseStep(a) === col.id);
+          const columnAvvikelser = filteredAvvikelser.filter(a => getAvvikelseStep(a) === col.id);
           return (
             <div key={col.id} className="kanban-column">
               <div className="kanban-column-header">
