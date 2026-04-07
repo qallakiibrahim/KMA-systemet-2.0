@@ -562,12 +562,10 @@ const AvvikelseList = () => {
           <p className="subtitle">Hantera och följ upp avvikelser i verksamheten</p>
         </div>
         <div className="header-actions">
-          {isMobile && (
-            <button className="btn btn-primary btn-responsive" onClick={() => setIsModalOpen(true)}>
-              <Plus size={20} />
-              <span>Rapportera Avvikelse</span>
-            </button>
-          )}
+          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+            <Plus size={20} />
+            <span>Rapportera Avvikelse</span>
+          </button>
         </div>
       </div>
 
@@ -581,7 +579,7 @@ const AvvikelseList = () => {
                   <h3>{col.title}</h3>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {!isMobile && col.id === 2 && (
+                  {!isMobile && col.id === 1 && (
                     <button 
                       className="btn-icon-mini" 
                       onClick={() => setIsModalOpen(true)}
