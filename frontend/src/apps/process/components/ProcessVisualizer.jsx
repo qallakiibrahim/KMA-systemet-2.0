@@ -546,7 +546,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     setSelectedEdge(null);
   }, []);
 
-  const addNode = (type) => {
+  const addNode = useCallback((type) => {
     const id = `node_${Date.now()}`;
     const newNode = {
       id,
@@ -555,9 +555,9 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       position: { x: Math.random() * 400, y: Math.random() * 400 },
     };
     setNodes((nds) => nds.concat(newNode));
-  };
+  }, []);
 
-  const updateNodeLabel = (label) => {
+  const updateNodeLabel = useCallback((label) => {
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === selectedNode.id) {
@@ -567,9 +567,9 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       })
     );
     setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, label } });
-  };
+  }, [selectedNode]);
 
-  const toggleDoc = (docId) => {
+  const toggleDoc = useCallback((docId) => {
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === selectedNode.id) {
@@ -588,9 +588,9 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       ? currentDocs.filter((id) => id !== docId)
       : [...currentDocs, docId];
     setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, docs: newDocs } });
-  };
+  }, [selectedNode]);
 
-  const setSubProcess = (subProcessId) => {
+  const setSubProcess = useCallback((subProcessId) => {
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === selectedNode.id) {
@@ -600,17 +600,17 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       })
     );
     setSelectedNode({ ...selectedNode, data: { ...selectedNode.data, subProcessId: subProcessId || null } });
-  };
+  }, [selectedNode]);
 
-  const handleDrillDown = () => {
+  const handleDrillDown = useCallback(() => {
     const subProcessId = selectedNode?.data?.subProcessId;
     if (subProcessId && onDrillDown) {
       const subProcess = allProcesses.find(p => p.id === subProcessId);
       onDrillDown(subProcessId, subProcess);
     }
-  };
+  }, [allProcesses, onDrillDown, selectedNode?.data?.subProcessId]);
 
-  const handleCreateSubProcess = async () => {
+  const handleCreateSubProcess = useCallback(async () => {
     if (!selectedNode) return;
     
     const title = prompt('Ange namn på den nya underprocessen:', `${selectedNode.data.label} - Detaljer`);
@@ -663,9 +663,9 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [currentUser?.id, edges, getViewport, nodes, onUpdate, process, selectedNode, userProfile?.company_id, userProfile?.role]);
 
-  const deleteSelectedNode = () => {
+  const deleteSelectedNode = useCallback(() => {
     if (selectedEdge) {
       setEdges((eds) => eds.filter((e) => e.id !== selectedEdge.id));
       setSelectedEdge(null);
@@ -689,7 +689,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
     setEdges((eds) => eds.filter((e) => e.source !== selectedNode.id && e.target !== selectedNode.id));
     setSelectedNode(null);
-  };
+  }, [allProcesses, selectedEdge, selectedNode]);
 
   const confirmDelete = async () => {
     const { type, nodeId } = deleteConfirm;
@@ -729,7 +729,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     setDeleteConfirm({ isOpen: true, type: 'process', title: process.title, nodeId: null });
   };
 
-  const saveProcess = async () => {
+  const saveProcess = useCallback(async () => {
     setIsSaving(true);
     try {
       const currentNodes = getNodes();
@@ -755,7 +755,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [getEdges, getNodes, getViewport, onUpdate, process.id]);
 
   return (
     <div className="process-visualizer">

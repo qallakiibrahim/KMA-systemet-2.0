@@ -247,7 +247,7 @@ const ProcessListContent = () => {
     }
   }, [isEditMode, processes]);
 
-  const handleDrillDown = (subProcessId, subProcessObject) => {
+  const handleDrillDown = useCallback((subProcessId, subProcessObject) => {
     const subProcess = subProcessObject || processes.find(p => p.id === subProcessId);
     if (subProcess) {
       setNavigationStack(prev => [...prev, subProcess]);
@@ -261,17 +261,17 @@ const ProcessListContent = () => {
         }).catch(err => console.error('Failed to fetch sub-process', err));
       });
     }
-  };
+  }, [processes]);
 
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     setNavigationStack(prev => {
       const newStack = [...prev];
       newStack.pop();
       return newStack;
     });
-  };
+  }, []);
 
-  const addProcessNode = async (category) => {
+  const addProcessNode = useCallback(async (category) => {
     const title = prompt(`Ange namn på ny ${category === 'management' ? 'ledningsprocess' : category === 'core' ? 'huvudprocess' : 'stödprocess'}:`);
     if (!title) return;
 
@@ -322,9 +322,9 @@ const ProcessListContent = () => {
       console.error('Failed to create process node', error);
       toast.error('Kunde inte skapa process');
     }
-  };
+  }, [currentUser?.id, queryClient, userProfile]);
 
-  const saveMap = async () => {
+  const saveMap = useCallback(async () => {
     setIsSaving(true);
     try {
       if (!userProfile?.company_id && userProfile?.role !== 'superadmin') {
@@ -373,7 +373,7 @@ const ProcessListContent = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [currentUser?.id, getEdges, getNodes, getViewport, processes, queryClient, userProfile]);
 
   const handleDeleteProcess = async (id, title) => {
     setDeleteConfirm({ isOpen: true, id, title, type: 'process' });
@@ -428,7 +428,7 @@ const ProcessListContent = () => {
     }
   };
 
-  const handleDeleteFromVisualizer = async (deletedId) => {
+  const handleDeleteFromVisualizer = useCallback(async (deletedId) => {
     // 1. Go back
     handleGoBack();
     
@@ -466,7 +466,7 @@ const ProcessListContent = () => {
         console.error('Failed to update parent process', err);
       }
     }
-  };
+  }, [handleGoBack, navigationStack, processes, queryClient]);
 
   const handleDeleteRootMap = async () => {
     setDeleteConfirm({ isOpen: true, id: 'root', title: 'Huvudprocesskartan', type: 'rootMap' });
@@ -489,15 +489,17 @@ const ProcessListContent = () => {
 
   const activeProcess = navigationStack.length > 0 ? navigationStack[navigationStack.length - 1] : null;
 
+  const handleUpdateProcess = useCallback((updated, newProcess) => {
+    queryClient.invalidateQueries({ queryKey: ['processes'] });
+    setNavigationStack(prev => prev.map(p => p.id === updated.id ? updated : p));
+  }, [queryClient]);
+
   if (activeProcess) {
     return (
       <ProcessVisualizer 
         process={activeProcess} 
         onBack={handleGoBack}
-        onUpdate={(updated, newProcess) => {
-          queryClient.invalidateQueries({ queryKey: ['processes'] });
-          setNavigationStack(prev => prev.map(p => p.id === updated.id ? updated : p));
-        }}
+        onUpdate={handleUpdateProcess}
         onDelete={handleDeleteFromVisualizer}
         onDrillDown={handleDrillDown}
       />
