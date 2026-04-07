@@ -57,6 +57,14 @@
   min-height: 0; /* Important for flex scrolling */
 }
 
+.map-canvas-wrapper {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .swimlanes-bg {
   position: absolute;
   top: 0;

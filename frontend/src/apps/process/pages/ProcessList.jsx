@@ -17,6 +17,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { getProcesses, createProcess, updateProcess, deleteProcess } from '../api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { supabase } from '../../../supabase';
 import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle, AlertOctagon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useSearch } from '../../../shared/context/SearchContext';
@@ -40,6 +41,8 @@ const MapNode = ({ data }) => (
 const nodeTypes = {
   mapNode: MapNode,
 };
+
+const EMPTY_ARRAY = [];
 
 const ProcessListContent = () => {
   const queryClient = useQueryClient();
@@ -102,7 +105,7 @@ const ProcessListContent = () => {
     placeholderData: (previousData) => previousData,
   });
 
-  const processes = processesData?.data || (Array.isArray(processesData) ? processesData : []);
+  const processes = useMemo(() => processesData?.data || (Array.isArray(processesData) ? processesData : EMPTY_ARRAY), [processesData]);
   const totalCount = processesData?.count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -653,7 +656,7 @@ const ProcessListContent = () => {
                   ...node,
                   style: {
                     ...node.style,
-                    opacity: searchQuery === '' || node.data.label.toLowerCase().includes(searchQuery.toLowerCase()) ? 1 : 0.2
+                    opacity: searchQuery === '' || node.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ? 1 : 0.2
                   }
                 }))}
                 edges={edges.map(edge => ({

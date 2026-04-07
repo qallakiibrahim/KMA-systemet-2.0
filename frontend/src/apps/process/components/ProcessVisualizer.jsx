@@ -800,7 +800,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
               ...node,
               style: {
                 ...node.style,
-                opacity: searchQuery === '' || node.data.label.toLowerCase().includes(searchQuery.toLowerCase()) ? 1 : 0.2
+                opacity: searchQuery === '' || node.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ? 1 : 0.2
               }
             }))}
             edges={edges.map(edge => ({
