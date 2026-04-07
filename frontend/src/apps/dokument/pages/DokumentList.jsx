@@ -5,6 +5,7 @@ import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDoc
 import { getProcesses, createProcess, getGlobalProcesses } from '../../process/api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
+import { useHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import { supabase } from '../../../supabase';
 import DocumentEditor from '../components/DocumentEditor';
 import { 
@@ -54,6 +55,22 @@ const DokumentList = () => {
   const [isDragging, setIsDragging] = useState(false);
   const { searchQuery, setSearchQuery } = useSearch();
   
+  // Register header actions
+  useHeaderActions(
+    <div className="flex gap-2">
+      <button className="btn btn-secondary btn-sm" onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
+        {viewMode === 'grid' ? <ListIcon size={16} /> : <Grid size={16} />}
+        <span className="hide-on-mobile">{viewMode === 'grid' ? 'Lista' : 'Rutnät'}</span>
+      </button>
+      {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+        <button className="btn btn-primary btn-sm" onClick={() => setIsCreateModalOpen(true)}>
+          <Plus size={16} />
+          <span>Nytt dokument</span>
+        </button>
+      )}
+    </div>
+  );
+
   const [formData, setFormData] = useState({ 
     title: '', 
     description: '', 
@@ -364,29 +381,6 @@ const DokumentList = () => {
           <h1>Dokumentbibliotek</h1>
           <p className="subtitle">Centralt arkiv för verksamhetens styrande dokument, manualer och processer</p>
         </div>
-        <div className="header-actions">
-          <div className="search-bar">
-            <Search size={18} />
-            <input 
-              type="text" 
-              placeholder="Sök i biblioteket..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          {isMobile && (
-            <div className="flex gap-2">
-              <button className="btn btn-secondary btn-responsive" onClick={handleCreateNewClick}>
-                <PlusCircle size={20} />
-                <span>Nytt Levande Dokument</span>
-              </button>
-              <button className="btn btn-primary btn-responsive" onClick={() => openModal()}>
-                <Plus size={20} />
-                <span>Ladda upp Fil</span>
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="library-controls">
@@ -426,41 +420,6 @@ const DokumentList = () => {
             onClick={() => setCategoryFilter('report')}
           >
             Rapporter
-          </button>
-        </div>
-        
-        <div className="view-toggle">
-          {!isMobile && (
-            <div className="flex gap-2 mr-4">
-              <button 
-                className="view-btn" 
-                onClick={handleCreateNewClick}
-                title="Nytt Levande Dokument"
-              >
-                <PlusCircle size={18} />
-              </button>
-              <button 
-                className="view-btn" 
-                onClick={() => openModal()}
-                title="Ladda upp Fil"
-              >
-                <UploadCloud size={18} />
-              </button>
-            </div>
-          )}
-          <button 
-            className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-            onClick={() => setViewMode('grid')}
-            title="Rutnät"
-          >
-            <Grid size={18} />
-          </button>
-          <button 
-            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => setViewMode('list')}
-            title="Lista"
-          >
-            <ListIcon size={18} />
           </button>
         </div>
       </div>

@@ -7,6 +7,7 @@ import './index.css';
 import { AuthProvider } from './shared/api/AuthContext';
 import { ThemeProvider } from './shared/api/ThemeContext';
 import { SearchProvider } from './shared/context/SearchContext';
+import { HeaderActionsProvider } from './shared/context/HeaderActionsContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +24,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <ThemeProvider>
           <SearchProvider>
-            <App />
+            <HeaderActionsProvider>
+              <App />
+            </HeaderActionsProvider>
           </SearchProvider>
         </ThemeProvider>
       </AuthProvider>

@@ -20,6 +20,7 @@ import { useAuth } from '../../../shared/api/AuthContext';
 import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle, AlertOctagon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useSearch } from '../../../shared/context/SearchContext';
+import { useHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import ProcessVisualizer from '../components/ProcessVisualizer';
 import ConfirmModal from '../components/ConfirmModal';
 import '../styles/ProcessList.css';
@@ -61,6 +62,31 @@ const ProcessListContent = () => {
   const { currentUser, userProfile } = useAuth();
   const { searchQuery } = useSearch();
   const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
+
+  // Register header actions
+  useHeaderActions(
+    !isMobile && (
+      !isEditMode ? (
+        (userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+          <button className="btn btn-secondary btn-sm" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
+            <Edit2 size={16} />
+            <span>Redigera karta</span>
+          </button>
+        )
+      ) : (
+        <div className="flex gap-2">
+          <button className="btn btn-secondary btn-sm" onClick={() => { setIsEditMode(false); setSelectedNode(null); }}>
+            <X size={16} />
+            <span>Avbryt</span>
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={saveMap} disabled={isSaving}>
+            <Save size={16} />
+            <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>
+          </button>
+        </div>
+      )
+    )
+  );
 
   // TanStack Query for data fetching
   const { data: processesData, isLoading: loading, isError, error } = useQuery({
@@ -561,43 +587,6 @@ const ProcessListContent = () => {
           <p className="subtitle">
             {isMobile ? 'Välj en process för att se detaljer' : 'Övergripande vy över verksamhetens processer'}
           </p>
-        </div>
-        <div className="header-actions">
-          {/* Quick Add Button - Only on Mobile when not editing */}
-          {!isEditMode && isMobile && (
-            <button 
-              className="btn btn-primary btn-circle btn-responsive" 
-              onClick={() => setShowMobileAddMenu(true)}
-              title="Lägg till ny process"
-            >
-              <Plus size={20} />
-            </button>
-          )}
-
-          {/* Edit/Save/Cancel Buttons - Only on Desktop */}
-          {!isMobile && (
-            !isEditMode ? (
-              <div className="flex gap-2">
-                {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
-                  <button className="btn btn-secondary" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
-                    <Edit2 size={18} />
-                    <span>Redigera karta</span>
-                  </button>
-                )}
-              </div>
-            ) : (
-              <>
-                <button className="btn btn-secondary" onClick={() => { setIsEditMode(false); setSelectedNode(null); }}>
-                  <X size={18} />
-                  <span>Avbryt</span>
-                </button>
-                <button className="btn btn-primary" onClick={saveMap} disabled={isSaving}>
-                  <Save size={18} />
-                  <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>
-                </button>
-              </>
-            )
-          )}
         </div>
       </div>
 

@@ -20,6 +20,7 @@ import { updateProcess, getProcesses, createProcess, deleteProcess } from '../ap
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import { useSearch } from '../../../shared/context/SearchContext';
+import { useHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import ConfirmModal from './ConfirmModal';
 import '../styles/ProcessVisualizer.css';
 
@@ -322,6 +323,44 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
   const { currentUser, userProfile } = useAuth();
   const { searchQuery } = useSearch();
   const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
+
+  // Register header actions
+  useHeaderActions(
+    <div className="flex gap-2">
+      <button className="btn btn-secondary btn-sm" onClick={onBack}>
+        <ChevronLeft size={16} />
+        <span>Tillbaka</span>
+      </button>
+      {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+        <>
+          {!isEditMode ? (
+            <button className="btn btn-secondary btn-sm" onClick={() => setIsEditMode(true)}>
+              <Edit2 size={16} />
+              <span>Redigera</span>
+            </button>
+          ) : (
+            <>
+              <button className="btn btn-secondary btn-sm" onClick={() => { setIsEditMode(false); setSelectedNode(null); setSelectedEdge(null); }}>
+                <X size={16} />
+                <span>Avbryt</span>
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={saveProcess} disabled={isSaving}>
+                <Save size={16} />
+                <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
+              </button>
+            </>
+          )}
+          {(selectedNode || selectedEdge) && isEditMode && (
+            <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm({ isOpen: true, id: selectedNode?.id || selectedEdge?.id, title: selectedNode?.data?.label || 'denna koppling', type: selectedNode ? 'steg' : 'koppling' })}>
+              <Trash2 size={16} />
+              <span>Ta bort vald</span>
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -720,10 +759,6 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     <div className="process-visualizer">
       <div className="visualizer-header">
         <div className="header-title-group">
-          <button className="btn-secondary btn-sm" onClick={onBack}>
-            <ChevronLeft size={18} />
-            <span className="hide-on-mobile">Tillbaka</span>
-          </button>
           <div className="header-titles">
             {process.parent_id && (
               <span className="parent-title">
@@ -732,33 +767,6 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
             )}
             <h2>{process.title}</h2>
           </div>
-        </div>
-        <div className="header-actions">
-          {(!process.is_global || userProfile?.role === 'superadmin') && (
-            !isEditMode ? (
-              (userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
-                <button className="btn-secondary btn-sm" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
-                  <Edit2 size={16} />
-                  <span>Redigera</span>
-                </button>
-              )
-            ) : (
-              <>
-                <button className="btn-secondary btn-sm" onClick={() => { setIsEditMode(false); setSelectedNode(null); }}>
-                  <X size={16} />
-                  <span>Avbryt</span>
-                </button>
-                <button className="btn-primary btn-sm" onClick={saveProcess} disabled={isSaving}>
-                  <Save size={16} />
-                  <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
-                </button>
-                <button className="btn-secondary btn-sm text-red-500 border-red-500 hover:bg-red-50" onClick={handleDelete} disabled={isSaving}>
-                  <Trash2 size={16} />
-                  <span>Ta bort</span>
-                </button>
-              </>
-            )
-          )}
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { createNotification } from '../../notification/api/notification';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
+import { useHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import { Plus, Clock, CheckCircle, Circle, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertOctagon } from 'lucide-react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -19,6 +20,15 @@ const TaskDashboard = () => {
   const location = useLocation();
   const { currentUser, userProfile } = useAuth();
   const { searchQuery } = useSearch();
+
+  // Register header actions
+  useHeaderActions(
+    <button className="btn btn-primary btn-sm" onClick={() => setIsAdding(true)}>
+      <Plus size={16} />
+      <span>Ny uppgift</span>
+    </button>
+  );
+
   const [isAdding, setIsAdding] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium' });
@@ -260,11 +270,6 @@ const TaskDashboard = () => {
     <div className="task-dashboard-container">
       <div className="dashboard-header">
         <h1>Uppgifter</h1>
-        {isMobile && (
-          <button className="btn btn-primary btn-responsive" onClick={() => setIsAdding(true)}>
-            <Plus size={20} /> <span>Ny uppgift</span>
-          </button>
-        )}
       </div>
 
       {isAdding && (

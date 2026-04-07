@@ -1,20 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../api/AuthContext';
 import { getTasks } from '../../apps/task/api/tasksApi';
 import { getNotifications, updateNotification } from '../../apps/notification/api/notification';
 import { Bell, User, Search, Menu, X } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
+import { useHeaderActions } from '../context/HeaderActionsContext';
 import '../styles/Header.css';
 
 const Header = ({ onMenuClick }) => {
   const queryClient = useQueryClient();
   const { user, userProfile } = useAuth();
   const { searchQuery, setSearchQuery } = useSearch();
+  const { actions } = useHeaderActions();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
+
+  // Determine current app for search placeholder
+  const getSearchPlaceholder = () => {
+    const path = location.pathname;
+    if (path.startsWith('/process')) return 'Sök i processer...';
+    if (path.startsWith('/avvikelse')) return 'Sök i avvikelser...';
+    if (path.startsWith('/risk')) return 'Sök i risker...';
+    if (path.startsWith('/dokument')) return 'Sök i dokument...';
+    if (path.startsWith('/tasks')) return 'Sök i uppgifter...';
+    return 'Sök...';
+  };
 
   // TanStack Query for tasks
   const { data: tasksData } = useQuery({
@@ -103,13 +117,14 @@ const Header = ({ onMenuClick }) => {
           <Search size={18} />
           <input 
             type="text" 
-            placeholder="Sök..." 
+            placeholder={getSearchPlaceholder()} 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
       <div className="header-right">
+        {actions && <div className="header-app-actions">{actions}</div>}
         <div className="notification-wrapper" ref={notificationRef}>
           <button className="icon-btn notification-btn" onClick={handleNotificationClick}>
             <Bell size={20} />

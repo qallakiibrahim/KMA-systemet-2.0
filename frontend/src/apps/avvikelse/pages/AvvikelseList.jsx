@@ -6,6 +6,7 @@ import { getAuditLogs } from '../../../shared/api/auditLog';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
+import { useHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import { Plus, Edit2, Trash2, X, AlertTriangle, CheckCircle, Clock, Lock, Bot, Paperclip, FileText, Image as ImageIcon, UploadCloud, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleGenAI } from '@google/genai';
@@ -61,6 +62,14 @@ const AvvikelseList = () => {
   const { currentUser, userProfile } = useAuth();
   const { searchQuery } = useSearch();
   const location = useLocation();
+
+  // Register header actions
+  useHeaderActions(
+    <button className="btn btn-primary btn-sm" onClick={() => setIsModalOpen(true)}>
+      <Plus size={16} />
+      <span>Rapportera Avvikelse</span>
+    </button>
+  );
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -560,12 +569,6 @@ const AvvikelseList = () => {
         <div>
           <h1>Avvikelser & Incidenter</h1>
           <p className="subtitle">Hantera och följ upp avvikelser i verksamheten</p>
-        </div>
-        <div className="header-actions">
-          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-            <Plus size={20} />
-            <span>Rapportera Avvikelse</span>
-          </button>
         </div>
       </div>
 
