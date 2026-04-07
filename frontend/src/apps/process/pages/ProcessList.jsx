@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactFlow, { 
@@ -64,29 +64,36 @@ const ProcessListContent = () => {
   const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
 
   // Register header actions
-  useHeaderActions(
-    !isMobile && (
-      !isEditMode ? (
-        (userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+  const headerActions = useMemo(() => {
+    if (isMobile) return null;
+    
+    if (!isEditMode) {
+      if (userProfile?.role === 'admin' || userProfile?.role === 'superadmin') {
+        return (
           <button className="btn btn-secondary btn-sm" onClick={() => { setIsEditMode(true); setSelectedNode(null); }}>
             <Edit2 size={16} />
             <span>Redigera karta</span>
           </button>
-        )
-      ) : (
-        <div className="flex gap-2">
-          <button className="btn btn-secondary btn-sm" onClick={() => { setIsEditMode(false); setSelectedNode(null); }}>
-            <X size={16} />
-            <span>Avbryt</span>
-          </button>
-          <button className="btn btn-primary btn-sm" onClick={saveMap} disabled={isSaving}>
-            <Save size={16} />
-            <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>
-          </button>
-        </div>
-      )
-    )
-  );
+        );
+      }
+      return null;
+    }
+
+    return (
+      <div className="flex gap-2">
+        <button className="btn btn-secondary btn-sm" onClick={() => { setIsEditMode(false); setSelectedNode(null); }}>
+          <X size={16} />
+          <span>Avbryt</span>
+        </button>
+        <button className="btn btn-primary btn-sm" onClick={saveMap} disabled={isSaving}>
+          <Save size={16} />
+          <span>{isSaving ? 'Sparar...' : 'Spara karta'}</span>
+        </button>
+      </div>
+    );
+  }, [isMobile, isEditMode, userProfile, isSaving, saveMap]);
+
+  useHeaderActions(headerActions);
 
   // TanStack Query for data fetching
   const { data: processesData, isLoading: loading, isError, error } = useQuery({

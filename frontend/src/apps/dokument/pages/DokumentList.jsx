@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDocument, getDokumentById, getGlobalTemplates } from '../api/dokument';
@@ -55,22 +55,6 @@ const DokumentList = () => {
   const [isDragging, setIsDragging] = useState(false);
   const { searchQuery, setSearchQuery } = useSearch();
   
-  // Register header actions
-  useHeaderActions(
-    <div className="flex gap-2">
-      <button className="btn btn-secondary btn-sm" onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
-        {viewMode === 'grid' ? <ListIcon size={16} /> : <Grid size={16} />}
-        <span className="hide-on-mobile">{viewMode === 'grid' ? 'Lista' : 'Rutnät'}</span>
-      </button>
-      {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
-        <button className="btn btn-primary btn-sm" onClick={() => setIsCreateModalOpen(true)}>
-          <Plus size={16} />
-          <span>Nytt dokument</span>
-        </button>
-      )}
-    </div>
-  );
-
   const [formData, setFormData] = useState({ 
     title: '', 
     description: '', 
@@ -85,6 +69,24 @@ const DokumentList = () => {
   const { currentUser, userProfile } = useAuth();
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  // Register header actions
+  const headerActions = useMemo(() => (
+    <div className="flex gap-2">
+      <button className="btn btn-secondary btn-sm" onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
+        {viewMode === 'grid' ? <ListIcon size={16} /> : <Grid size={16} />}
+        <span className="hide-on-mobile">{viewMode === 'grid' ? 'Lista' : 'Rutnät'}</span>
+      </button>
+      {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+        <button className="btn btn-primary btn-sm" onClick={() => setIsCreateModalOpen(true)}>
+          <Plus size={16} />
+          <span>Nytt dokument</span>
+        </button>
+      )}
+    </div>
+  ), [viewMode, userProfile]);
+
+  useHeaderActions(headerActions);
 
   useEffect(() => {
     // No-op, removed local searchTerm

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import ReactFlow, { 
   addEdge, 
   updateEdge,
@@ -324,8 +324,20 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
   const { searchQuery } = useSearch();
   const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
 
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [rfInstance, setRfInstance] = useState(null);
+  const [defaultViewport, setDefaultViewport] = useState({ x: 0, y: 0, zoom: 1 });
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedEdge, setSelectedEdge] = useState(null);
+  const [dokuments, setDokuments] = useState([]);
+  const [allProcesses, setAllProcesses] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: 'process', title: '', nodeId: null });
+
   // Register header actions
-  useHeaderActions(
+  const headerActions = useMemo(() => (
     <div className="flex gap-2">
       <button className="btn btn-secondary btn-sm" onClick={onBack}>
         <ChevronLeft size={16} />
@@ -359,19 +371,9 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
         </>
       )}
     </div>
-  );
+  ), [onBack, userProfile, isEditMode, isSaving, saveProcess, selectedNode, selectedEdge]);
 
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
-  const [rfInstance, setRfInstance] = useState(null);
-  const [defaultViewport, setDefaultViewport] = useState({ x: 0, y: 0, zoom: 1 });
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [selectedEdge, setSelectedEdge] = useState(null);
-  const [dokuments, setDokuments] = useState([]);
-  const [allProcesses, setAllProcesses] = useState([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: 'process', title: '', nodeId: null });
+  useHeaderActions(headerActions);
 
   // Helper to remove non-serializable data (functions) before saving
   const cleanNodesForStorage = (nodesToClean) => {

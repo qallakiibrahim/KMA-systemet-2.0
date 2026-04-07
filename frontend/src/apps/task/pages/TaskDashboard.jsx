@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTasks, createTask, updateTask, deleteTask } from '../api/tasksApi';
@@ -21,15 +21,17 @@ const TaskDashboard = () => {
   const { currentUser, userProfile } = useAuth();
   const { searchQuery } = useSearch();
 
+  const [isAdding, setIsAdding] = useState(false);
+
   // Register header actions
-  useHeaderActions(
+  const headerActions = useMemo(() => (
     <button className="btn btn-primary btn-sm" onClick={() => setIsAdding(true)}>
       <Plus size={16} />
       <span>Ny uppgift</span>
     </button>
-  );
+  ), []);
 
-  const [isAdding, setIsAdding] = useState(false);
+  useHeaderActions(headerActions);
   const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium' });
 

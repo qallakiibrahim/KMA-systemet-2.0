@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 
 const HeaderActionsContext = createContext();
 
@@ -10,8 +10,10 @@ export const HeaderActionsProvider = ({ children }) => {
     return () => setActions(null);
   }, []);
 
+  const value = useMemo(() => ({ actions, registerActions }), [actions, registerActions]);
+
   return (
-    <HeaderActionsContext.Provider value={{ actions, registerActions }}>
+    <HeaderActionsContext.Provider value={value}>
       {children}
     </HeaderActionsContext.Provider>
   );
@@ -25,7 +27,7 @@ export const useHeaderActions = (newActions) => {
 
   const { registerActions } = context;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (newActions) {
       return registerActions(newActions);
     }

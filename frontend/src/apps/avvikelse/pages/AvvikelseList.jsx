@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAvvikelser, createAvvikelse, updateAvvikelse, deleteAvvikelse, uploadAttachment } from '../api/avvikelse';
@@ -64,12 +64,14 @@ const AvvikelseList = () => {
   const location = useLocation();
 
   // Register header actions
-  useHeaderActions(
+  const headerActions = useMemo(() => (
     <button className="btn btn-primary btn-sm" onClick={() => setIsModalOpen(true)}>
       <Plus size={16} />
       <span>Rapportera Avvikelse</span>
     </button>
-  );
+  ), []);
+
+  useHeaderActions(headerActions);
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
