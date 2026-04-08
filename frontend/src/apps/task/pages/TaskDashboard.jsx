@@ -7,10 +7,11 @@ import { sendEmailNotification } from '../../../shared/api/sendEmailNotification
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
 import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
-import { Plus, Clock, CheckCircle, Circle, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertOctagon } from 'lucide-react';
+import { Plus, Clock, CheckCircle, Circle, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertOctagon, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { toast } from 'react-toastify';
+import { getAuditLogs } from '../../../shared/api/auditLog';
 import '../styles/TaskDashboard.css';
 
 const TaskDashboard = () => {
@@ -22,6 +23,9 @@ const TaskDashboard = () => {
   const { searchQuery } = useSearch();
 
   const [isAdding, setIsAdding] = useState(false);
+  const [activeTab, setActiveTab] = useState('info');
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [isLogsLoading, setIsLogsLoading] = useState(false);
 
   // Register header actions
   const headerActions = useMemo(() => (
@@ -156,6 +160,18 @@ const TaskDashboard = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const fetchAuditLogs = async (taskId) => {
+    setIsLogsLoading(true);
+    try {
+      const logsResponse = await getAuditLogs(1, 50, { entity_type: 'TASK', entity_id: taskId });
+      setAuditLogs(logsResponse.data || []);
+    } catch (error) {
+      console.error('Failed to fetch audit logs:', error);
+    } finally {
+      setIsLogsLoading(false);
+    }
+  };
+
   const handleAddSubmit = (e) => {
     e.preventDefault();
     if (!newTask.title.trim()) return;
@@ -169,23 +185,28 @@ const TaskDashboard = () => {
           dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
           status: newTask.status,
           priority: newTask.priority
-        }
+        },
+        user: currentUser
       });
     } else {
       createMutation.mutate({
-        title: newTask.title,
-        description: newTask.description,
-        dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
-        status: newTask.status,
-        priority: newTask.priority,
-        created_by: currentUser.id,
-        company_id: userProfile?.company_id
+        data: {
+          title: newTask.title,
+          description: newTask.description,
+          dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
+          status: newTask.status,
+          priority: newTask.priority,
+          created_by: currentUser.id,
+          company_id: userProfile?.company_id
+        },
+        user: currentUser
       });
     }
     
     setNewTask({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium' });
     setIsAdding(false);
     setEditingTask(null);
+    setActiveTab('info');
   };
 
   const openEditModal = (task) => {
@@ -197,7 +218,9 @@ const TaskDashboard = () => {
       status: task.status,
       priority: task.priority || 'Medium'
     });
+    setActiveTab('info');
     setIsAdding(true);
+    fetchAuditLogs(task.id);
   };
 
   const renderTaskCard = (task) => {
@@ -217,7 +240,7 @@ const TaskDashboard = () => {
                 {format(new Date(task.dueDate), 'd MMM', { locale: sv })}
               </span>
             )}
-            <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="delete-btn" title="Ta bort">
+            <button onClick={(e) => { e.stopPropagation(); deleteMutation.mutate({ id: task.id, user: currentUser }); }} className="delete-btn" title="Ta bort">
               <Trash2 size={14} />
             </button>
           </div>
@@ -233,7 +256,7 @@ const TaskDashboard = () => {
           <div className="task-meta-right" style={{ flexShrink: 0 }}>
             <select 
               value={task.status} 
-              onChange={(e) => { e.stopPropagation(); updateTask(task.id, { status: e.target.value }); }}
+              onChange={(e) => { e.stopPropagation(); updateMutation.mutate({ id: task.id, data: { status: e.target.value }, user: currentUser }); }}
               className={`status-select ${task.status}`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -277,62 +300,124 @@ const TaskDashboard = () => {
       {isAdding && (
         <div className="add-task-modal">
           <div className="modal-content">
-            <h2>{editingTask ? 'Redigera uppgift' : 'Skapa ny uppgift'}</h2>
-            <form onSubmit={handleAddSubmit}>
-              <div className="form-group">
-                <label>Titel</label>
-                <input 
-                  type="text" 
-                  value={newTask.title} 
-                  onChange={(e) => setNewTask({...newTask, title: e.target.value})} 
-                  required 
-                  placeholder="Vad behöver göras?"
-                />
-              </div>
-              <div className="form-group">
-                <label>Beskrivning</label>
-                <textarea 
-                  value={newTask.description} 
-                  onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-                  placeholder="Detaljer..."
-                />
-              </div>
-              <div className="form-group">
-                <label>Förfallodatum</label>
-                <input 
-                  type="date" 
-                  value={newTask.dueDate} 
-                  onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})} 
-                />
-              </div>
-              <div className="form-group">
-                <label>Prioritet</label>
-                <select 
-                  value={newTask.priority} 
-                  onChange={(e) => setNewTask({...newTask, priority: e.target.value})}
+            <div className="modal-header-tabs">
+              <button 
+                className={`tab-btn ${activeTab === 'info' ? 'active' : ''}`}
+                onClick={() => setActiveTab('info')}
+              >
+                Information
+              </button>
+              {editingTask && (
+                <button 
+                  className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('history')}
                 >
-                  <option value="Low">Låg</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">Hög</option>
-                  <option value="Critical">Kritisk</option>
-                </select>
+                  <History size={16} />
+                  Historik
+                </button>
+              )}
+            </div>
+
+            {activeTab === 'info' ? (
+              <>
+                <h2>{editingTask ? 'Redigera uppgift' : 'Skapa ny uppgift'}</h2>
+                <form onSubmit={handleAddSubmit}>
+                  <div className="form-group">
+                    <label>Titel</label>
+                    <input 
+                      type="text" 
+                      value={newTask.title} 
+                      onChange={(e) => setNewTask({...newTask, title: e.target.value})} 
+                      required 
+                      placeholder="Vad behöver göras?"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Beskrivning</label>
+                    <textarea 
+                      value={newTask.description} 
+                      onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                      placeholder="Detaljer..."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Förfallodatum</label>
+                    <input 
+                      type="date" 
+                      value={newTask.dueDate} 
+                      onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})} 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Prioritet</label>
+                    <select 
+                      value={newTask.priority} 
+                      onChange={(e) => setNewTask({...newTask, priority: e.target.value})}
+                    >
+                      <option value="Low">Låg</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">Hög</option>
+                      <option value="Critical">Kritisk</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Status</label>
+                    <select 
+                      value={newTask.status} 
+                      onChange={(e) => setNewTask({...newTask, status: e.target.value})}
+                    >
+                      <option value="todo">Att göra</option>
+                      <option value="in-progress">Pågår</option>
+                      <option value="done">Klar</option>
+                    </select>
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" className="cancel-btn" onClick={() => { setIsAdding(false); setEditingTask(null); setActiveTab('info'); }}>Avbryt</button>
+                    <button type="submit" className="save-btn">{editingTask ? 'Uppdatera' : 'Spara'}</button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <div className="history-tab-content">
+                <h3>Händelselogg</h3>
+                {isLogsLoading ? (
+                  <div className="loading-mini">Laddar historik...</div>
+                ) : auditLogs.length === 0 ? (
+                  <div className="empty-history">Ingen historik tillgänglig</div>
+                ) : (
+                  <div className="audit-log-list">
+                    {auditLogs.map(log => (
+                      <div key={log.id} className="audit-log-item">
+                        <div className="log-meta">
+                          <span className="log-action">{log.action}</span>
+                          <span className="log-date">{format(new Date(log.created_at), 'yyyy-MM-dd HH:mm')}</span>
+                        </div>
+                        <div className="log-user">{log.user_email}</div>
+                        {log.changes && (
+                          <div className="log-changes">
+                            {Object.entries(log.changes.new || {}).map(([key, val]) => {
+                              const oldVal = log.changes.old?.[key];
+                              if (JSON.stringify(oldVal) === JSON.stringify(val)) return null;
+                              return (
+                                <div key={key} className="change-item">
+                                  <span className="change-key">{key}:</span>
+                                  <span className="change-old">{String(oldVal || 'N/A')}</span>
+                                  <ChevronRight size={12} />
+                                  <span className="change-new">{String(val)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="modal-actions">
+                  <button type="button" className="cancel-btn" onClick={() => { setIsAdding(false); setEditingTask(null); setActiveTab('info'); }}>Stäng</button>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Status</label>
-                <select 
-                  value={newTask.status} 
-                  onChange={(e) => setNewTask({...newTask, status: e.target.value})}
-                >
-                  <option value="todo">Att göra</option>
-                  <option value="in-progress">Pågår</option>
-                  <option value="done">Klar</option>
-                </select>
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="cancel-btn" onClick={() => { setIsAdding(false); setEditingTask(null); }}>Avbryt</button>
-                <button type="submit" className="save-btn">{editingTask ? 'Uppdatera' : 'Spara'}</button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
       )}

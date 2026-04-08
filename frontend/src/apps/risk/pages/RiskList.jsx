@@ -24,6 +24,9 @@ const RiskList = () => {
     deadline: '',
     responsible_name: ''
   });
+  const [activeTab, setActiveTab] = useState('info'); // 'info' or 'history'
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [isLogsLoading, setIsLogsLoading] = useState(false);
   const { currentUser, userProfile } = useAuth();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -173,6 +176,22 @@ const RiskList = () => {
     }
   };
 
+  const fetchAuditLogs = async (riskId) => {
+    setIsLogsLoading(true);
+    try {
+      const { getAuditLogs } = await import('../../../shared/api/auditLog');
+      const logsResponse = await getAuditLogs(1, 50, { 
+        entity_type: 'RISK', 
+        entity_id: riskId 
+      });
+      setAuditLogs(logsResponse.data || []);
+    } catch (error) {
+      console.error('Failed to fetch audit logs', error);
+    } finally {
+      setIsLogsLoading(false);
+    }
+  };
+
   const handleEdit = (risk) => {
     setSelectedRisk(risk);
     setFormData({
@@ -185,7 +204,9 @@ const RiskList = () => {
       deadline: risk.deadline || '',
       responsible_name: risk.responsible_name || ''
     });
+    setActiveTab('info');
     setIsModalOpen(true);
+    fetchAuditLogs(risk.id);
   };
 
   const canEdit = !selectedRisk?.is_global || userProfile?.role === 'superadmin';
@@ -194,6 +215,8 @@ const RiskList = () => {
     setIsModalOpen(false);
     setSelectedRisk(null);
     setFormData({ title: '', description: '', likelihood: 1, impact: 1, status: 'open', category: 'general', deadline: '', responsible_name: '' });
+    setActiveTab('info');
+    setAuditLogs([]);
   };
 
   const handleDelete = async (id) => {
@@ -354,142 +377,208 @@ const RiskList = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>{selectedRisk ? (canEdit ? 'Redigera risk' : 'Visa risk') : 'Registrera ny risk'}</h2>
+              <div className="modal-tabs">
+                <button 
+                  className={`modal-tab ${activeTab === 'info' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('info')}
+                >
+                  {selectedRisk ? (canEdit ? 'Redigera risk' : 'Visa risk') : 'Registrera ny risk'}
+                </button>
+                {selectedRisk && (
+                  <button 
+                    className={`modal-tab ${activeTab === 'history' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('history')}
+                  >
+                    Historik
+                  </button>
+                )}
+              </div>
               <button className="close-btn" onClick={handleCloseModal}>
                 <X size={24} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="risk-form">
-              <fieldset disabled={!canEdit} style={{ border: 'none', padding: 0, margin: 0 }}>
-              <div className="form-group">
-                <label htmlFor="title">Titel</label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="Kort sammanfattning av risken"
-                />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="category">Kategori</label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                  >
-                    <option value="general">Allmän</option>
-                    <option value="financial">Finansiell</option>
-                    <option value="operational">Operationell</option>
-                    <option value="strategic">Strategisk</option>
-                    <option value="compliance">Efterlevnad</option>
-                  </select>
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="status">Status</label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                  >
-                    <option value="open">Öppen</option>
-                    <option value="mitigated">Åtgärdad</option>
-                    <option value="closed">Stängd</option>
-                  </select>
-                </div>
-              </div>
 
-              <div className="form-row">
+            {activeTab === 'info' ? (
+              <form onSubmit={handleSubmit} className="risk-form">
+                <fieldset disabled={!canEdit} style={{ border: 'none', padding: 0, margin: 0 }}>
                 <div className="form-group">
-                  <label htmlFor="likelihood">Sannolikhet (1-5)</label>
+                  <label htmlFor="title">Titel</label>
                   <input
-                    type="number"
-                    id="likelihood"
-                    name="likelihood"
-                    min="1"
-                    max="5"
-                    value={formData.likelihood}
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={formData.title}
                     onChange={handleInputChange}
                     required
+                    placeholder="Kort sammanfattning av risken"
                   />
                 </div>
                 
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="category">Kategori</label>
+                    <select
+                      id="category"
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                    >
+                      <option value="general">Allmän</option>
+                      <option value="financial">Finansiell</option>
+                      <option value="operational">Operationell</option>
+                      <option value="strategic">Strategisk</option>
+                      <option value="compliance">Efterlevnad</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="status">Status</label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                    >
+                      <option value="open">Öppen</option>
+                      <option value="mitigated">Åtgärdad</option>
+                      <option value="closed">Stängd</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="likelihood">Sannolikhet (1-5)</label>
+                    <input
+                      type="number"
+                      id="likelihood"
+                      name="likelihood"
+                      min="1"
+                      max="5"
+                      value={formData.likelihood}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="impact">Konsekvens (1-5)</label>
+                    <input
+                      type="number"
+                      id="impact"
+                      name="impact"
+                      min="1"
+                      max="5"
+                      value={formData.impact}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="risk-score-preview">
+                  <strong>Beräknad Riskpoäng: </strong>
+                  <span className={`risk-badge ${getRiskLevel(formData.likelihood * formData.impact).className}`}>
+                    {formData.likelihood * formData.impact} - {getRiskLevel(formData.likelihood * formData.impact).label}
+                  </span>
+                </div>
+
                 <div className="form-group">
-                  <label htmlFor="impact">Konsekvens (1-5)</label>
+                  <label htmlFor="deadline">Deadline</label>
                   <input
-                    type="number"
-                    id="impact"
-                    name="impact"
-                    min="1"
-                    max="5"
-                    value={formData.impact}
+                    type="date"
+                    id="deadline"
+                    name="deadline"
+                    value={formData.deadline}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
-              </div>
-              
-              <div className="risk-score-preview">
-                <strong>Beräknad Riskpoäng: </strong>
-                <span className={`risk-badge ${getRiskLevel(formData.likelihood * formData.impact).className}`}>
-                  {formData.likelihood * formData.impact} - {getRiskLevel(formData.likelihood * formData.impact).label}
-                </span>
-              </div>
 
-              <div className="form-group">
-                <label htmlFor="deadline">Deadline</label>
-                <input
-                  type="date"
-                  id="deadline"
-                  name="deadline"
-                  value={formData.deadline}
-                  onChange={handleInputChange}
-                />
-              </div>
+                <div className="form-group">
+                  <label htmlFor="responsible_name">Ansvarig</label>
+                  <input
+                    type="text"
+                    id="responsible_name"
+                    name="responsible_name"
+                    value={formData.responsible_name}
+                    onChange={handleInputChange}
+                    placeholder="Namn på ansvarig person"
+                  />
+                </div>
 
-              <div className="form-group">
-                <label htmlFor="responsible_name">Ansvarig</label>
-                <input
-                  type="text"
-                  id="responsible_name"
-                  name="responsible_name"
-                  value={formData.responsible_name}
-                  onChange={handleInputChange}
-                  placeholder="Namn på ansvarig person"
-                />
-              </div>
+                <div className="form-group">
+                  <label htmlFor="description">Beskrivning</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows="4"
+                    placeholder="Beskriv risken i detalj..."
+                  ></textarea>
+                </div>
 
-              <div className="form-group">
-                <label htmlFor="description">Beskrivning</label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows="4"
-                  placeholder="Beskriv risken i detalj..."
-                ></textarea>
-              </div>
-
-              <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={false}>
-                  Avbryt
-                </button>
-                {canEdit && (
-                  <button type="submit" className="btn-primary">
-                    {selectedRisk ? 'Uppdatera Risk' : 'Spara Risk'}
+                <div className="form-actions">
+                  <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={false}>
+                    Avbryt
                   </button>
+                  {canEdit && (
+                    <button type="submit" className="btn-primary">
+                      {selectedRisk ? 'Uppdatera Risk' : 'Spara Risk'}
+                    </button>
+                  )}
+                </div>
+                </fieldset>
+              </form>
+            ) : (
+              <div className="history-tab-content">
+                {isLogsLoading ? (
+                  <div className="loading-logs">Laddar historik...</div>
+                ) : auditLogs.length === 0 ? (
+                  <div className="empty-logs">
+                    <p>Ingen historik hittades för denna risk.</p>
+                    <p className="text-xs text-gray-500 mt-2">Loggning påbörjades 2026-04-08.</p>
+                  </div>
+                ) : (
+                  <div className="audit-timeline">
+                    {auditLogs.map(log => (
+                      <div key={log.id} className="audit-item">
+                        <div className="audit-dot"></div>
+                        <div className="audit-content">
+                          <div className="audit-header">
+                            <span className="audit-action">
+                              {log.action === 'CREATE' ? 'Skapad' : log.action === 'UPDATE' ? 'Uppdaterad' : 'Raderad'}
+                            </span>
+                            <span className="audit-time">
+                              {new Date(log.created_at).toLocaleString('sv-SE')}
+                            </span>
+                          </div>
+                          <div className="audit-user">{log.user_email}</div>
+                          {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
+                            <div className="audit-changes">
+                              {Object.keys(log.changes.new).map(key => {
+                                if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
+                                    !['updated_at', 'company_id', 'creator_uid'].includes(key)) {
+                                  return (
+                                    <div key={key} className="change-item">
+                                      <span className="change-key">{key}:</span>
+                                      <span className="change-old">{String(log.changes.old[key] || 'n/a')}</span>
+                                      <span className="change-arrow">→</span>
+                                      <span className="change-new">{String(log.changes.new[key] || 'n/a')}</span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              </fieldset>
-            </form>
+            )}
           </div>
         </div>
       )}

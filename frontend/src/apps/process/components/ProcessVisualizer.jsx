@@ -14,11 +14,13 @@ import ReactFlow, {
   useReactFlow
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { X, Save, FileText, Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown, Settings, ExternalLink, PlusCircle, Edit2, Layout, File, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet, FileCode } from 'lucide-react';
+import { X, Save, FileText, Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown, Settings, ExternalLink, PlusCircle, Edit2, Layout, File, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet, FileCode, History } from 'lucide-react';
 import { getDokuments } from '../../dokument/api/dokument';
 import { updateProcess, getProcesses, createProcess, deleteProcess } from '../api/process';
+import { getAuditLogs } from '../../../shared/api/auditLog';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
+import { format } from 'date-fns';
 import { useSearch } from '../../../shared/context/SearchContext';
 import { useRegisterHeaderActions, useRegisterCenterTools, useRegisterRightPanel } from '../../../shared/context/HeaderActionsContext';
 import ConfirmModal from './ConfirmModal';
@@ -336,6 +338,24 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: 'process', title: '', nodeId: null });
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [isLogsLoading, setIsLogsLoading] = useState(false);
+
+  const fetchAuditLogs = async () => {
+    setIsLogsLoading(true);
+    try {
+      const logsResponse = await getAuditLogs(1, 50, { 
+        entity_type: 'PROCESS', 
+        entity_id: process.id 
+      });
+      setAuditLogs(logsResponse.data || []);
+    } catch (error) {
+      console.error('Failed to fetch audit logs', error);
+    } finally {
+      setIsLogsLoading(false);
+    }
+  };
 
   // Helper to remove non-serializable data (functions) before saving
   const cleanNodesForStorage = (nodesToClean) => {
@@ -726,6 +746,16 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
         <ChevronLeft size={16} />
         <span>Tillbaka</span>
       </button>
+      <button 
+        className="btn btn-secondary btn-sm" 
+        onClick={() => {
+          setShowHistoryModal(true);
+          fetchAuditLogs();
+        }}
+      >
+        <History size={16} />
+        <span>Historik</span>
+      </button>
       {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
         <>
           {!isEditMode ? (
@@ -995,6 +1025,58 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
           </ReactFlow>
         </div>
       </div>
+
+      {showHistoryModal && (
+        <div className="modal-overlay">
+          <div className="modal-content history-modal">
+            <div className="modal-header">
+              <h2>Historik: {process.title}</h2>
+              <button className="close-btn" onClick={() => setShowHistoryModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {isLogsLoading ? (
+                <div className="loading-mini">Laddar historik...</div>
+              ) : auditLogs.length === 0 ? (
+                <div className="empty-history">Ingen historik tillgänglig</div>
+              ) : (
+                <div className="audit-log-list">
+                  {auditLogs.map(log => (
+                    <div key={log.id} className="audit-log-item">
+                      <div className="log-meta">
+                        <span className="log-action">{log.action}</span>
+                        <span className="log-date">{format(new Date(log.created_at), 'yyyy-MM-dd HH:mm')}</span>
+                      </div>
+                      <div className="log-user">{log.user_email}</div>
+                      {log.changes && (
+                        <div className="log-changes">
+                          {Object.entries(log.changes.new || {}).map(([key, val]) => {
+                            const oldVal = log.changes.old?.[key];
+                            if (JSON.stringify(oldVal) === JSON.stringify(val)) return null;
+                            if (key === 'steps') return <div key={key} className="change-item"><span className="change-key">Kartan uppdaterad</span></div>;
+                            return (
+                              <div key={key} className="change-item">
+                                <span className="change-key">{key}:</span>
+                                <span className="change-old">{String(oldVal || 'N/A')}</span>
+                                <ChevronRight size={12} />
+                                <span className="change-new">{String(val)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowHistoryModal(false)}>Stäng</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

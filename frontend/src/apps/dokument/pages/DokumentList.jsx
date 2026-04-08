@@ -66,6 +66,9 @@ const DokumentList = () => {
     file_size: 0,
     is_template: false
   });
+  const [activeTab, setActiveTab] = useState('info'); // 'info' or 'history'
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [isLogsLoading, setIsLogsLoading] = useState(false);
   const { currentUser, userProfile } = useAuth();
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -219,6 +222,22 @@ const DokumentList = () => {
     }
   };
 
+  const fetchAuditLogs = async (docId) => {
+    setIsLogsLoading(true);
+    try {
+      const { getAuditLogs } = await import('../../../shared/api/auditLog');
+      const logsResponse = await getAuditLogs(1, 50, { 
+        entity_type: 'DOCUMENT', 
+        entity_id: docId 
+      });
+      setAuditLogs(logsResponse.data || []);
+    } catch (error) {
+      console.error('Failed to fetch audit logs', error);
+    } finally {
+      setIsLogsLoading(false);
+    }
+  };
+
   const openModal = (doc = null) => {
     if (doc) {
       // If it has no file_url, it's a created document
@@ -239,6 +258,8 @@ const DokumentList = () => {
         file_size: doc.file_size || 0,
         is_template: doc.is_template || false
       });
+      setActiveTab('info');
+      fetchAuditLogs(doc.id);
     } else {
       setEditingDokument(null);
       setFormData({ 
@@ -252,6 +273,8 @@ const DokumentList = () => {
         file_size: 0,
         is_template: false
       });
+      setActiveTab('info');
+      setAuditLogs([]);
     }
     setIsModalOpen(true);
   };
@@ -595,186 +618,252 @@ const DokumentList = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>{editingDokument ? 'Redigera dokument' : 'Ladda upp nytt dokument'}</h2>
+              <div className="modal-tabs">
+                <button 
+                  className={`modal-tab ${activeTab === 'info' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('info')}
+                >
+                  {editingDokument ? 'Redigera dokument' : 'Ladda upp nytt dokument'}
+                </button>
+                {editingDokument && (
+                  <button 
+                    className={`modal-tab ${activeTab === 'history' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('history')}
+                  >
+                    Historik
+                  </button>
+                )}
+              </div>
               <button className="close-btn" onClick={() => setIsModalOpen(false)}>
                 <X size={24} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="dokument-form">
-              <div className="modal-body">
-                <div 
-                  className={`drop-zone ${isDragging ? 'dragging' : ''} ${formData.file_url ? 'has-file' : ''}`}
-                  onDragOver={onDragOver}
-                  onDragLeave={onDragLeave}
-                  onDrop={onDrop}
-                >
-                  {isUploading ? (
-                    <div className="upload-status">
-                      <Loader className="spin" size={32} />
-                      <p>Laddar upp fil...</p>
-                    </div>
-                  ) : formData.file_url ? (
-                    <div className="upload-status success">
-                      <FileIcon type={formData.file_type} size={32} />
-                      <p>Fil klar: {formData.title}</p>
-                      <button type="button" className="btn-text" onClick={() => setFormData({...formData, file_url: '', file_type: '', file_size: 0})}>
-                        Byt fil
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="upload-prompt">
-                      <UploadCloud size={32} />
-                      <p>Dra och släpp fil här eller klicka för att välja</p>
-                      <input type="file" onChange={handleFileChange} className="file-input" />
-                    </div>
-                  )}
-                </div>
 
-                <div className="form-group">
-                  <label htmlFor="title">Titel *</label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="Dokumentets namn"
-                  />
-                </div>
-                
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="category">Kategori</label>
-                    <select
-                      id="category"
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                    >
-                      <option value="general">Allmänt</option>
-                      <option value="policy">Policy</option>
-                      <option value="manual">Manual</option>
-                      <option value="contract">Avtal</option>
-                      <option value="report">Rapport</option>
-                    </select>
+            {activeTab === 'info' ? (
+              <form onSubmit={handleSubmit} className="dokument-form">
+                <div className="modal-body">
+                  <div 
+                    className={`drop-zone ${isDragging ? 'dragging' : ''} ${formData.file_url ? 'has-file' : ''}`}
+                    onDragOver={onDragOver}
+                    onDragLeave={onDragLeave}
+                    onDrop={onDrop}
+                  >
+                    {isUploading ? (
+                      <div className="upload-status">
+                        <Loader className="spin" size={32} />
+                        <p>Laddar upp fil...</p>
+                      </div>
+                    ) : formData.file_url ? (
+                      <div className="upload-status success">
+                        <FileIcon type={formData.file_type} size={32} />
+                        <p>Fil klar: {formData.title}</p>
+                        <button type="button" className="btn-text" onClick={() => setFormData({...formData, file_url: '', file_type: '', file_size: 0})}>
+                          Byt fil
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="upload-prompt">
+                        <UploadCloud size={32} />
+                        <p>Dra och släpp fil här eller klicka för att välja</p>
+                        <input type="file" onChange={handleFileChange} className="file-input" />
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="iso_chapter">ISO-kapitel</label>
-                    <select
-                      id="iso_chapter"
-                      name="iso_chapter"
-                      value={formData.iso_chapter}
+                    <label htmlFor="title">Titel *</label>
+                    <input
+                      type="text"
+                      id="title"
+                      name="title"
+                      value={formData.title}
                       onChange={handleInputChange}
-                    >
-                      <option value="">Välj ISO-kapitel...</option>
-                      <optgroup label="4. Organisationens förutsättningar">
-                        <option value="4. Organisationens förutsättningar">4. Huvudkapitel</option>
-                        <option value="4.1 Förståelse för organisationen">4.1 Förståelse för organisationen</option>
-                        <option value="4.2 Intressenters behov">4.2 Intressenters behov</option>
-                        <option value="4.3 Avgränsning">4.3 Avgränsning</option>
-                        <option value="4.4 Ledningssystemet">4.4 Ledningssystemet</option>
-                      </optgroup>
-                      <optgroup label="5. Ledarskap">
-                        <option value="5. Ledarskap">5. Huvudkapitel</option>
-                        <option value="5.1 Ledarskap och åtagande">5.1 Ledarskap och åtagande</option>
-                        <option value="5.2 Policy">5.2 Policy</option>
-                        <option value="5.3 Roller och ansvar">5.3 Roller och ansvar</option>
-                      </optgroup>
-                      <optgroup label="6. Planering">
-                        <option value="6. Planering">6. Huvudkapitel</option>
-                        <option value="6.1 Risker och möjligheter">6.1 Risker och möjligheter</option>
-                        <option value="6.2 Mål och planering">6.2 Mål och planering</option>
-                        <option value="6.3 Planering av ändringar">6.3 Planering av ändringar</option>
-                      </optgroup>
-                      <optgroup label="7. Stöd">
-                        <option value="7. Stöd">7. Huvudkapitel</option>
-                        <option value="7.1 Resurser">7.1 Resurser</option>
-                        <option value="7.2 Kompetens">7.2 Kompetens</option>
-                        <option value="7.3 Medvetenhet">7.3 Medvetenhet</option>
-                        <option value="7.4 Kommunikation">7.4 Kommunikation</option>
-                        <option value="7.5 Dokumenterad information">7.5 Dokumenterad information</option>
-                      </optgroup>
-                      <optgroup label="8. Verksamhet">
-                        <option value="8. Verksamhet">8. Huvudkapitel</option>
-                        <option value="8.1 Verksamhetsplanering">8.1 Verksamhetsplanering</option>
-                        <option value="8.2 Krav på produkter/tjänster">8.2 Krav på produkter/tjänster</option>
-                        <option value="8.3 Konstruktion och utveckling">8.3 Konstruktion och utveckling</option>
-                        <option value="8.4 Externt tillhandahållna processer">8.4 Externt tillhandahållna processer</option>
-                        <option value="8.5 Produktion och tjänsteleverans">8.5 Produktion och tjänsteleverans</option>
-                        <option value="8.6 Frisläppande">8.6 Frisläppande</option>
-                        <option value="8.7 Avvikande utdata">8.7 Avvikande utdata</option>
-                      </optgroup>
-                      <optgroup label="9. Utvärdering av prestanda">
-                        <option value="9. Utvärdering av prestanda">9. Huvudkapitel</option>
-                        <option value="9.1 Övervakning och mätning">9.1 Övervakning och mätning</option>
-                        <option value="9.2 Internrevision">9.2 Internrevision</option>
-                        <option value="9.3 Ledningens genomgång">9.3 Ledningens genomgång</option>
-                      </optgroup>
-                      <optgroup label="10. Förbättring">
-                        <option value="10. Förbättring">10. Huvudkapitel</option>
-                        <option value="10.1 Allmänt">10.1 Allmänt</option>
-                        <option value="10.2 Avvikelse och korrigerande åtgärd">10.2 Avvikelse och korrigerande åtgärd</option>
-                        <option value="10.3 Ständig förbättring">10.3 Ständig förbättring</option>
-                      </optgroup>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="status">Status</label>
-                    <select
-                      id="status"
-                      name="status"
-                      value={formData.status}
-                      onChange={handleInputChange}
-                    >
-                      <option value="utkast">Utkast</option>
-                      <option value="granskning">Granskning</option>
-                      <option value="godkänd">Godkänd</option>
-                      <option value="arkiverad">Arkiverad</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-group mt-4 pt-4 border-t">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      name="is_template"
-                      checked={formData.is_template}
-                      onChange={(e) => setFormData({...formData, is_template: e.target.checked})}
-                      className="rounded border-gray-300 text-primary focus:ring-primary"
+                      required
+                      placeholder="Dokumentets namn"
                     />
-                    <span className="text-sm font-medium">Gör till mall</span>
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1 ml-6">
-                    Dokumentet kommer att visas i mallbiblioteket så att andra kan använda det.
-                  </p>
+                  </div>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="category">Kategori</label>
+                      <select
+                        id="category"
+                        name="category"
+                        value={formData.category}
+                        onChange={handleInputChange}
+                      >
+                        <option value="general">Allmänt</option>
+                        <option value="policy">Policy</option>
+                        <option value="manual">Manual</option>
+                        <option value="contract">Avtal</option>
+                        <option value="report">Rapport</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="iso_chapter">ISO-kapitel</label>
+                      <select
+                        id="iso_chapter"
+                        name="iso_chapter"
+                        value={formData.iso_chapter}
+                        onChange={handleInputChange}
+                      >
+                        <option value="">Välj ISO-kapitel...</option>
+                        <optgroup label="4. Organisationens förutsättningar">
+                          <option value="4. Organisationens förutsättningar">4. Huvudkapitel</option>
+                          <option value="4.1 Förståelse för organisationen">4.1 Förståelse för organisationen</option>
+                          <option value="4.2 Intressenters behov">4.2 Intressenters behov</option>
+                          <option value="4.3 Avgränsning">4.3 Avgränsning</option>
+                          <option value="4.4 Ledningssystemet">4.4 Ledningssystemet</option>
+                        </optgroup>
+                        <optgroup label="5. Ledarskap">
+                          <option value="5. Ledarskap">5. Huvudkapitel</option>
+                          <option value="5.1 Ledarskap och åtagande">5.1 Ledarskap och åtagande</option>
+                          <option value="5.2 Policy">5.2 Policy</option>
+                          <option value="5.3 Roller och ansvar">5.3 Roller och ansvar</option>
+                        </optgroup>
+                        <optgroup label="6. Planering">
+                          <option value="6. Planering">6. Huvudkapitel</option>
+                          <option value="6.1 Risker och möjligheter">6.1 Risker och möjligheter</option>
+                          <option value="6.2 Mål och planering">6.2 Mål och planering</option>
+                          <option value="6.3 Planering av ändringar">6.3 Planering av ändringar</option>
+                        </optgroup>
+                        <optgroup label="7. Stöd">
+                          <option value="7. Stöd">7. Huvudkapitel</option>
+                          <option value="7.1 Resurser">7.1 Resurser</option>
+                          <option value="7.2 Kompetens">7.2 Kompetens</option>
+                          <option value="7.3 Medvetenhet">7.3 Medvetenhet</option>
+                          <option value="7.4 Kommunikation">7.4 Kommunikation</option>
+                          <option value="7.5 Dokumenterad information">7.5 Dokumenterad information</option>
+                        </optgroup>
+                        <optgroup label="8. Verksamhet">
+                          <option value="8. Verksamhet">8. Huvudkapitel</option>
+                          <option value="8.1 Verksamhetsplanering">8.1 Verksamhetsplanering</option>
+                          <option value="8.2 Krav på produkter/tjänster">8.2 Krav på produkter/tjänster</option>
+                          <option value="8.3 Konstruktion och utveckling">8.3 Konstruktion och utveckling</option>
+                          <option value="8.4 Externt tillhandahållna processer">8.4 Externt tillhandahållna processer</option>
+                          <option value="8.5 Produktion och tjänsteleverans">8.5 Produktion och tjänsteleverans</option>
+                          <option value="8.6 Frisläppande">8.6 Frisläppande</option>
+                          <option value="8.7 Avvikande utdata">8.7 Avvikande utdata</option>
+                        </optgroup>
+                        <optgroup label="9. Utvärdering av prestanda">
+                          <option value="9. Utvärdering av prestanda">9. Huvudkapitel</option>
+                          <option value="9.1 Övervakning och mätning">9.1 Övervakning och mätning</option>
+                          <option value="9.2 Internrevision">9.2 Internrevision</option>
+                          <option value="9.3 Ledningens genomgång">9.3 Ledningens genomgång</option>
+                        </optgroup>
+                        <optgroup label="10. Förbättring">
+                          <option value="10. Förbättring">10. Huvudkapitel</option>
+                          <option value="10.1 Allmänt">10.1 Allmänt</option>
+                          <option value="10.2 Avvikelse och korrigerande åtgärd">10.2 Avvikelse och korrigerande åtgärd</option>
+                          <option value="10.3 Ständig förbättring">10.3 Ständig förbättring</option>
+                        </optgroup>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="status">Status</label>
+                      <select
+                        id="status"
+                        name="status"
+                        value={formData.status}
+                        onChange={handleInputChange}
+                      >
+                        <option value="utkast">Utkast</option>
+                        <option value="granskning">Granskning</option>
+                        <option value="godkänd">Godkänd</option>
+                        <option value="arkiverad">Arkiverad</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group mt-4 pt-4 border-t">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        name="is_template"
+                        checked={formData.is_template}
+                        onChange={(e) => setFormData({...formData, is_template: e.target.checked})}
+                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm font-medium">Gör till mall</span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1 ml-6">
+                      Dokumentet kommer att visas i mallbiblioteket så att andra kan använda det.
+                    </p>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="description">Beskrivning</label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      rows="3"
+                      placeholder="Kort beskrivning av dokumentet..."
+                    ></textarea>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="description">Beskrivning</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows="3"
-                    placeholder="Kort beskrivning av dokumentet..."
-                  ></textarea>
+                <div className="form-actions">
+                  <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                    Avbryt
+                  </button>
+                  <button type="submit" className="btn-primary" disabled={!formData.file_url || isUploading}>
+                    {editingDokument ? 'Spara ändringar' : 'Ladda upp till bibliotek'}
+                  </button>
                 </div>
+              </form>
+            ) : (
+              <div className="history-tab-content p-6">
+                {isLogsLoading ? (
+                  <div className="loading-logs">Laddar historik...</div>
+                ) : auditLogs.length === 0 ? (
+                  <div className="empty-logs text-center py-8">
+                    <p className="text-gray-500">Ingen historik hittades för detta dokument.</p>
+                    <p className="text-xs text-gray-400 mt-2">Loggning påbörjades 2026-04-08.</p>
+                  </div>
+                ) : (
+                  <div className="audit-timeline space-y-4">
+                    {auditLogs.map(log => (
+                      <div key={log.id} className="audit-item flex gap-4 border-l-2 border-gray-100 dark:border-slate-700 pl-4 relative">
+                        <div className="audit-dot absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-primary-color border-4 border-white dark:border-slate-800"></div>
+                        <div className="audit-content flex-1">
+                          <div className="audit-header flex justify-between items-center mb-1">
+                            <span className="audit-action text-xs font-bold uppercase tracking-wider text-primary-color">
+                              {log.action === 'CREATE' ? 'Skapad' : log.action === 'UPDATE' ? 'Uppdaterad' : 'Raderad'}
+                            </span>
+                            <span className="audit-time text-xs text-gray-400">
+                              {new Date(log.created_at).toLocaleString('sv-SE')}
+                            </span>
+                          </div>
+                          <div className="audit-user text-sm font-medium mb-2">{log.user_email}</div>
+                          {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
+                            <div className="audit-changes bg-gray-50 dark:bg-slate-900/50 rounded-lg p-3 text-xs space-y-1">
+                              {Object.keys(log.changes.new).map(key => {
+                                if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
+                                    !['updated_at', 'company_id', 'creator_uid'].includes(key)) {
+                                  return (
+                                    <div key={key} className="change-item flex items-center gap-2">
+                                      <span className="change-key font-semibold text-gray-500">{key}:</span>
+                                      <span className="change-old text-red-500 line-through opacity-70">{String(log.changes.old[key] || 'n/a')}</span>
+                                      <ChevronRight size={10} className="text-gray-400" />
+                                      <span className="change-new text-green-600">{String(log.changes.new[key] || 'n/a')}</span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
-                  Avbryt
-                </button>
-                <button type="submit" className="btn-primary" disabled={!formData.file_url || isUploading}>
-                  {editingDokument ? 'Spara ändringar' : 'Ladda upp till bibliotek'}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
         </div>
       )}

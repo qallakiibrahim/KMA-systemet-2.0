@@ -1063,18 +1063,35 @@ const AvvikelseList = () => {
                               {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
                                 <div className="audit-changes">
                                   {Object.keys(log.changes.new).map(key => {
-                                    if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
-                                        !['updated_at', 'attachments', 'uppfoljning', 'problemdefinition'].includes(key)) {
-                                      return (
-                                        <div key={key} className="change-item">
-                                          <span className="change-key">{key}:</span>
-                                          <span className="change-old">{String(log.changes.old[key] || 'n/a')}</span>
-                                          <span className="change-arrow">→</span>
-                                          <span className="change-new">{String(log.changes.new[key] || 'n/a')}</span>
-                                        </div>
-                                      );
+                                    if (JSON.stringify(log.changes.old[key]) === JSON.stringify(log.changes.new[key])) return null;
+                                    if (['updated_at', 'attachments', 'problemdefinition'].includes(key)) return null;
+                                    
+                                    if (key === 'uppfoljning') {
+                                      const oldU = log.changes.old[key] || {};
+                                      const newU = log.changes.new[key] || {};
+                                      return Object.keys(newU).map(uKey => {
+                                        if (JSON.stringify(oldU[uKey]) !== JSON.stringify(newU[uKey])) {
+                                          return (
+                                            <div key={`${key}-${uKey}`} className="change-item">
+                                              <span className="change-key">{uKey}:</span>
+                                              <span className="change-old">{String(oldU[uKey] || 'n/a')}</span>
+                                              <span className="change-arrow">→</span>
+                                              <span className="change-new">{String(newU[uKey] || 'n/a')}</span>
+                                            </div>
+                                          );
+                                        }
+                                        return null;
+                                      });
                                     }
-                                    return null;
+
+                                    return (
+                                      <div key={key} className="change-item">
+                                        <span className="change-key">{key}:</span>
+                                        <span className="change-old">{String(log.changes.old[key] || 'n/a')}</span>
+                                        <span className="change-arrow">→</span>
+                                        <span className="change-new">{String(log.changes.new[key] || 'n/a')}</span>
+                                      </div>
+                                    );
                                   })}
                                 </div>
                               )}

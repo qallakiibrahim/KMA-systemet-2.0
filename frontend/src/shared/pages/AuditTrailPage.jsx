@@ -178,20 +178,50 @@ const AuditTrailPage = () => {
                       {Object.keys(selectedLog.changes.new).map(key => {
                         const oldVal = selectedLog.changes.old[key];
                         const newVal = selectedLog.changes.new[key];
-                        if (JSON.stringify(oldVal) !== JSON.stringify(newVal) && 
-                            !['updated_at', 'attachments', 'uppfoljning', 'problemdefinition'].includes(key)) {
+                        if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return null;
+                        if (['updated_at', 'attachments', 'problemdefinition'].includes(key)) return null;
+
+                        if (key === 'uppfoljning') {
+                          const oldU = oldVal || {};
+                          const newU = newVal || {};
+                          return Object.keys(newU).map(uKey => {
+                            if (JSON.stringify(oldU[uKey]) !== JSON.stringify(newU[uKey])) {
+                              return (
+                                <div key={`${key}-${uKey}`} className="flex flex-col text-xs border-b border-gray-100 dark:border-slate-800 pb-2 last:border-0">
+                                  <span className="font-semibold text-gray-500 mb-1">{uKey}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-red-500 line-through opacity-70">{String(oldU[uKey] || 'n/a')}</span>
+                                    <ChevronRight size={12} className="text-gray-400" />
+                                    <span className="text-green-600 font-medium">{String(newU[uKey] || 'n/a')}</span>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          });
+                        }
+
+                        if (key === 'steps') {
                           return (
                             <div key={key} className="flex flex-col text-xs border-b border-gray-100 dark:border-slate-800 pb-2 last:border-0">
-                              <span className="font-semibold text-gray-500 mb-1">{key}</span>
+                              <span className="font-semibold text-gray-500 mb-1">Processkarta</span>
                               <div className="flex items-center gap-2">
-                                <span className="text-red-500 line-through opacity-70">{String(oldVal || 'n/a')}</span>
-                                <ChevronRight size={12} className="text-gray-400" />
-                                <span className="text-green-600 font-medium">{String(newVal || 'n/a')}</span>
+                                <span className="text-blue-600 font-medium">Kartan har uppdaterats</span>
                               </div>
                             </div>
                           );
                         }
-                        return null;
+
+                        return (
+                          <div key={key} className="flex flex-col text-xs border-b border-gray-100 dark:border-slate-800 pb-2 last:border-0">
+                            <span className="font-semibold text-gray-500 mb-1">{key}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-red-500 line-through opacity-70">{String(oldVal || 'n/a')}</span>
+                              <ChevronRight size={12} className="text-gray-400" />
+                              <span className="text-green-600 font-medium">{String(newVal || 'n/a')}</span>
+                            </div>
+                          </div>
+                        );
                       })}
                     </div>
                   </div>
