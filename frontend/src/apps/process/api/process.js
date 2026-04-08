@@ -157,6 +157,17 @@ export const getProcessById = async (id) => {
   return data;
 };
 
+export const getProcessByTitle = async (title) => {
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('*')
+    .eq('title', title)
+    .maybeSingle();
+    
+  if (error) throw error;
+  return data;
+};
+
 export const deleteProcess = async (id) => {
   const { error } = await supabase
     .from(tableName)

@@ -15,7 +15,7 @@ import ReactFlow, {
   useReactFlow
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { getProcesses, createProcess, updateProcess, deleteProcess } from '../api/process';
+import { getProcesses, createProcess, updateProcess, deleteProcess, getProcessByTitle } from '../api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { supabase } from '../../../supabase';
 import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle, AlertOctagon } from 'lucide-react';
@@ -83,7 +83,7 @@ const ProcessListContent = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(-1); // Fetch all processes for the map view to ensure root map is found
+  const [pageSize] = useState(50); // Reasonable page size for list view
   const [isEditMode, setIsEditMode] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -101,7 +101,14 @@ const ProcessListContent = () => {
   const { searchQuery } = useSearch();
   const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
 
-  // TanStack Query for data fetching
+  // Fetch the Root Map directly (smarter scaling)
+  const { data: rootMapData, isLoading: loadingRoot } = useQuery({
+    queryKey: ['process-root-map'],
+    queryFn: () => getProcessByTitle('Huvudprocesskarta'),
+    staleTime: 1000 * 60 * 10, // 10 minutes
+  });
+
+  // TanStack Query for data fetching (list view / search)
   const { data: processesData, isLoading: loading, isError, error } = useQuery({
     queryKey: ['processes', page, pageSize],
     queryFn: () => getProcesses(page, pageSize),
@@ -127,29 +134,22 @@ const ProcessListContent = () => {
 
   useEffect(() => {
     try {
-      if (processes.length > 0 && !isEditMode) {
-        console.log('Checking for root map in processes:', processes.length);
-        // Look for the Root Map by specific title
-        const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
-        
-        if (rootMap && rootMap.steps && Array.isArray(rootMap.steps.nodes)) {
-          console.log('Found root map with nodes:', rootMap.steps.nodes.length);
-          setNodes(rootMap.steps.nodes || []);
-          setEdges(rootMap.steps.edges || []);
-          if (rootMap.steps.viewport) {
-            setDefaultViewport(rootMap.steps.viewport);
+      if (rootMapData && !isEditMode && navigationStack.length === 0) {
+        if (rootMapData.steps && Array.isArray(rootMapData.steps.nodes)) {
+          setNodes(rootMapData.steps.nodes || []);
+          setEdges(rootMapData.steps.edges || []);
+          if (rootMapData.steps.viewport) {
+            setDefaultViewport(rootMapData.steps.viewport);
             if (rfInstance) {
-              rfInstance.setViewport(rootMap.steps.viewport);
+              rfInstance.setViewport(rootMapData.steps.viewport);
             }
           }
-        } else {
-          console.log('Root map not found or has no steps');
         }
       }
     } catch (err) {
       console.error('Error in root map loading effect:', err);
     }
-  }, [processes, isEditMode, rfInstance]);
+  }, [rootMapData, isEditMode, rfInstance, navigationStack.length]);
 
   // Helper to remove non-serializable data (functions) before saving
   const cleanNodesForStorage = (nodesToClean) => {
@@ -506,7 +506,7 @@ const ProcessListContent = () => {
     );
   }
 
-  if (loading) return <div className="loading-spinner">Laddar processer...</div>;
+  if ((loading || loadingRoot) && processes.length === 0 && !rootMapData) return <div className="loading-spinner">Laddar processer...</div>;
 
   const activeProcess = navigationStack.length > 0 ? navigationStack[navigationStack.length - 1] : null;
 

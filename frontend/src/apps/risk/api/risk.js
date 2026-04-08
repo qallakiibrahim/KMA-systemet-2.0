@@ -26,6 +26,17 @@ export const getRisker = async (page = 1, pageSize = 20) => {
   return pageSize === -1 ? data : { data, count };
 };
 
+export const getOpenRisker = async () => {
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('*')
+    .not('status', 'eq', 'closed')
+    .not('deadline', 'is', null);
+    
+  if (error) throw error;
+  return data;
+};
+
 export const getGlobalRisks = async () => {
   try {
     const { data, error } = await supabase

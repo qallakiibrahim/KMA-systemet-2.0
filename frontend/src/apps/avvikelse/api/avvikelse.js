@@ -111,6 +111,17 @@ export const getAvvikelser = async (page = 1, pageSize = 20) => {
   return pageSize === -1 ? data : { data, count };
 };
 
+export const getOpenAvvikelser = async () => {
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('*')
+    .not('status', 'eq', 'closed')
+    .not('deadline', 'is', null);
+    
+  if (error) throw error;
+  return data;
+};
+
 export const createAvvikelse = async (data) => {
   const { data: inserted, error } = await supabase
     .from(tableName)

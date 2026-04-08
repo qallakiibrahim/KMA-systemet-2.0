@@ -20,6 +20,18 @@ export const getTasks = async (page = 1, pageSize = 20) => {
   return pageSize === -1 ? data : { data, count };
 };
 
+export const getOpenTasks = async () => {
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('*')
+    .not('status', 'eq', 'done')
+    .not('status', 'eq', 'closed')
+    .not('dueDate', 'is', null);
+    
+  if (error) throw error;
+  return data;
+};
+
 export const createTask = async (data) => {
   const { data: inserted, error } = await supabase
     .from(tableName)

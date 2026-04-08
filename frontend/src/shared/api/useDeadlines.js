@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getTasks } from '../../apps/task/api/tasksApi';
-import { getRisker } from '../../apps/risk/api/risk';
-import { getAvvikelser } from '../../apps/avvikelse/api/avvikelse';
+import { getOpenTasks } from '../../apps/task/api/tasksApi';
+import { getOpenRisker } from '../../apps/risk/api/risk';
+import { getOpenAvvikelser } from '../../apps/avvikelse/api/avvikelse';
 import { createNotification } from '../../apps/notification/api/notification';
 import { useAuth } from './AuthContext';
 import { toast } from 'react-toastify';
@@ -15,15 +15,11 @@ export const useDeadlines = () => {
     if (!user) return;
 
     try {
-      const [tasksData, riskerData, avvikelserData] = await Promise.all([
-        getTasks(1, -1),
-        getRisker(1, -1),
-        getAvvikelser(1, -1)
+      const [tasks, risker, avvikelser] = await Promise.all([
+        getOpenTasks(),
+        getOpenRisker(),
+        getOpenAvvikelser()
       ]);
-
-      const tasks = tasksData?.data || (Array.isArray(tasksData) ? tasksData : []);
-      const risker = riskerData?.data || (Array.isArray(riskerData) ? riskerData : []);
-      const avvikelser = avvikelserData?.data || (Array.isArray(avvikelserData) ? avvikelserData : []);
 
       const today = startOfDay(new Date());
 
