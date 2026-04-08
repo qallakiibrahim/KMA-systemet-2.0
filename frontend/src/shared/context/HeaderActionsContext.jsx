@@ -14,10 +14,12 @@ export const HeaderActionsProvider = ({ children }) => {
   const stateValue = useMemo(() => ({ actions }), [actions]);
   const apiValue = useMemo(() => ({ registerActions }), [registerActions]);
 
+  const memoizedChildren = useMemo(() => children, [children]);
+
   return (
     <HeaderActionsStateContext.Provider value={stateValue}>
       <HeaderActionsApiContext.Provider value={apiValue}>
-        {children}
+        {memoizedChildren}
       </HeaderActionsApiContext.Provider>
     </HeaderActionsStateContext.Provider>
   );
@@ -39,8 +41,6 @@ export const useRegisterHeaderActions = (newActions) => {
   const { registerActions } = context;
 
   useEffect(() => {
-    if (newActions) {
-      return registerActions(newActions);
-    }
+    return registerActions(newActions);
   }, [newActions, registerActions]);
 };

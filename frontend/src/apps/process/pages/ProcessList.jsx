@@ -26,6 +26,41 @@ import ProcessVisualizer from '../components/ProcessVisualizer';
 import ConfirmModal from '../components/ConfirmModal';
 import '../styles/ProcessList.css';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('ProcessList Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error-state p-8">
+          <AlertOctagon size={48} className="text-red-500 mb-4" />
+          <h2>Något gick fel vid visning av processer</h2>
+          <p className="text-muted mb-4">{this.state.error?.message || 'Ett oväntat fel uppstod.'}</p>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => window.location.reload()}
+          >
+            Ladda om sidan
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // Custom Node for the Process Map
 const MapNode = ({ data }) => (
   <div className={`map-node ${data.category || 'core'}`}>
@@ -79,8 +114,8 @@ const ProcessListContent = () => {
     if (processesData.data && Array.isArray(processesData.data)) return processesData.data;
     return EMPTY_ARRAY;
   }, [processesData]);
-  const totalCount = processesData?.count || 0;
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalCount = processesData?.count || (Array.isArray(processesData) ? processesData.length : 0);
+  const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 1;
 
   useEffect(() => {
     const handleResize = () => {
@@ -91,24 +126,28 @@ const ProcessListContent = () => {
   }, []);
 
   useEffect(() => {
-    if (processes.length > 0 && !isEditMode) {
-      console.log('Checking for root map in processes:', processes.length);
-      // Look for the Root Map by specific title
-      const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
-      
-      if (rootMap && rootMap.steps && Array.isArray(rootMap.steps.nodes)) {
-        console.log('Found root map with nodes:', rootMap.steps.nodes.length);
-        setNodes(rootMap.steps.nodes || []);
-        setEdges(rootMap.steps.edges || []);
-        if (rootMap.steps.viewport) {
-          setDefaultViewport(rootMap.steps.viewport);
-          if (rfInstance) {
-            rfInstance.setViewport(rootMap.steps.viewport);
+    try {
+      if (processes.length > 0 && !isEditMode) {
+        console.log('Checking for root map in processes:', processes.length);
+        // Look for the Root Map by specific title
+        const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
+        
+        if (rootMap && rootMap.steps && Array.isArray(rootMap.steps.nodes)) {
+          console.log('Found root map with nodes:', rootMap.steps.nodes.length);
+          setNodes(rootMap.steps.nodes || []);
+          setEdges(rootMap.steps.edges || []);
+          if (rootMap.steps.viewport) {
+            setDefaultViewport(rootMap.steps.viewport);
+            if (rfInstance) {
+              rfInstance.setViewport(rootMap.steps.viewport);
+            }
           }
+        } else {
+          console.log('Root map not found or has no steps');
         }
-      } else {
-        console.log('Root map not found or has no steps');
       }
+    } catch (err) {
+      console.error('Error in root map loading effect:', err);
     }
   }, [processes, isEditMode, rfInstance]);
 
@@ -671,14 +710,14 @@ const ProcessListContent = () => {
               
               <div className="map-canvas-wrapper">
                 <ReactFlow
-                  nodes={nodes.map(node => ({
+                  nodes={(nodes || []).map(node => ({
                     ...node,
                     style: {
                       ...node.style,
                       opacity: searchQuery === '' || node.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ? 1 : 0.2
                     }
                   }))}
-                  edges={edges.map(edge => ({
+                  edges={(edges || []).map(edge => ({
                     ...edge,
                     style: {
                       ...edge.style,
@@ -763,9 +802,11 @@ const ProcessListContent = () => {
 };
 
 const ProcessList = () => (
-  <ReactFlowProvider>
-    <ProcessListContent />
-  </ReactFlowProvider>
+  <ErrorBoundary>
+    <ReactFlowProvider>
+      <ProcessListContent />
+    </ReactFlowProvider>
+  </ErrorBoundary>
 );
 
 export default ProcessList;
