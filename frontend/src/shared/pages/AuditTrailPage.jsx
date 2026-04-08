@@ -50,6 +50,9 @@ const AuditTrailPage = () => {
             <option value="">Alla typer</option>
             <option value="PROCESS">Processer</option>
             <option value="DOCUMENT">Dokument</option>
+            <option value="RISK">Risker</option>
+            <option value="ISSUE">Avvikelser</option>
+            <option value="TASK">Uppgifter</option>
           </select>
         </div>
         
@@ -167,9 +170,36 @@ const AuditTrailPage = () => {
                 </div>
               </div>
 
-              {selectedLog.changes && (
+              {selectedLog.changes && selectedLog.changes.old && selectedLog.changes.new && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Ändringar</label>
+                  <div className="bg-gray-50 dark:bg-slate-900 rounded-xl p-4 overflow-x-auto">
+                    <div className="space-y-2">
+                      {Object.keys(selectedLog.changes.new).map(key => {
+                        const oldVal = selectedLog.changes.old[key];
+                        const newVal = selectedLog.changes.new[key];
+                        if (JSON.stringify(oldVal) !== JSON.stringify(newVal) && 
+                            !['updated_at', 'attachments', 'uppfoljning', 'problemdefinition'].includes(key)) {
+                          return (
+                            <div key={key} className="flex flex-col text-xs border-b border-gray-100 dark:border-slate-800 pb-2 last:border-0">
+                              <span className="font-semibold text-gray-500 mb-1">{key}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-red-500 line-through opacity-70">{String(oldVal || 'n/a')}</span>
+                                <ChevronRight size={12} className="text-gray-400" />
+                                <span className="text-green-600 font-medium">{String(newVal || 'n/a')}</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {selectedLog.changes && (!selectedLog.changes.old || !selectedLog.changes.new) && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Data</label>
                   <div className="bg-gray-50 dark:bg-slate-900 rounded-xl p-4 overflow-x-auto">
                     <pre className="text-xs text-gray-700 dark:text-gray-300 font-mono">
                       {JSON.stringify(selectedLog.changes, null, 2)}

@@ -121,7 +121,7 @@ const AvvikelseList = () => {
   };
 
   const createMutation = useMutation({
-    mutationFn: createAvvikelse,
+    mutationFn: (data) => createAvvikelse(data, currentUser),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['avvikelser'] });
       toast.success('Avvikelse skapad!');
@@ -135,7 +135,7 @@ const AvvikelseList = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => updateAvvikelse(id, data),
+    mutationFn: ({ id, data }) => updateAvvikelse(id, data, currentUser),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['avvikelser'] });
       toast.success('Avvikelse uppdaterad!');
@@ -147,7 +147,7 @@ const AvvikelseList = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteAvvikelse,
+    mutationFn: (id) => deleteAvvikelse(id, currentUser),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['avvikelser'] });
       toast.success('Avvikelse raderad');
@@ -369,8 +369,11 @@ const AvvikelseList = () => {
     // Fetch logs in background
     setIsLogsLoading(true);
     try {
-      const logs = await getAuditLogs('avvikelser', avvikelse.id);
-      setAuditLogs(logs);
+      const logsResponse = await getAuditLogs(1, 50, { 
+        entity_type: 'ISSUE', 
+        entity_id: avvikelse.id 
+      });
+      setAuditLogs(logsResponse.data || []);
     } catch (error) {
       console.error('Failed to fetch audit logs', error);
     } finally {
@@ -1048,26 +1051,26 @@ const AvvikelseList = () => {
                             <div className="audit-content">
                               <div className="audit-header">
                                 <span className="audit-action">
-                                  {log.action === 'INSERT' ? 'Skapad' : log.action === 'UPDATE' ? 'Uppdaterad' : 'Raderad'}
+                                  {log.action === 'CREATE' ? 'Skapad' : log.action === 'UPDATE' ? 'Uppdaterad' : 'Raderad'}
                                 </span>
                                 <span className="audit-time">
                                   {new Date(log.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}
                                 </span>
                               </div>
                               <div className="audit-user">
-                                {log.profiles?.display_name || log.profiles?.email || 'System'}
+                                {log.user_email || 'System'}
                               </div>
-                              {log.action === 'UPDATE' && log.old_data && log.new_data && (
+                              {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
                                 <div className="audit-changes">
-                                  {Object.keys(log.new_data).map(key => {
-                                    if (JSON.stringify(log.old_data[key]) !== JSON.stringify(log.new_data[key]) && 
+                                  {Object.keys(log.changes.new).map(key => {
+                                    if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
                                         !['updated_at', 'attachments', 'uppfoljning', 'problemdefinition'].includes(key)) {
                                       return (
                                         <div key={key} className="change-item">
                                           <span className="change-key">{key}:</span>
-                                          <span className="change-old">{String(log.old_data[key] || 'n/a')}</span>
+                                          <span className="change-old">{String(log.changes.old[key] || 'n/a')}</span>
                                           <span className="change-arrow">→</span>
-                                          <span className="change-new">{String(log.new_data[key] || 'n/a')}</span>
+                                          <span className="change-new">{String(log.changes.new[key] || 'n/a')}</span>
                                         </div>
                                       );
                                     }
