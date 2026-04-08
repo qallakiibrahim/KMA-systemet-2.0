@@ -105,7 +105,12 @@ const ProcessListContent = () => {
     placeholderData: (previousData) => previousData,
   });
 
-  const processes = useMemo(() => processesData?.data || (Array.isArray(processesData) ? processesData : EMPTY_ARRAY), [processesData]);
+  const processes = useMemo(() => {
+    if (!processesData) return EMPTY_ARRAY;
+    if (Array.isArray(processesData)) return processesData;
+    if (processesData.data && Array.isArray(processesData.data)) return processesData.data;
+    return EMPTY_ARRAY;
+  }, [processesData]);
   const totalCount = processesData?.count || 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -119,19 +124,22 @@ const ProcessListContent = () => {
 
   useEffect(() => {
     if (processes.length > 0 && !isEditMode) {
+      console.log('Checking for root map in processes:', processes.length);
       // Look for the Root Map by specific title
       const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
       
       if (rootMap && rootMap.steps && Array.isArray(rootMap.steps.nodes)) {
+        console.log('Found root map with nodes:', rootMap.steps.nodes.length);
         setNodes(rootMap.steps.nodes || []);
         setEdges(rootMap.steps.edges || []);
         if (rootMap.steps.viewport) {
           setDefaultViewport(rootMap.steps.viewport);
-          // Also explicitly set the viewport if the flow is ready
           if (rfInstance) {
             rfInstance.setViewport(rootMap.steps.viewport);
           }
         }
+      } else {
+        console.log('Root map not found or has no steps');
       }
     }
   }, [processes, isEditMode, rfInstance]);
@@ -211,6 +219,9 @@ const ProcessListContent = () => {
     const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
     if (rootMap?.steps?.viewport) {
       instance.setViewport(rootMap.steps.viewport);
+    } else {
+      // Fallback: fit view if no viewport saved
+      setTimeout(() => instance.fitView(), 100);
     }
   }, [processes]);
 
@@ -565,7 +576,14 @@ const ProcessListContent = () => {
         {nodes.length === 0 && (
           <div className="empty-state">
             <Layout size={48} />
-            <p>Inga processer har lagts till i kartan än.</p>
+            <h3>Ingen processkarta hittades</h3>
+            <p>Det verkar som att huvudprocesskartan inte har skapats än eller är tom.</p>
+            {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+              <button className="btn btn-primary mt-4" onClick={() => setIsEditMode(true)}>
+                <Edit2 size={16} />
+                <span>Skapa processkarta</span>
+              </button>
+            )}
           </div>
         )}
         {totalPages > 1 && (
@@ -651,42 +669,45 @@ const ProcessListContent = () => {
                 </div>
               </div>
               
-              <ReactFlow
-                nodes={nodes.map(node => ({
-                  ...node,
-                  style: {
-                    ...node.style,
-                    opacity: searchQuery === '' || node.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ? 1 : 0.2
-                  }
-                }))}
-                edges={edges.map(edge => ({
-                  ...edge,
-                  style: {
-                    ...edge.style,
-                    opacity: searchQuery === '' ? 1 : 0.2
-                  }
-                }))}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onNodeDragStop={onNodeDragStop}
-                onConnect={onConnect}
-                onNodeClick={onNodeClick}
-                onInit={onInit}
-                nodeTypes={nodeTypes}
-                defaultViewport={defaultViewport}
-                nodesDraggable={isEditMode}
-                nodesConnectable={isEditMode}
-                elementsSelectable={true}
-                panOnDrag={isEditMode}
-                zoomOnScroll={isEditMode}
-                zoomOnPinch={isEditMode}
-                zoomOnDoubleClick={isEditMode}
-                panOnScroll={isEditMode}
-                preventScrolling={false}
-              >
-                {isEditMode && <Background />}
-                {isEditMode && <Controls />}
-              </ReactFlow>
+              <div className="map-canvas-wrapper">
+                <ReactFlow
+                  nodes={nodes.map(node => ({
+                    ...node,
+                    style: {
+                      ...node.style,
+                      opacity: searchQuery === '' || node.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ? 1 : 0.2
+                    }
+                  }))}
+                  edges={edges.map(edge => ({
+                    ...edge,
+                    style: {
+                      ...edge.style,
+                      opacity: searchQuery === '' ? 1 : 0.2
+                    }
+                  }))}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onNodeDragStop={onNodeDragStop}
+                  onConnect={onConnect}
+                  onNodeClick={onNodeClick}
+                  onInit={onInit}
+                  nodeTypes={nodeTypes}
+                  defaultViewport={defaultViewport}
+                  nodesDraggable={isEditMode}
+                  nodesConnectable={isEditMode}
+                  elementsSelectable={true}
+                  panOnDrag={isEditMode}
+                  zoomOnScroll={isEditMode}
+                  zoomOnPinch={isEditMode}
+                  zoomOnDoubleClick={isEditMode}
+                  panOnScroll={isEditMode}
+                  preventScrolling={false}
+                  fitView={nodes.length > 0}
+                >
+                  {isEditMode && <Background />}
+                  {isEditMode && <Controls />}
+                </ReactFlow>
+              </div>
             </>
           )}
         </div>
