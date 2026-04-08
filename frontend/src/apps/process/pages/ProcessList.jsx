@@ -321,7 +321,7 @@ const ProcessListContent = () => {
         company_id: companyId,
         is_template: userProfile?.role === 'superadmin',
         is_global: userProfile?.role === 'superadmin'
-      });
+      }, currentUser);
 
       const newNode = {
         id: newProcess.id,
@@ -372,7 +372,7 @@ const ProcessListContent = () => {
 
       console.log('Saving root map with latest positions:', mapData);
       if (rootMap) {
-        await updateProcess(rootMap.id, mapData);
+        await updateProcess(rootMap.id, mapData, currentUser);
       } else {
         await createProcess({
           description: 'Systemets övergripande processkarta',
@@ -382,7 +382,7 @@ const ProcessListContent = () => {
           is_template: userProfile?.role === 'superadmin',
           is_global: userProfile?.role === 'superadmin',
           ...mapData
-        });
+        }, currentUser);
       }
       console.log('Root map saved successfully');
       queryClient.invalidateQueries({ queryKey: ['processes'] });
@@ -410,7 +410,7 @@ const ProcessListContent = () => {
         const rootMap = processes.find(p => p.title === 'Huvudprocesskarta');
         if (!rootMap) return;
         setIsSaving(true);
-        await deleteProcess(rootMap.id);
+        await deleteProcess(rootMap.id, currentUser);
         toast.success('Huvudprocesskartan har tagits bort');
         queryClient.invalidateQueries({ queryKey: ['processes'] });
         setNodes([]);
@@ -419,7 +419,7 @@ const ProcessListContent = () => {
         return;
       }
 
-      await deleteProcess(id);
+      await deleteProcess(id, currentUser);
       toast.success('Processen har tagits bort');
       
       // Update root map if it exists
@@ -428,7 +428,7 @@ const ProcessListContent = () => {
         const updatedNodes = (rootMap.steps?.nodes || []).filter(n => String(n.data?.processId || n.id) !== String(id));
         const updatedSteps = { ...rootMap.steps, nodes: updatedNodes };
         try {
-          await updateProcess(rootMap.id, { steps: updatedSteps });
+          await updateProcess(rootMap.id, { steps: updatedSteps }, currentUser);
           setNodes(updatedNodes);
         } catch (err) {
           console.error('Failed to update root map after deletion', err);
@@ -465,7 +465,7 @@ const ProcessListContent = () => {
         const updatedNodes = (rootMap.steps?.nodes || []).filter(n => String(n.data?.processId || n.id) !== String(deletedId));
         const updatedSteps = { ...rootMap.steps, nodes: updatedNodes };
         try {
-          await updateProcess(rootMap.id, { steps: updatedSteps });
+          await updateProcess(rootMap.id, { steps: updatedSteps }, currentUser);
           setNodes(updatedNodes);
         } catch (err) {
           console.error('Failed to update root map', err);
@@ -481,7 +481,7 @@ const ProcessListContent = () => {
       const updatedSteps = { ...parent.steps, nodes: updatedNodes };
       
       try {
-        await updateProcess(parent.id, { steps: updatedSteps });
+        await updateProcess(parent.id, { steps: updatedSteps }, currentUser);
         // Update the parent in the stack too
         setNavigationStack(prev => prev.map(p => p.id === parent.id ? { ...p, steps: updatedSteps } : p));
       } catch (err) {

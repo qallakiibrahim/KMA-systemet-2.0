@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../api/AuthContext';
 import { useTheme } from '../api/ThemeContext';
-import { Home, AlertTriangle, Shield, FileText, Settings, LogOut, Moon, Sun, Calendar, CheckSquare, BarChart, X, Building, Activity, Bot, Library, Menu } from 'lucide-react';
+import { Home, AlertTriangle, Shield, FileText, Settings, LogOut, Moon, Sun, Calendar, CheckSquare, BarChart, X, Building, Activity, Bot, Library, Menu, History } from 'lucide-react';
 import '../styles/Sidebar.css';
 
 const Sidebar = ({ isExpanded, onToggle }) => {
@@ -30,6 +30,7 @@ const Sidebar = ({ isExpanded, onToggle }) => {
         <Link to="/statistik"><BarChart /> {isExpanded && <span>Statistik</span>}</Link>
         <Link to="/library"><Library /> {isExpanded && <span>Bibliotek</span>}</Link>
         <Link to="/ai"><Bot /> {isExpanded && <span>AI Assistent</span>}</Link>
+        <Link to="/audit"><History /> {isExpanded && <span>Händelselogg</span>}</Link>
       </nav>
       <div className="sidebar-footer">
         <button onClick={toggleTheme}>

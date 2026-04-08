@@ -615,7 +615,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
         viewport 
       };
       console.log('Auto-saving parent process with sub-process link:', steps);
-      const updatedParent = await updateProcess(process.id, { steps });
+      const updatedParent = await updateProcess(process.id, { steps }, currentUser);
       onUpdate(updatedParent, created);
       
       toast.success(`Underprocess "${title}" skapad och kopplad!`);
@@ -705,7 +705,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       };
       
       console.log('Saving process map with latest positions:', steps);
-      const updated = await updateProcess(process.id, { steps });
+      const updated = await updateProcess(process.id, { steps }, currentUser);
       console.log('Process map saved successfully:', updated);
       onUpdate(updated);
       toast.success('Process sparad!');

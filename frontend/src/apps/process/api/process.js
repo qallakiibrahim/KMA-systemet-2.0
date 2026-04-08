@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase';
+import { logAction } from '../../../shared/api/auditLog';
 
 const tableName = 'processes';
 
@@ -63,7 +64,7 @@ export const getGlobalProcesses = async () => {
   }
 };
 
-export const createProcess = async (data) => {
+export const createProcess = async (data, user = null) => {
   // Strip out attachments if they are present (they are a relationship, not a column)
   const { attachments, ...insertData } = data;
   
@@ -75,11 +76,8 @@ export const createProcess = async (data) => {
     .single();
     
   if (error) {
-    console.error('Supabase createProcess error:', error);
-    
-    // If it's a missing column error, try without SaaS columns
+    // ... (existing error handling)
     if (error.message.includes('column') && error.message.includes('does not exist')) {
-      console.warn('Retrying process creation without SaaS columns...');
       const { company_id, is_template, is_global, category, ...minimalData } = data;
       const { data: retryInserted, error: retryError } = await supabase
         .from(tableName)
@@ -88,19 +86,50 @@ export const createProcess = async (data) => {
         .single();
         
       if (retryError) throw retryError;
+      
+      if (user) {
+        logAction({
+          action: 'CREATE',
+          entity_type: 'PROCESS',
+          entity_id: retryInserted.id,
+          entity_name: retryInserted.title,
+          user_id: user.id,
+          user_email: user.email
+        });
+      }
+      
       return retryInserted;
     }
     
     throw error;
   }
+
+  if (user) {
+    logAction({
+      action: 'CREATE',
+      entity_type: 'PROCESS',
+      entity_id: inserted.id,
+      entity_name: inserted.title,
+      user_id: user.id,
+      user_email: user.email
+    });
+  }
+
   return inserted;
 };
 
-export const updateProcess = async (id, data) => {
+export const updateProcess = async (id, data, user = null) => {
   try {
     console.log(`Updating process ${id} with data:`, JSON.stringify(data, null, 2));
     // Strip out attachments if they are present (they are a relationship, not a column)
     const { attachments, ...updateData } = data;
+
+    // Get old data for logging changes
+    let oldData = null;
+    if (user) {
+      const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
+      oldData = existing;
+    }
 
     const { data: updated, error } = await supabase
       .from(tableName)
@@ -110,16 +139,8 @@ export const updateProcess = async (id, data) => {
       .single();
       
     if (error) {
-      console.error('Supabase updateProcess error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      
-      // If it's a missing column error, try without SaaS columns
+      // ... (existing error handling)
       if (error.message.includes('column') && error.message.includes('does not exist')) {
-        console.warn('Retrying process update without SaaS columns...');
         const { company_id, is_template, is_global, category, ...minimalData } = updateData;
         const { data: retryUpdated, error: retryError } = await supabase
           .from(tableName)
@@ -128,17 +149,38 @@ export const updateProcess = async (id, data) => {
           .select()
           .single();
           
-        if (retryError) {
-          console.error('Retry update failed:', retryError);
-          throw retryError;
+        if (retryError) throw retryError;
+
+        if (user) {
+          logAction({
+            action: 'UPDATE',
+            entity_type: 'PROCESS',
+            entity_id: id,
+            entity_name: retryUpdated.title,
+            changes: { old: oldData, new: retryUpdated },
+            user_id: user.id,
+            user_email: user.email
+          });
         }
-        console.log('Retry update successful:', retryUpdated);
+
         return retryUpdated;
       }
       
       throw error;
     }
-    console.log('Update successful:', updated);
+
+    if (user) {
+      logAction({
+        action: 'UPDATE',
+        entity_type: 'PROCESS',
+        entity_id: id,
+        entity_name: updated.title,
+        changes: { old: oldData, new: updated },
+        user_id: user.id,
+        user_email: user.email
+      });
+    }
+
     return updated;
   } catch (error) {
     console.error('Error in updateProcess:', error);
@@ -168,12 +210,31 @@ export const getProcessByTitle = async (title) => {
   return data;
 };
 
-export const deleteProcess = async (id) => {
+export const deleteProcess = async (id, user = null) => {
+  // Get name before deleting
+  let entityName = id;
+  if (user) {
+    const { data } = await supabase.from(tableName).select('title').eq('id', id).single();
+    if (data) entityName = data.title;
+  }
+
   const { error } = await supabase
     .from(tableName)
     .delete()
     .eq('id', id);
     
   if (error) throw error;
+
+  if (user) {
+    logAction({
+      action: 'DELETE',
+      entity_type: 'PROCESS',
+      entity_id: id,
+      entity_name: entityName,
+      user_id: user.id,
+      user_email: user.email
+    });
+  }
+
   return { id };
 };
