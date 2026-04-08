@@ -21,7 +21,7 @@ import { supabase } from '../../../supabase';
 import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle, AlertOctagon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useSearch } from '../../../shared/context/SearchContext';
-import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
+import { useRegisterHeaderActions, useRegisterCenterTools, useRegisterRightPanel } from '../../../shared/context/HeaderActionsContext';
 import ProcessVisualizer from '../components/ProcessVisualizer';
 import ConfirmModal from '../components/ConfirmModal';
 import '../styles/ProcessList.css';
@@ -500,9 +500,9 @@ const ProcessListContent = () => {
     setNavigationStack(prev => prev.map(p => p.id === updated.id ? updated : p));
   }, [queryClient]);
 
-  // Register header actions at the end to ensure all callbacks (like saveMap) are defined
+  // Register header actions and tools
   const headerActions = useMemo(() => {
-    if (isMobile) return null;
+    if (isMobile || activeProcess) return null;
     
     if (!isEditMode) {
       if (userProfile?.role === 'admin' || userProfile?.role === 'superadmin') {
@@ -528,9 +528,101 @@ const ProcessListContent = () => {
         </button>
       </div>
     );
-  }, [isMobile, isEditMode, userProfile, isSaving, saveMap]);
+  }, [isMobile, activeProcess, isEditMode, userProfile, isSaving, saveMap]);
 
-  useRegisterHeaderActions(!activeProcess ? headerActions : null);
+  const centerTools = useMemo(() => {
+    if (!isEditMode || isMobile || activeProcess) return null;
+
+    return (
+      <div className="header-toolbar-group">
+        <button className="tool-btn management" onClick={() => addProcessNode('management')}>
+          <Plus size={16} />
+          <span>Ledning</span>
+        </button>
+        <button className="tool-btn core" onClick={() => addProcessNode('core')}>
+          <Plus size={16} />
+          <span>Huvud</span>
+        </button>
+        <button className="tool-btn support" onClick={() => addProcessNode('support')}>
+          <Plus size={16} />
+          <span>Stöd</span>
+        </button>
+      </div>
+    );
+  }, [isEditMode, isMobile, activeProcess, addProcessNode]);
+
+  const rightPanelContent = useMemo(() => {
+    if (!selectedNode || activeProcess) return null;
+
+    return (
+      <div className="property-panel">
+        <div className="panel-header">
+          <h3>Egenskaper</h3>
+          <button className="close-btn" onClick={() => setSelectedNode(null)}><X size={18} /></button>
+        </div>
+        
+        <div className="panel-section">
+          <label>Namn</label>
+          <input 
+            type="text" 
+            value={selectedNode.data?.label || ''} 
+            onChange={(e) => {
+              const newLabel = e.target.value;
+              setNodes(nds => nds.map(n => n.id === selectedNode.id ? { ...n, data: { ...n.data, label: newLabel } } : n));
+              setSelectedNode(prev => ({ ...prev, data: { ...prev.data, label: newLabel } }));
+            }}
+            placeholder="Processnamn"
+            disabled={!isEditMode}
+          />
+        </div>
+
+        <div className="panel-section">
+          <label>Kategori</label>
+          <select 
+            value={selectedNode.data?.category || ''} 
+            onChange={(e) => {
+              const newCat = e.target.value;
+              setNodes(nds => nds.map(n => n.id === selectedNode.id ? { ...n, data: { ...n.data, category: newCat } } : n));
+              setSelectedNode(prev => ({ ...prev, data: { ...prev.data, category: newCat } }));
+            }}
+            disabled={!isEditMode}
+          >
+            <option value="management">Ledningsprocess</option>
+            <option value="core">Huvudprocess</option>
+            <option value="support">Stödprocess</option>
+          </select>
+        </div>
+
+        <div className="panel-actions mt-6">
+          <button 
+            className="btn btn-outline btn-full mb-2"
+            onClick={() => {
+              const processId = selectedNode.data?.processId || selectedNode.id;
+              const process = processes.find(p => String(p.id) === String(processId));
+              if (process) setNavigationStack([process]);
+            }}
+          >
+            <ChevronRight size={16} />
+            <span>Öppna process</span>
+          </button>
+
+          {isEditMode && (
+            <button 
+              className="btn btn-danger btn-full"
+              onClick={() => handleDeleteProcess(selectedNode.data?.processId || selectedNode.id, selectedNode.data?.label)}
+            >
+              <Trash2 size={16} />
+              <span>Ta bort process</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }, [selectedNode, activeProcess, isEditMode, processes]);
+
+  useRegisterHeaderActions(headerActions);
+  useRegisterCenterTools(centerTools);
+  useRegisterRightPanel(rightPanelContent);
 
   if (isError) {
     return (
@@ -750,52 +842,6 @@ const ProcessListContent = () => {
             </>
           )}
         </div>
-
-        {isEditMode && !isMobile && (
-          <div className="map-toolbar">
-            <h4>Lägg till objekt</h4>
-            <button className="tool-btn management" onClick={() => addProcessNode('management')}>
-              <Plus size={16} />
-              <span>Ledningsprocess</span>
-            </button>
-            <button className="tool-btn core" onClick={() => addProcessNode('core')}>
-              <Plus size={16} />
-              <span>Huvudprocess</span>
-            </button>
-            <button className="tool-btn support" onClick={() => addProcessNode('support')}>
-              <Plus size={16} />
-              <span>Stödprocess</span>
-            </button>
-            <hr />
-            <div className="toolbar-actions">
-              <button 
-                className="tool-btn text-red-500 hover:bg-red-50" 
-                onClick={() => {
-                  if (selectedNode) {
-                    handleDeleteProcess(selectedNode.data?.processId || selectedNode.id, selectedNode.data?.label);
-                  }
-                }}
-                disabled={!selectedNode}
-                title="Ta bort markerad process"
-              >
-                <Trash2 size={16} />
-                <span>Ta bort vald</span>
-              </button>
-              
-              {processes.some(p => p.title === 'Huvudprocesskarta') && (
-                <button 
-                  className="tool-btn text-red-500 hover:bg-red-50 mt-2" 
-                  onClick={handleDeleteRootMap}
-                  title="Ta bort hela processkartan"
-                >
-                  <Trash2 size={16} />
-                  <span>Ta bort karta</span>
-                </button>
-              )}
-            </div>
-            <p className="hint">Dra noder för att flytta. Dra mellan noder för att koppla.</p>
-          </div>
-        )}
       </div>
     </div>
   );

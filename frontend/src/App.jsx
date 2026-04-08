@@ -5,12 +5,15 @@ import 'react-toastify/dist/ReactToastify.css';
 import AppRoutes from './routes';
 import Sidebar from './shared/components/Sidebar';
 import Header from './shared/components/Header';
+import RightPanel from './shared/components/RightPanel';
 import DeadlineChecker from './shared/components/DeadlineChecker';
 import { useAuth } from './shared/api/AuthContext';
+import { useHeaderActions } from './shared/context/HeaderActionsContext';
 import './App.css';
 
 function App() {
   const { user } = useAuth();
+  const { rightPanel } = useHeaderActions();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   return (
@@ -18,12 +21,13 @@ function App() {
       <div className="app-container">
         {user && <Sidebar isExpanded={isSidebarExpanded} onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} />}
         {user && isSidebarExpanded && <div className="sidebar-overlay open" onClick={() => setIsSidebarExpanded(false)}></div>}
-        <div className={`${user ? 'main-wrapper' : 'full-wrapper'} ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
+        <div className={`${user ? 'main-wrapper' : 'full-wrapper'} ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'} ${rightPanel ? 'has-right-panel' : ''}`}>
           {user && <Header onMenuClick={() => setIsSidebarExpanded(!isSidebarExpanded)} />}
           <main className="main-content">
             <AppRoutes />
           </main>
         </div>
+        {user && <RightPanel />}
         {user && <DeadlineChecker />}
       </div>
       <ToastContainer position="bottom-left" />

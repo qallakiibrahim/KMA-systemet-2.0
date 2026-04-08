@@ -13,7 +13,7 @@ const Header = ({ onMenuClick }) => {
   const queryClient = useQueryClient();
   const { user, userProfile } = useAuth();
   const { searchQuery, setSearchQuery } = useSearch();
-  const { actions } = useHeaderActions();
+  const { actions, centerTools } = useHeaderActions();
   const navigate = useNavigate();
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -123,6 +123,11 @@ const Header = ({ onMenuClick }) => {
           />
         </div>
       </div>
+      
+      <div className="header-center">
+        {centerTools && <div className="header-center-tools">{centerTools}</div>}
+      </div>
+
       <div className="header-right">
         {actions && <div className="header-app-actions">{actions}</div>}
         <div className="notification-wrapper" ref={notificationRef}>

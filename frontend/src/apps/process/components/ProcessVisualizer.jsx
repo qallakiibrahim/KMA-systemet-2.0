@@ -20,7 +20,7 @@ import { updateProcess, getProcesses, createProcess, deleteProcess } from '../ap
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import { useSearch } from '../../../shared/context/SearchContext';
-import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
+import { useRegisterHeaderActions, useRegisterCenterTools, useRegisterRightPanel } from '../../../shared/context/HeaderActionsContext';
 import ConfirmModal from './ConfirmModal';
 import '../styles/ProcessVisualizer.css';
 
@@ -718,7 +718,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     }
   }, [getEdges, getNodes, getViewport, onUpdate, process.id]);
 
-  // Register header actions at the end to ensure all callbacks (like saveProcess) are defined
+  // Register header actions and tools
   const headerActions = useMemo(() => (
     <div className="flex gap-2">
       <button className="btn btn-secondary btn-sm" onClick={onBack}>
@@ -744,55 +744,158 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
               </button>
             </>
           )}
-          {(selectedNode || selectedEdge) && isEditMode && (
-            <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm({ isOpen: true, id: selectedNode?.id || selectedEdge?.id, title: selectedNode?.data?.label || 'denna koppling', type: selectedNode ? 'steg' : 'koppling' })}>
-              <Trash2 size={16} />
-              <span>Ta bort vald</span>
-            </button>
-          )}
         </>
       )}
     </div>
-  ), [onBack, userProfile, isEditMode, isSaving, saveProcess, selectedNode, selectedEdge]);
+  ), [onBack, userProfile, isEditMode, isSaving, saveProcess]);
+
+  const centerTools = useMemo(() => {
+    if (!isEditMode) return null;
+
+    return (
+      <div className="header-toolbar-group">
+        <button className="tool-btn" onClick={() => addNode('process')} title="Process-steg">
+          <div className="shape rect"></div>
+          <span>Steg</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('decision')} title="Beslut">
+          <div className="shape diamond"></div>
+          <span>Beslut</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('document')} title="Dokument">
+          <div className="shape doc"></div>
+          <span>Dok</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('data')} title="Data">
+          <div className="shape parallelogram"></div>
+          <span>Data</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('database')} title="Databas">
+          <div className="shape cylinder"></div>
+          <span>Bas</span>
+        </button>
+      </div>
+    );
+  }, [isEditMode, addNode]);
+
+  const rightPanelContent = useMemo(() => {
+    if (!selectedNode) return null;
+
+    return (
+      <div className="property-panel">
+        <div className="panel-header">
+          <h3>{isEditMode ? 'Egenskaper' : 'Information'}</h3>
+          <button className="close-btn" onClick={() => setSelectedNode(null)}><X size={18} /></button>
+        </div>
+        
+        <div className="panel-body">
+          <div className="form-group">
+            <label>Namn</label>
+            {isEditMode ? (
+              <input 
+                type="text" 
+                value={selectedNode.data.label} 
+                onChange={(e) => updateNodeLabel(e.target.value)}
+              />
+            ) : (
+              <div className="read-only-value">{selectedNode.data.label}</div>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label>Kopplad Underprocess</label>
+            {isEditMode ? (
+              <div className="sub-process-edit-group">
+                <select 
+                  value={selectedNode.data.subProcessId || ''} 
+                  onChange={(e) => setSubProcess(e.target.value)}
+                  className="sub-process-select"
+                >
+                  <option value="">Ingen koppling</option>
+                  {allProcesses.map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+                <button 
+                  className="btn-primary btn-sm btn-full mt-2" 
+                  onClick={handleCreateSubProcess}
+                  disabled={isSaving}
+                >
+                  <PlusCircle size={16} />
+                  <span>Skapa ny underprocess</span>
+                </button>
+              </div>
+            ) : (
+              <div className="read-only-value">
+                {allProcesses.find(p => p.id === selectedNode.data.subProcessId)?.title || (selectedNode.data.subProcessId ? 'Laddar...' : 'Ingen koppling')}
+              </div>
+            )}
+            {selectedNode.data.subProcessId && (
+              <button className="btn-primary btn-full mt-2" onClick={handleDrillDown}>
+                <ExternalLink size={16} />
+                <span>Öppna underprocess</span>
+              </button>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label>Kopplade Dokument</label>
+            <div className="doc-list">
+              {isEditMode ? (
+                dokuments.map(doc => (
+                  <label key={doc.id} className="doc-item">
+                    <input 
+                      type="checkbox" 
+                      checked={(selectedNode.data.docs || []).includes(doc.id)}
+                      onChange={() => toggleDoc(doc.id)}
+                    />
+                    <FileIcon type={doc.file_type} size={16} />
+                    <span>{doc.title}</span>
+                  </label>
+                ))
+              ) : (
+                (selectedNode.data.docs || []).length > 0 ? (
+                  selectedNode.data.docs.map(docId => {
+                    const doc = dokuments.find(d => d.id === docId);
+                    if (!doc) return null;
+                    return (
+                      <a 
+                        key={doc.id} 
+                        href={doc.file_url || `/dokument?id=${doc.id}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="doc-link-item"
+                      >
+                        <FileIcon type={doc.file_type} size={16} />
+                        <span>{doc.title}</span>
+                        <ExternalLink size={14} className="ml-auto" />
+                      </a>
+                    );
+                  })
+                ) : (
+                  <p className="text-muted p-2">Inga dokument kopplade</p>
+                )
+              )}
+            </div>
+          </div>
+
+          {isEditMode && (
+            <button className="btn-danger btn-full mt-4" onClick={deleteSelectedNode}>
+              <Trash2 size={16} />
+              <span>Ta bort nod</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }, [selectedNode, isEditMode, allProcesses, dokuments, isSaving, handleCreateSubProcess, handleDrillDown, updateNodeLabel, setSubProcess, toggleDoc, deleteSelectedNode]);
 
   useRegisterHeaderActions(headerActions);
+  useRegisterCenterTools(centerTools);
+  useRegisterRightPanel(rightPanelContent);
 
   return (
     <div className="process-visualizer">
-      <div className="visualizer-header">
-        <div className="header-title-group">
-          <div className="header-titles">
-            {process.parent_id && (
-              <span className="parent-title">
-                {allProcesses.find(p => p.id === process.parent_id)?.title || 'Överliggande process'}
-              </span>
-            )}
-            <h2>{process.title}</h2>
-          </div>
-        </div>
-      </div>
-
-      <ConfirmModal 
-        isOpen={deleteConfirm.isOpen}
-        title={deleteConfirm.type === 'process' ? 'Ta bort process?' : 'Ta bort objekt?'}
-        message={deleteConfirm.type === 'process'
-          ? `Är du säker på att du vill ta bort processen "${deleteConfirm.title}"? Detta går inte att ångra.`
-          : `Vill du även ta bort den kopplade underprocessen "${deleteConfirm.title}" från systemet, eller bara ta bort objektet från denna ritning?`
-        }
-        confirmText={deleteConfirm.type === 'node-with-process' ? 'Ta bort båda' : 'Ta bort'}
-        cancelText={deleteConfirm.type === 'node-with-process' ? 'Bara objektet' : 'Avbryt'}
-        onConfirm={confirmDelete}
-        onCancel={() => {
-          if (deleteConfirm.type === 'node-with-process') {
-            // Just delete the node
-            setNodes((nds) => nds.filter((n) => n.id !== deleteConfirm.nodeId));
-            setEdges((eds) => eds.filter((e) => e.source !== deleteConfirm.nodeId && e.target !== deleteConfirm.nodeId));
-            setSelectedNode(null);
-          }
-          setDeleteConfirm({ ...deleteConfirm, isOpen: false });
-        }}
-      />
-
       <div className="visualizer-content">
         <div className="flow-container">
           <ReactFlow
@@ -838,177 +941,6 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
             {isEditMode && <MiniMap />}
           </ReactFlow>
         </div>
-
-        {isEditMode && (
-          <div className="toolbar">
-            <h3>Verktyg</h3>
-            <button className="tool-btn" onClick={() => addNode('startEnd')}>
-              <div className="shape oval"></div>
-              <span>Start/Slut</span>
-            </button>
-            <button className="tool-btn" onClick={() => addNode('step')}>
-              <div className="shape rect"></div>
-              <span>Process-steg</span>
-            </button>
-            <button className="tool-btn" onClick={() => addNode('decision')}>
-              <div className="shape diamond"></div>
-              <span>Beslut</span>
-            </button>
-            <button className="tool-btn" onClick={() => addNode('document')}>
-              <div className="shape doc"></div>
-              <span>Dokument</span>
-            </button>
-            <button className="tool-btn" onClick={() => addNode('data')}>
-              <div className="shape parallelogram"></div>
-              <span>Data</span>
-            </button>
-            <button className="tool-btn" onClick={() => addNode('database')}>
-              <div className="shape cylinder"></div>
-              <span>Databas</span>
-            </button>
-            <button className="tool-btn" onClick={() => addNode('manualInput')}>
-              <div className="shape trapezoid"></div>
-              <span>Manuell inmatn.</span>
-            </button>
-            <button className="tool-btn" onClick={() => addNode('delay')}>
-              <div className="shape delay-shape"></div>
-              <span>Fördröjning</span>
-            </button>
-            <button className="tool-btn" onClick={() => addNode('display')}>
-              <div className="shape bullet"></div>
-              <span>Visa/Display</span>
-            </button>
-            <button className="tool-btn" onClick={() => addNode('preparation')}>
-              <div className="shape hexagon"></div>
-              <span>Förberedelse</span>
-            </button>
-            <hr />
-            <button 
-              className="tool-btn text-red-500 hover:bg-red-50" 
-              onClick={deleteSelectedNode}
-              disabled={!selectedNode && !selectedEdge}
-              title="Ta bort markerat objekt"
-            >
-              <Trash2 size={16} />
-              <span>Ta bort vald</span>
-            </button>
-            <p className="hint">Dra mellan noder för att skapa kopplingar</p>
-          </div>
-        )}
-
-        {selectedNode && (
-          <div className="properties-panel">
-            <div className="panel-header">
-              <h3>{isEditMode ? 'Egenskaper' : 'Information'}</h3>
-              <button className="close-btn" onClick={() => setSelectedNode(null)}>
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div className="panel-body">
-              <div className="form-group">
-                <label>Namn</label>
-                {isEditMode ? (
-                  <input 
-                    type="text" 
-                    value={selectedNode.data.label} 
-                    onChange={(e) => updateNodeLabel(e.target.value)}
-                  />
-                ) : (
-                  <div className="read-only-value">{selectedNode.data.label}</div>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Kopplad Underprocess</label>
-                {isEditMode ? (
-                  <div className="sub-process-edit-group">
-                    <select 
-                      value={selectedNode.data.subProcessId || ''} 
-                      onChange={(e) => setSubProcess(e.target.value)}
-                      className="sub-process-select"
-                    >
-                      <option value="">Ingen koppling</option>
-                      {allProcesses.map(p => (
-                        <option key={p.id} value={p.id}>{p.title}</option>
-                      ))}
-                    </select>
-                    <button 
-                      className="btn-primary btn-sm btn-full mt-2" 
-                      onClick={handleCreateSubProcess}
-                      disabled={isSaving}
-                    >
-                      <PlusCircle size={16} />
-                      <span>Skapa ny underprocess</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="read-only-value">
-                    {allProcesses.find(p => p.id === selectedNode.data.subProcessId)?.title || (selectedNode.data.subProcessId ? 'Laddar...' : 'Ingen koppling')}
-                  </div>
-                )}
-                {selectedNode.data.subProcessId && (
-                  <button className="btn-primary btn-full mt-2" onClick={handleDrillDown}>
-                    <ExternalLink size={16} />
-                    <span>Öppna underprocess</span>
-                  </button>
-                )}
-                {!selectedNode.data.subProcessId && !isEditMode && (
-                  <p className="hint mt-2">Klicka på "Redigera" för att koppla en underprocess till detta steg.</p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label>Kopplade Dokument</label>
-                <div className="doc-list">
-                  {isEditMode ? (
-                    dokuments.map(doc => (
-                      <label key={doc.id} className="doc-item">
-                        <input 
-                          type="checkbox" 
-                          checked={(selectedNode.data.docs || []).includes(doc.id)}
-                          onChange={() => toggleDoc(doc.id)}
-                        />
-                        <FileIcon type={doc.file_type} size={16} />
-                        <span>{doc.title}</span>
-                      </label>
-                    ))
-                  ) : (
-                    (selectedNode.data.docs || []).length > 0 ? (
-                      selectedNode.data.docs.map(docId => {
-                        const doc = dokuments.find(d => d.id === docId);
-                        if (!doc) return null;
-                        return (
-                          <a 
-                            key={doc.id} 
-                            href={doc.file_url || `/dokument?id=${doc.id}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="doc-link-item"
-                          >
-                            <FileIcon type={doc.file_type} size={16} />
-                            <span>{doc.title}</span>
-                            <ExternalLink size={14} className="ml-auto" />
-                          </a>
-                        );
-                      })
-                    ) : (
-                      <p className="text-muted p-2">Inga dokument kopplade</p>
-                    )
-                  )}
-                  {isEditMode && dokuments.length === 0 && <p className="text-muted p-2">Inga dokument tillgängliga</p>}
-                </div>
-              </div>
-
-              {isEditMode && (
-                <button className="btn-danger btn-full" onClick={deleteSelectedNode}>
-                  <Trash2 size={16} />
-                  <span>Ta bort nod</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

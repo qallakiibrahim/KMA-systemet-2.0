@@ -5,14 +5,26 @@ const HeaderActionsApiContext = createContext();
 
 export const HeaderActionsProvider = ({ children }) => {
   const [actions, setActions] = useState(null);
+  const [centerTools, setCenterTools] = useState(null);
+  const [rightPanel, setRightPanel] = useState(null);
 
   const registerActions = useCallback((newActions) => {
     setActions(newActions);
     return () => setActions(null);
   }, []);
 
-  const stateValue = useMemo(() => ({ actions }), [actions]);
-  const apiValue = useMemo(() => ({ registerActions }), [registerActions]);
+  const registerCenterTools = useCallback((newTools) => {
+    setCenterTools(newTools);
+    return () => setCenterTools(null);
+  }, []);
+
+  const registerRightPanel = useCallback((newPanel) => {
+    setRightPanel(newPanel);
+    return () => setRightPanel(null);
+  }, []);
+
+  const stateValue = useMemo(() => ({ actions, centerTools, rightPanel }), [actions, centerTools, rightPanel]);
+  const apiValue = useMemo(() => ({ registerActions, registerCenterTools, registerRightPanel }), [registerActions, registerCenterTools, registerRightPanel]);
 
   const memoizedChildren = useMemo(() => children, [children]);
 
@@ -43,4 +55,28 @@ export const useRegisterHeaderActions = (newActions) => {
   useEffect(() => {
     return registerActions(newActions);
   }, [newActions, registerActions]);
+};
+
+export const useRegisterCenterTools = (newTools) => {
+  const context = useContext(HeaderActionsApiContext);
+  if (!context) {
+    throw new Error('useRegisterCenterTools must be used within a HeaderActionsProvider');
+  }
+  const { registerCenterTools } = context;
+
+  useEffect(() => {
+    return registerCenterTools(newTools);
+  }, [newTools, registerCenterTools]);
+};
+
+export const useRegisterRightPanel = (newPanel) => {
+  const context = useContext(HeaderActionsApiContext);
+  if (!context) {
+    throw new Error('useRegisterRightPanel must be used within a HeaderActionsProvider');
+  }
+  const { registerRightPanel } = context;
+
+  useEffect(() => {
+    return registerRightPanel(newPanel);
+  }, [newPanel, registerRightPanel]);
 };
