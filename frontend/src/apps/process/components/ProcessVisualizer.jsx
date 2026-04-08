@@ -754,7 +754,11 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
 
     return (
       <div className="header-toolbar-group">
-        <button className="tool-btn" onClick={() => addNode('process')} title="Process-steg">
+        <button className="tool-btn" onClick={() => addNode('startEnd')} title="Start/Slut">
+          <div className="shape oval"></div>
+          <span>Start</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('step')} title="Process-steg">
           <div className="shape rect"></div>
           <span>Steg</span>
         </button>
@@ -773,6 +777,22 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
         <button className="tool-btn" onClick={() => addNode('database')} title="Databas">
           <div className="shape cylinder"></div>
           <span>Bas</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('manualInput')} title="Manuell inmatning">
+          <div className="shape trapezoid"></div>
+          <span>Manuell</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('delay')} title="Fördröjning">
+          <div className="shape delay-shape"></div>
+          <span>Vänt</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('display')} title="Visa/Display">
+          <div className="shape bullet"></div>
+          <span>Visa</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('preparation')} title="Förberedelse">
+          <div className="shape hexagon"></div>
+          <span>Förber.</span>
         </button>
       </div>
     );
