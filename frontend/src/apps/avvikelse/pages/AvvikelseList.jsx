@@ -6,7 +6,7 @@ import { getAuditLogs } from '../../../shared/api/auditLog';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
-import { useHeaderActions } from '../../../shared/context/HeaderActionsContext';
+import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import { Plus, Edit2, Trash2, X, AlertTriangle, CheckCircle, Clock, Lock, Bot, Paperclip, FileText, Image as ImageIcon, UploadCloud, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleGenAI } from '@google/genai';
@@ -71,7 +71,7 @@ const AvvikelseList = () => {
     </button>
   ), []);
 
-  useHeaderActions(headerActions);
+  useRegisterHeaderActions(headerActions);
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 

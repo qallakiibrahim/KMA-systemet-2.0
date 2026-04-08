@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 
-const HeaderActionsContext = createContext();
+const HeaderActionsStateContext = createContext();
+const HeaderActionsApiContext = createContext();
 
 export const HeaderActionsProvider = ({ children }) => {
   const [actions, setActions] = useState(null);
@@ -10,21 +11,31 @@ export const HeaderActionsProvider = ({ children }) => {
     return () => setActions(null);
   }, []);
 
-  const value = useMemo(() => ({ actions, registerActions }), [actions, registerActions]);
+  const stateValue = useMemo(() => ({ actions }), [actions]);
+  const apiValue = useMemo(() => ({ registerActions }), [registerActions]);
 
   return (
-    <HeaderActionsContext.Provider value={value}>
-      {children}
-    </HeaderActionsContext.Provider>
+    <HeaderActionsStateContext.Provider value={stateValue}>
+      <HeaderActionsApiContext.Provider value={apiValue}>
+        {children}
+      </HeaderActionsApiContext.Provider>
+    </HeaderActionsStateContext.Provider>
   );
 };
 
-export const useHeaderActions = (newActions) => {
-  const context = useContext(HeaderActionsContext);
+export const useHeaderActions = () => {
+  const context = useContext(HeaderActionsStateContext);
   if (!context) {
     throw new Error('useHeaderActions must be used within a HeaderActionsProvider');
   }
+  return context;
+};
 
+export const useRegisterHeaderActions = (newActions) => {
+  const context = useContext(HeaderActionsApiContext);
+  if (!context) {
+    throw new Error('useRegisterHeaderActions must be used within a HeaderActionsProvider');
+  }
   const { registerActions } = context;
 
   useEffect(() => {
@@ -32,6 +43,4 @@ export const useHeaderActions = (newActions) => {
       return registerActions(newActions);
     }
   }, [newActions, registerActions]);
-
-  return context;
 };

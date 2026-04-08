@@ -6,7 +6,7 @@ import { createNotification } from '../../notification/api/notification';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
-import { useHeaderActions } from '../../../shared/context/HeaderActionsContext';
+import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import { Plus, Clock, CheckCircle, Circle, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertOctagon } from 'lucide-react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -31,7 +31,7 @@ const TaskDashboard = () => {
     </button>
   ), []);
 
-  useHeaderActions(headerActions);
+  useRegisterHeaderActions(headerActions);
   const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium' });
 

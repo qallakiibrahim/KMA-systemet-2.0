@@ -20,7 +20,7 @@ import { updateProcess, getProcesses, createProcess, deleteProcess } from '../ap
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import { useSearch } from '../../../shared/context/SearchContext';
-import { useHeaderActions } from '../../../shared/context/HeaderActionsContext';
+import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import ConfirmModal from './ConfirmModal';
 import '../styles/ProcessVisualizer.css';
 
@@ -335,45 +335,6 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
   const [allProcesses, setAllProcesses] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: 'process', title: '', nodeId: null });
-
-  // Register header actions
-  const headerActions = useMemo(() => (
-    <div className="flex gap-2">
-      <button className="btn btn-secondary btn-sm" onClick={onBack}>
-        <ChevronLeft size={16} />
-        <span>Tillbaka</span>
-      </button>
-      {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
-        <>
-          {!isEditMode ? (
-            <button className="btn btn-secondary btn-sm" onClick={() => setIsEditMode(true)}>
-              <Edit2 size={16} />
-              <span>Redigera</span>
-            </button>
-          ) : (
-            <>
-              <button className="btn btn-secondary btn-sm" onClick={() => { setIsEditMode(false); setSelectedNode(null); setSelectedEdge(null); }}>
-                <X size={16} />
-                <span>Avbryt</span>
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={saveProcess} disabled={isSaving}>
-                <Save size={16} />
-                <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
-              </button>
-            </>
-          )}
-          {(selectedNode || selectedEdge) && isEditMode && (
-            <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm({ isOpen: true, id: selectedNode?.id || selectedEdge?.id, title: selectedNode?.data?.label || 'denna koppling', type: selectedNode ? 'steg' : 'koppling' })}>
-              <Trash2 size={16} />
-              <span>Ta bort vald</span>
-            </button>
-          )}
-        </>
-      )}
-    </div>
-  ), [onBack, userProfile, isEditMode, isSaving, saveProcess, selectedNode, selectedEdge]);
-
-  useHeaderActions(headerActions);
 
   // Helper to remove non-serializable data (functions) before saving
   const cleanNodesForStorage = (nodesToClean) => {
@@ -756,6 +717,45 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
       setIsSaving(false);
     }
   }, [getEdges, getNodes, getViewport, onUpdate, process.id]);
+
+  // Register header actions at the end to ensure all callbacks (like saveProcess) are defined
+  const headerActions = useMemo(() => (
+    <div className="flex gap-2">
+      <button className="btn btn-secondary btn-sm" onClick={onBack}>
+        <ChevronLeft size={16} />
+        <span>Tillbaka</span>
+      </button>
+      {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+        <>
+          {!isEditMode ? (
+            <button className="btn btn-secondary btn-sm" onClick={() => setIsEditMode(true)}>
+              <Edit2 size={16} />
+              <span>Redigera</span>
+            </button>
+          ) : (
+            <>
+              <button className="btn btn-secondary btn-sm" onClick={() => { setIsEditMode(false); setSelectedNode(null); setSelectedEdge(null); }}>
+                <X size={16} />
+                <span>Avbryt</span>
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={saveProcess} disabled={isSaving}>
+                <Save size={16} />
+                <span>{isSaving ? 'Sparar...' : 'Spara'}</span>
+              </button>
+            </>
+          )}
+          {(selectedNode || selectedEdge) && isEditMode && (
+            <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm({ isOpen: true, id: selectedNode?.id || selectedEdge?.id, title: selectedNode?.data?.label || 'denna koppling', type: selectedNode ? 'steg' : 'koppling' })}>
+              <Trash2 size={16} />
+              <span>Ta bort vald</span>
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  ), [onBack, userProfile, isEditMode, isSaving, saveProcess, selectedNode, selectedEdge]);
+
+  useRegisterHeaderActions(headerActions);
 
   return (
     <div className="process-visualizer">

@@ -5,7 +5,7 @@ import { getDokuments, createDokument, updateDokument, deleteDokument, uploadDoc
 import { getProcesses, createProcess, getGlobalProcesses } from '../../process/api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
-import { useHeaderActions } from '../../../shared/context/HeaderActionsContext';
+import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import { supabase } from '../../../supabase';
 import DocumentEditor from '../components/DocumentEditor';
 import { 
@@ -86,7 +86,7 @@ const DokumentList = () => {
     </div>
   ), [viewMode, userProfile]);
 
-  useHeaderActions(headerActions);
+  useRegisterHeaderActions(headerActions);
 
   useEffect(() => {
     // No-op, removed local searchTerm
