@@ -493,21 +493,6 @@ const ProcessListContent = () => {
     setDeleteConfirm({ isOpen: true, id: 'root', title: 'Huvudprocesskartan', type: 'rootMap' });
   };
 
-  if (isError) {
-    return (
-      <div className="error-state">
-        <AlertOctagon size={48} className="text-level-high" />
-        <h2>Ett fel uppstod vid hämtning av processer</h2>
-        <p>{error?.message || 'Kunde inte ansluta till databasen'}</p>
-        <button className="btn btn-primary" onClick={() => queryClient.invalidateQueries({ queryKey: ['processes'] })}>
-          Försök igen
-        </button>
-      </div>
-    );
-  }
-
-  if ((loading || loadingRoot) && processes.length === 0 && !rootMapData) return <div className="loading-spinner">Laddar processer...</div>;
-
   const activeProcess = navigationStack.length > 0 ? navigationStack[navigationStack.length - 1] : null;
 
   const handleUpdateProcess = useCallback((updated, newProcess) => {
@@ -546,6 +531,21 @@ const ProcessListContent = () => {
   }, [isMobile, isEditMode, userProfile, isSaving, saveMap]);
 
   useRegisterHeaderActions(!activeProcess ? headerActions : null);
+
+  if (isError) {
+    return (
+      <div className="error-state">
+        <AlertOctagon size={48} className="text-level-high" />
+        <h2>Ett fel uppstod vid hämtning av processer</h2>
+        <p>{error?.message || 'Kunde inte ansluta till databasen'}</p>
+        <button className="btn btn-primary" onClick={() => queryClient.invalidateQueries({ queryKey: ['processes'] })}>
+          Försök igen
+        </button>
+      </div>
+    );
+  }
+
+  if ((loading || loadingRoot) && processes.length === 0 && !rootMapData) return <div className="loading-spinner">Laddar processer...</div>;
 
   if (activeProcess) {
     return (
