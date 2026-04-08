@@ -14,7 +14,7 @@ import ReactFlow, {
   useReactFlow
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { X, Save, FileText, Plus, Trash2, ChevronLeft, ChevronRight, Settings, ExternalLink, PlusCircle, Edit2, Layout, File, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet, FileCode } from 'lucide-react';
+import { X, Save, FileText, Plus, Trash2, ChevronLeft, ChevronRight, ChevronDown, Settings, ExternalLink, PlusCircle, Edit2, Layout, File, FileImage, FileVideo, FileAudio, FileArchive, FileSpreadsheet, FileCode } from 'lucide-react';
 import { getDokuments } from '../../dokument/api/dokument';
 import { updateProcess, getProcesses, createProcess, deleteProcess } from '../api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
@@ -760,68 +760,66 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     if (!isEditMode) return null;
 
     return (
-      <div className="header-toolbar-group">
-        <button className="tool-btn" onClick={() => addNode('startEnd')} title="Start/Slut">
-          <div className="shape oval"></div>
-          <span>Start</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('step')} title="Process-steg">
-          <div className="shape rect"></div>
-          <span>Steg</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('decision')} title="Beslut">
-          <div className="shape diamond"></div>
-          <span>Beslut</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('document')} title="Dokument">
-          <div className="shape doc"></div>
-          <span>Dok</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('data')} title="Data">
-          <div className="shape parallelogram"></div>
-          <span>Data</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('database')} title="Databas">
-          <div className="shape cylinder"></div>
-          <span>Bas</span>
+      <div className="relative">
+        <button 
+          className={`btn btn-secondary btn-sm ${showShapesDropdown ? 'active' : ''}`} 
+          onClick={() => setShowShapesDropdown(!showShapesDropdown)}
+          style={{ borderRadius: '0.625rem', gap: '0.5rem' }}
+        >
+          <PlusCircle size={16} />
+          <span>Lägg till objekt</span>
+          <ChevronDown size={14} />
         </button>
         
-        <div className="relative">
-          <button 
-            className={`tool-btn ${showShapesDropdown ? 'active' : ''}`} 
-            onClick={() => setShowShapesDropdown(!showShapesDropdown)}
-            title="Fler former"
-          >
-            <Layout size={16} />
-            <span>Mer</span>
-          </button>
-          
-          {showShapesDropdown && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowShapesDropdown(false)}></div>
-              <div className="shapes-dropdown-card">
-                <div className="shapes-grid">
-                  <button className="shape-item" onClick={() => { addNode('manualInput'); setShowShapesDropdown(false); }}>
-                    <div className="shape trapezoid"></div>
-                    <span>Manuell</span>
-                  </button>
-                  <button className="shape-item" onClick={() => { addNode('delay'); setShowShapesDropdown(false); }}>
-                    <div className="shape delay-shape"></div>
-                    <span>Vänt</span>
-                  </button>
-                  <button className="shape-item" onClick={() => { addNode('display'); setShowShapesDropdown(false); }}>
-                    <div className="shape bullet"></div>
-                    <span>Visa</span>
-                  </button>
-                  <button className="shape-item" onClick={() => { addNode('preparation'); setShowShapesDropdown(false); }}>
-                    <div className="shape hexagon"></div>
-                    <span>Förber.</span>
-                  </button>
-                </div>
+        {showShapesDropdown && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setShowShapesDropdown(false)}></div>
+            <div className="shapes-dropdown-card">
+              <div className="shapes-grid">
+                <button className="shape-item" onClick={() => { addNode('startEnd'); setShowShapesDropdown(false); }}>
+                  <div className="shape oval"></div>
+                  <span>Start/Slut</span>
+                </button>
+                <button className="shape-item" onClick={() => { addNode('step'); setShowShapesDropdown(false); }}>
+                  <div className="shape rect"></div>
+                  <span>Process-steg</span>
+                </button>
+                <button className="shape-item" onClick={() => { addNode('decision'); setShowShapesDropdown(false); }}>
+                  <div className="shape diamond"></div>
+                  <span>Beslut</span>
+                </button>
+                <button className="shape-item" onClick={() => { addNode('document'); setShowShapesDropdown(false); }}>
+                  <div className="shape doc"></div>
+                  <span>Dokument</span>
+                </button>
+                <button className="shape-item" onClick={() => { addNode('data'); setShowShapesDropdown(false); }}>
+                  <div className="shape parallelogram"></div>
+                  <span>Data</span>
+                </button>
+                <button className="shape-item" onClick={() => { addNode('database'); setShowShapesDropdown(false); }}>
+                  <div className="shape cylinder"></div>
+                  <span>Databas</span>
+                </button>
+                <button className="shape-item" onClick={() => { addNode('manualInput'); setShowShapesDropdown(false); }}>
+                  <div className="shape trapezoid"></div>
+                  <span>Manuell</span>
+                </button>
+                <button className="shape-item" onClick={() => { addNode('delay'); setShowShapesDropdown(false); }}>
+                  <div className="shape delay-shape"></div>
+                  <span>Fördröjning</span>
+                </button>
+                <button className="shape-item" onClick={() => { addNode('display'); setShowShapesDropdown(false); }}>
+                  <div className="shape bullet"></div>
+                  <span>Visa/Display</span>
+                </button>
+                <button className="shape-item" onClick={() => { addNode('preparation'); setShowShapesDropdown(false); }}>
+                  <div className="shape hexagon"></div>
+                  <span>Förberedelse</span>
+                </button>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     );
   }, [isEditMode, addNode, showShapesDropdown]);

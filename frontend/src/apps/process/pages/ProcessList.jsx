@@ -18,7 +18,7 @@ import 'reactflow/dist/style.css';
 import { getProcesses, createProcess, updateProcess, deleteProcess, getProcessByTitle } from '../api/process';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { supabase } from '../../../supabase';
-import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle, AlertOctagon } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Activity, CheckCircle, Clock, Search, ChevronRight, ChevronDown, Layout, ArrowLeft, ChevronLeft, Save, MousePointer2, Settings, PlusCircle, AlertOctagon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useSearch } from '../../../shared/context/SearchContext';
 import { useRegisterHeaderActions, useRegisterCenterTools, useRegisterRightPanel } from '../../../shared/context/HeaderActionsContext';
@@ -85,6 +85,7 @@ const ProcessListContent = () => {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(50); // Reasonable page size for list view
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showShapesDropdown, setShowShapesDropdown] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -534,22 +535,47 @@ const ProcessListContent = () => {
     if (!isEditMode || isMobile || activeProcess) return null;
 
     return (
-      <div className="header-toolbar-group">
-        <button className="tool-btn management" onClick={() => addProcessNode('management')}>
-          <Plus size={16} />
-          <span>Ledning</span>
+      <div className="relative">
+        <button 
+          className={`btn btn-secondary btn-sm ${showShapesDropdown ? 'active' : ''}`} 
+          onClick={() => setShowShapesDropdown(!showShapesDropdown)}
+          style={{ borderRadius: '0.625rem', gap: '0.5rem' }}
+        >
+          <PlusCircle size={16} />
+          <span>Lägg till process</span>
+          <ChevronDown size={14} />
         </button>
-        <button className="tool-btn core" onClick={() => addProcessNode('core')}>
-          <Plus size={16} />
-          <span>Huvud</span>
-        </button>
-        <button className="tool-btn support" onClick={() => addProcessNode('support')}>
-          <Plus size={16} />
-          <span>Stöd</span>
-        </button>
+        
+        {showShapesDropdown && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setShowShapesDropdown(false)}></div>
+            <div className="shapes-dropdown-card">
+              <div className="shapes-grid">
+                <button className="shape-item" onClick={() => { addProcessNode('management'); setShowShapesDropdown(false); }}>
+                  <div className="tool-btn management" style={{ border: 'none', background: 'none' }}>
+                    <Plus size={16} />
+                  </div>
+                  <span>Ledningsprocess</span>
+                </button>
+                <button className="shape-item" onClick={() => { addProcessNode('core'); setShowShapesDropdown(false); }}>
+                  <div className="tool-btn core" style={{ border: 'none', background: 'none' }}>
+                    <Plus size={16} />
+                  </div>
+                  <span>Huvudprocess</span>
+                </button>
+                <button className="shape-item" onClick={() => { addProcessNode('support'); setShowShapesDropdown(false); }}>
+                  <div className="tool-btn support" style={{ border: 'none', background: 'none' }}>
+                    <Plus size={16} />
+                  </div>
+                  <span>Stödprocess</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     );
-  }, [isEditMode, isMobile, activeProcess, addProcessNode]);
+  }, [isEditMode, isMobile, activeProcess, addProcessNode, showShapesDropdown]);
 
   const rightPanelContent = useMemo(() => {
     if (!selectedNode || activeProcess) return null;
