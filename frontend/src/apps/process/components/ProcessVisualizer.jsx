@@ -762,13 +762,13 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     return (
       <div className="relative">
         <button 
-          className={`btn btn-secondary btn-sm ${showShapesDropdown ? 'active' : ''}`} 
+          className={`btn btn-primary btn-sm ${showShapesDropdown ? 'active' : ''}`} 
           onClick={() => setShowShapesDropdown(!showShapesDropdown)}
-          style={{ borderRadius: '0.625rem', gap: '0.5rem' }}
+          style={{ borderRadius: '0.625rem', gap: '0.5rem', padding: '0.5rem 1.25rem' }}
         >
-          <PlusCircle size={16} />
+          <PlusCircle size={18} />
           <span>Lägg till objekt</span>
-          <ChevronDown size={14} />
+          <ChevronDown size={14} className={`transition-transform ${showShapesDropdown ? 'rotate-180' : ''}`} />
         </button>
         
         {showShapesDropdown && (
@@ -894,9 +894,13 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
                       type="checkbox" 
                       checked={(selectedNode.data.docs || []).includes(doc.id)}
                       onChange={() => toggleDoc(doc.id)}
+                      className="mr-2"
                     />
-                    <FileIcon type={doc.file_type} size={16} />
-                    <span>{doc.title}</span>
+                    <FileIcon type={doc.file_type} size={20} />
+                    <div className="doc-info">
+                      <span className="doc-name">{doc.title}</span>
+                      <span className="doc-meta">{doc.file_type?.split('/')[1]?.toUpperCase() || 'FIL'}</span>
+                    </div>
                   </label>
                 ))
               ) : (
@@ -910,11 +914,14 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
                         href={doc.file_url || `/dokument?id=${doc.id}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="doc-link-item"
+                        className="doc-item"
                       >
-                        <FileIcon type={doc.file_type} size={16} />
-                        <span>{doc.title}</span>
-                        <ExternalLink size={14} className="ml-auto" />
+                        <FileIcon type={doc.file_type} size={20} />
+                        <div className="doc-info">
+                          <span className="doc-name">{doc.title}</span>
+                          <span className="doc-meta">{doc.file_type?.split('/')[1]?.toUpperCase() || 'FIL'}</span>
+                        </div>
+                        <ExternalLink size={14} className="ml-auto text-muted" />
                       </a>
                     );
                   })

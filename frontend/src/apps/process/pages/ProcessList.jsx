@@ -537,13 +537,13 @@ const ProcessListContent = () => {
     return (
       <div className="relative">
         <button 
-          className={`btn btn-secondary btn-sm ${showShapesDropdown ? 'active' : ''}`} 
+          className={`btn btn-primary btn-sm ${showShapesDropdown ? 'active' : ''}`} 
           onClick={() => setShowShapesDropdown(!showShapesDropdown)}
-          style={{ borderRadius: '0.625rem', gap: '0.5rem' }}
+          style={{ borderRadius: '0.625rem', gap: '0.5rem', padding: '0.5rem 1.25rem' }}
         >
-          <PlusCircle size={16} />
+          <PlusCircle size={18} />
           <span>Lägg till process</span>
-          <ChevronDown size={14} />
+          <ChevronDown size={14} className={`transition-transform ${showShapesDropdown ? 'rotate-180' : ''}`} />
         </button>
         
         {showShapesDropdown && (

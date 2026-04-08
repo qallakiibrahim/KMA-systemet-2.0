@@ -160,48 +160,56 @@
 
 .shapes-dropdown-card {
   position: absolute;
-  top: calc(100% + 0.5rem);
+  top: calc(100% + 0.75rem);
   left: 50%;
   transform: translateX(-50%);
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 1rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  padding: 1.25rem;
-  z-index: 50;
-  min-width: 320px;
-  animation: slideInDown 0.2s ease-out;
-}
-
-@keyframes slideInDown {
-  from { opacity: 0; transform: translate(-50%, -10px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
+  border-radius: 1.25rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  z-index: 100;
+  min-width: 360px;
+  animation: slideInDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .shapes-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
 }
 
 .shape-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 0.5rem;
-  border-radius: 0.75rem;
-  border: 1px solid transparent;
-  background: none;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
   cursor: pointer;
-  color: var(--text-secondary);
-  transition: all 0.2s;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  text-align: left;
 }
 
 .shape-item:hover {
-  background-color: var(--bg-secondary);
-  color: var(--primary-color);
-  border-color: var(--border-color);
+  background-color: var(--bg-hover);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.shape-item .shape {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary);
+  border-radius: 4px;
 }
 
 .shape-item span {
