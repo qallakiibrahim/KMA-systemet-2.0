@@ -94,7 +94,8 @@ export const createProcess = async (data, user = null) => {
           entity_id: retryInserted.id,
           entity_name: retryInserted.title,
           user_id: user.id,
-          user_email: user.email
+          user_email: user.email,
+          company_id: retryInserted.company_id
         });
       }
       
@@ -111,7 +112,8 @@ export const createProcess = async (data, user = null) => {
       entity_id: inserted.id,
       entity_name: inserted.title,
       user_id: user.id,
-      user_email: user.email
+      user_email: user.email,
+      company_id: inserted.company_id
     });
   }
 
@@ -159,7 +161,8 @@ export const updateProcess = async (id, data, user = null) => {
             entity_name: retryUpdated.title,
             changes: { old: oldData, new: retryUpdated },
             user_id: user.id,
-            user_email: user.email
+            user_email: user.email,
+            company_id: retryUpdated.company_id
           });
         }
 
@@ -177,7 +180,8 @@ export const updateProcess = async (id, data, user = null) => {
         entity_name: updated.title,
         changes: { old: oldData, new: updated },
         user_id: user.id,
-        user_email: user.email
+        user_email: user.email,
+        company_id: updated.company_id
       });
     }
 
@@ -211,11 +215,15 @@ export const getProcessByTitle = async (title) => {
 };
 
 export const deleteProcess = async (id, user = null) => {
-  // Get name before deleting
+  // Get name and company_id before deleting
   let entityName = id;
+  let companyId = null;
   if (user) {
-    const { data } = await supabase.from(tableName).select('title').eq('id', id).single();
-    if (data) entityName = data.title;
+    const { data } = await supabase.from(tableName).select('title, company_id').eq('id', id).single();
+    if (data) {
+      entityName = data.title;
+      companyId = data.company_id;
+    }
   }
 
   const { error } = await supabase
@@ -232,7 +240,8 @@ export const deleteProcess = async (id, user = null) => {
       entity_id: id,
       entity_name: entityName,
       user_id: user.id,
-      user_email: user.email
+      user_email: user.email,
+      company_id: companyId
     });
   }
 

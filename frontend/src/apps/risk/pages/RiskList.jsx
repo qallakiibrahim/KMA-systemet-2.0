@@ -56,7 +56,7 @@ const RiskList = () => {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: createRisk,
+    mutationFn: (data) => createRisk(data, currentUser),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['risker'] });
       toast.success('Risk skapad!');
@@ -69,7 +69,7 @@ const RiskList = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => updateRisk(id, data),
+    mutationFn: ({ id, data }) => updateRisk(id, data, currentUser),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['risker'] });
       toast.success('Risk uppdaterad!');
@@ -82,7 +82,7 @@ const RiskList = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteRisk,
+    mutationFn: (id) => deleteRisk(id, currentUser),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['risker'] });
       toast.success('Risk raderad');

@@ -166,6 +166,37 @@ Data:
 
   const trendData = Object.values(trendDataMap);
 
+  const getEntityIcon = (type) => {
+    switch (type) {
+      case 'PROCESS': return <Activity size={16} />;
+      case 'DOCUMENT': return <FileText size={16} />;
+      case 'RISK': return <Shield size={16} />;
+      case 'ISSUE': return <AlertTriangle size={16} />;
+      case 'TASK': return <CheckSquare size={16} />;
+      default: return <FileText size={16} />;
+    }
+  };
+
+  const getActionText = (action) => {
+    switch (action) {
+      case 'CREATE': return 'skapade';
+      case 'UPDATE': return 'uppdaterade';
+      case 'DELETE': return 'raderade';
+      default: return 'utförde';
+    }
+  };
+
+  const getEntityText = (type) => {
+    switch (type) {
+      case 'PROCESS': return 'en process';
+      case 'DOCUMENT': return 'ett dokument';
+      case 'RISK': return 'en risk';
+      case 'ISSUE': return 'en avvikelse';
+      case 'TASK': return 'en uppgift';
+      default: return 'ett objekt';
+    }
+  };
+
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
@@ -235,14 +266,11 @@ Data:
               {recentLogs.map(log => (
                 <div key={log.id} className="activity-item">
                   <div className="activity-icon">
-                    {log.table_name === 'avvikelser' ? <AlertTriangle size={16} /> :
-                     log.table_name === 'risker' ? <Shield size={16} /> :
-                     log.table_name === 'tasks' ? <CheckSquare size={16} /> :
-                     <FileText size={16} />}
+                    {getEntityIcon(log.entity_type)}
                   </div>
                   <div className="activity-info">
                     <span className="activity-text">
-                      <strong>{log.profiles?.display_name || 'System'}</strong> {log.action === 'INSERT' ? 'skapade' : log.action === 'UPDATE' ? 'uppdaterade' : 'raderade'} en {log.table_name === 'avvikelser' ? 'avvikelse' : log.table_name === 'risker' ? 'risk' : log.table_name === 'tasks' ? 'uppgift' : 'dokument'}
+                      <strong>{log.user_email?.split('@')[0] || 'System'}</strong> {getActionText(log.action)} {getEntityText(log.entity_type)}: <em>{log.entity_name}</em>
                     </span>
                     <span className="activity-time">
                       {new Date(log.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}

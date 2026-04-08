@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase';
+import { logAction } from '../../../shared/api/auditLog';
 
 const tableName = 'avvikelser';
 const bucketName = 'avvikelser';
@@ -122,7 +123,7 @@ export const getOpenAvvikelser = async () => {
   return data;
 };
 
-export const createAvvikelse = async (data) => {
+export const createAvvikelse = async (data, user = null) => {
   const { data: inserted, error } = await supabase
     .from(tableName)
     .insert([data])
@@ -130,10 +131,30 @@ export const createAvvikelse = async (data) => {
     .single();
     
   if (error) throw error;
+
+  if (user) {
+    logAction({
+      action: 'CREATE',
+      entity_type: 'ISSUE',
+      entity_id: inserted.id,
+      entity_name: inserted.title,
+      user_id: user.id,
+      user_email: user.email,
+      company_id: inserted.company_id
+    });
+  }
+
   return inserted;
 };
 
-export const updateAvvikelse = async (id, data) => {
+export const updateAvvikelse = async (id, data, user = null) => {
+  // Get old data for logging changes
+  let oldData = null;
+  if (user) {
+    const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
+    oldData = existing;
+  }
+
   const { data: updated, error } = await supabase
     .from(tableName)
     .update(data)
@@ -142,15 +163,53 @@ export const updateAvvikelse = async (id, data) => {
     .single();
     
   if (error) throw error;
+
+  if (user) {
+    logAction({
+      action: 'UPDATE',
+      entity_type: 'ISSUE',
+      entity_id: id,
+      entity_name: updated.title,
+      changes: { old: oldData, new: updated },
+      user_id: user.id,
+      user_email: user.email,
+      company_id: updated.company_id
+    });
+  }
+
   return updated;
 };
 
-export const deleteAvvikelse = async (id) => {
+export const deleteAvvikelse = async (id, user = null) => {
+  // Get name and company_id before deleting
+  let entityName = id;
+  let companyId = null;
+  if (user) {
+    const { data } = await supabase.from(tableName).select('title, company_id').eq('id', id).single();
+    if (data) {
+      entityName = data.title;
+      companyId = data.company_id;
+    }
+  }
+
   const { error } = await supabase
     .from(tableName)
     .delete()
     .eq('id', id);
     
   if (error) throw error;
+
+  if (user) {
+    logAction({
+      action: 'DELETE',
+      entity_type: 'ISSUE',
+      entity_id: id,
+      entity_name: entityName,
+      user_id: user.id,
+      user_email: user.email,
+      company_id: companyId
+    });
+  }
+
   return { id };
 };

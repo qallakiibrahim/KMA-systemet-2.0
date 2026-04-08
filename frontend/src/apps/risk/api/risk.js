@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase';
+import { logAction } from '../../../shared/api/auditLog';
 
 const tableName = 'risker';
 
@@ -66,7 +67,7 @@ export const getGlobalRisks = async () => {
   }
 };
 
-export const createRisk = async (data) => {
+export const createRisk = async (data, user = null) => {
   // Strip out attachments if they are present (they are a relationship, not a column)
   const { attachments, ...insertData } = data;
   
@@ -89,15 +90,48 @@ export const createRisk = async (data) => {
         .single();
         
       if (retryError) throw retryError;
+
+      if (user) {
+        logAction({
+          action: 'CREATE',
+          entity_type: 'RISK',
+          entity_id: retryInserted.id,
+          entity_name: retryInserted.title,
+          user_id: user.id,
+          user_email: user.email,
+          company_id: retryInserted.company_id
+        });
+      }
+
       return retryInserted;
     }
     throw error;
   }
+
+  if (user) {
+    logAction({
+      action: 'CREATE',
+      entity_type: 'RISK',
+      entity_id: inserted.id,
+      entity_name: inserted.title,
+      user_id: user.id,
+      user_email: user.email,
+      company_id: inserted.company_id
+    });
+  }
+
   return inserted;
 };
 
-export const updateRisk = async (id, data) => {
+export const updateRisk = async (id, data, user = null) => {
   try {
+    // Get old data for logging changes
+    let oldData = null;
+    if (user) {
+      const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
+      oldData = existing;
+    }
+
     const { data: updated, error } = await supabase
       .from(tableName)
       .update(data)
@@ -106,6 +140,20 @@ export const updateRisk = async (id, data) => {
       .single();
       
     if (error) throw error;
+
+    if (user) {
+      logAction({
+        action: 'UPDATE',
+        entity_type: 'RISK',
+        entity_id: id,
+        entity_name: updated.title,
+        changes: { old: oldData, new: updated },
+        user_id: user.id,
+        user_email: user.email,
+        company_id: updated.company_id
+      });
+    }
+
     return updated;
   } catch (error) {
     console.error('Supabase updateRisk error:', error);
@@ -122,18 +170,55 @@ export const updateRisk = async (id, data) => {
         .single();
         
       if (retryError) throw retryError;
+
+      if (user) {
+        logAction({
+          action: 'UPDATE',
+          entity_type: 'RISK',
+          entity_id: id,
+          entity_name: retryUpdated.title,
+          user_id: user.id,
+          user_email: user.email,
+          company_id: retryUpdated.company_id
+        });
+      }
+
       return retryUpdated;
     }
     throw error;
   }
 };
 
-export const deleteRisk = async (id) => {
+export const deleteRisk = async (id, user = null) => {
+  // Get name and company_id before deleting
+  let entityName = id;
+  let companyId = null;
+  if (user) {
+    const { data } = await supabase.from(tableName).select('title, company_id').eq('id', id).single();
+    if (data) {
+      entityName = data.title;
+      companyId = data.company_id;
+    }
+  }
+
   const { error } = await supabase
     .from(tableName)
     .delete()
     .eq('id', id);
     
   if (error) throw error;
+
+  if (user) {
+    logAction({
+      action: 'DELETE',
+      entity_type: 'RISK',
+      entity_id: id,
+      entity_name: entityName,
+      user_id: user.id,
+      user_email: user.email,
+      company_id: companyId
+    });
+  }
+
   return { id };
 };

@@ -275,7 +275,7 @@ const DokumentList = () => {
       }
 
       if (editingDokument) {
-        await updateDokument(editingDokument.id, { ...formData, company_id: companyId });
+        await updateDokument(editingDokument.id, { ...formData, company_id: companyId }, currentUser);
         queryClient.invalidateQueries({ queryKey: ['documents'] });
         toast.success('Dokument uppdaterat!');
       } else {
@@ -285,7 +285,7 @@ const DokumentList = () => {
           company_id: companyId,
           is_global: userProfile?.role === 'superadmin' && formData.is_template
         };
-        await createDokument(newDoc);
+        await createDokument(newDoc, currentUser);
         queryClient.invalidateQueries({ queryKey: ['documents'] });
         toast.success('Dokument tillagt!');
       }
@@ -310,7 +310,7 @@ const DokumentList = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Är du säker på att du vill radera detta dokument?')) {
       try {
-        await deleteDokument(id);
+        await deleteDokument(id, currentUser);
         queryClient.invalidateQueries({ queryKey: ['documents'] });
         toast.success('Dokument raderat');
       } catch (error) {

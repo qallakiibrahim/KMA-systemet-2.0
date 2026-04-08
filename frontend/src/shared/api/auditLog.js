@@ -12,6 +12,7 @@ const tableName = 'audit_logs';
  * @param {Object} params.changes - Optional object containing old and new values
  * @param {string} params.user_id - The ID of the user who performed the action
  * @param {string} params.user_email - The email of the user
+ * @param {string} params.company_id - The ID of the company
  */
 export const logAction = async ({ 
   action, 
@@ -20,7 +21,8 @@ export const logAction = async ({
   entity_name, 
   changes = null, 
   user_id, 
-  user_email 
+  user_email,
+  company_id
 }) => {
   try {
     const { error } = await supabase
@@ -33,6 +35,7 @@ export const logAction = async ({
         changes,
         user_id,
         user_email,
+        company_id,
         created_at: new Date().toISOString()
       }]);
 
@@ -65,6 +68,9 @@ export const getAuditLogs = async (page = 1, pageSize = 20, filters = {}) => {
     if (filters.user_id) {
       query = query.eq('user_id', filters.user_id);
     }
+    if (filters.company_id) {
+      query = query.eq('company_id', filters.company_id);
+    }
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -76,5 +82,25 @@ export const getAuditLogs = async (page = 1, pageSize = 20, filters = {}) => {
   } catch (error) {
     console.error('Error fetching audit logs:', error);
     throw error;
+  }
+};
+
+/**
+ * Get recent audit logs for a specific company
+ */
+export const getCompanyAuditLogs = async (companyId, limit = 10) => {
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching company audit logs:', error);
+    return [];
   }
 };

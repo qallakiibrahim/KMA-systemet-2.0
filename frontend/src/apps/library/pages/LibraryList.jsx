@@ -109,11 +109,11 @@ const LibraryList = () => {
 
       let createdItem;
       if (type === 'process') {
-        createdItem = await createProcess(newItem);
+        createdItem = await createProcess(newItem, currentUser);
       } else if (type === 'document') {
-        createdItem = await createDokument(newItem);
+        createdItem = await createDokument(newItem, currentUser);
       } else if (type === 'risk') {
-        createdItem = await createRisk(newItem);
+        createdItem = await createRisk(newItem, currentUser);
       }
 
       toast.success(`${item.title} har importerats till ditt företag!`);

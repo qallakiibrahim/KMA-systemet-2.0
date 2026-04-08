@@ -91,7 +91,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
         is_global: false
       };
 
-      const created = await createDokument(newDoc);
+      const created = await createDokument(newDoc, currentUser);
       onCreated(created);
       onClose();
     } catch (error) {
@@ -132,7 +132,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
         // Processes use 'created_by'
         newItem.created_by = currentUser?.id;
         console.log('Creating process from template...', newItem);
-        const created = await createProcess(newItem);
+        const created = await createProcess(newItem, currentUser);
         toast.success('Processmall importerad!');
         onClose();
         navigate(`/process?id=${created.id}`);
@@ -140,7 +140,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
         // Documents use 'creator_uid'
         newItem.creator_uid = currentUser?.id;
         console.log('Creating document from template...', newItem);
-        const created = await createDokument(newItem);
+        const created = await createDokument(newItem, currentUser);
         onCreated(created);
         onClose();
         toast.success('Dokumentmall importerad!');

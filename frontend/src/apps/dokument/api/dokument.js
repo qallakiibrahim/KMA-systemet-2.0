@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase';
+import { logAction } from '../../../shared/api/auditLog';
 
 const tableName = 'documents';
 
@@ -118,7 +119,7 @@ export const getDokumentById = async (id) => {
   }
 };
 
-export const createDokument = async (data) => {
+export const createDokument = async (data, user = null) => {
   // Strip out attachments if they are present (they are a relationship, not a column)
   const { attachments, ...insertData } = data;
   
@@ -142,6 +143,19 @@ export const createDokument = async (data) => {
           .single();
           
         if (retryError) throw retryError;
+
+        if (user) {
+          logAction({
+            action: 'CREATE',
+            entity_type: 'DOCUMENT',
+            entity_id: retryInserted.id,
+            entity_name: retryInserted.title,
+            user_id: user.id,
+            user_email: user.email,
+            company_id: retryInserted.company_id
+          });
+        }
+
         return retryInserted;
       }
 
@@ -154,6 +168,19 @@ export const createDokument = async (data) => {
         .single();
         
       if (retryError) throw retryError;
+
+      if (user) {
+        logAction({
+          action: 'CREATE',
+          entity_type: 'DOCUMENT',
+          entity_id: retryInserted.id,
+          entity_name: retryInserted.title,
+          user_id: user.id,
+          user_email: user.email,
+          company_id: retryInserted.company_id
+        });
+      }
+
       return retryInserted;
     }
     
@@ -170,6 +197,19 @@ export const createDokument = async (data) => {
           .single();
           
         if (retryError) throw retryError;
+
+        if (user) {
+          logAction({
+            action: 'CREATE',
+            entity_type: 'DOCUMENT',
+            entity_id: retryInserted.id,
+            entity_name: retryInserted.title,
+            user_id: user.id,
+            user_email: user.email,
+            company_id: retryInserted.company_id
+          });
+        }
+
         return retryInserted;
       } else {
         throw new Error('Du måste tillhöra ett företag för att spara dokument.');
@@ -187,16 +227,49 @@ export const createDokument = async (data) => {
         .single();
         
       if (retryError) throw retryError;
+
+      if (user) {
+        logAction({
+          action: 'CREATE',
+          entity_type: 'DOCUMENT',
+          entity_id: retryInserted.id,
+          entity_name: retryInserted.title,
+          user_id: user.id,
+          user_email: user.email,
+          company_id: retryInserted.company_id
+        });
+      }
+
       return retryInserted;
     }
 
     throw error;
   }
+
+  if (user) {
+    logAction({
+      action: 'CREATE',
+      entity_type: 'DOCUMENT',
+      entity_id: inserted.id,
+      entity_name: inserted.title,
+      user_id: user.id,
+      user_email: user.email,
+      company_id: inserted.company_id
+    });
+  }
+
   return inserted;
 };
 
-export const updateDokument = async (id, data) => {
+export const updateDokument = async (id, data, user = null) => {
   try {
+    // Get old data for logging changes
+    let oldData = null;
+    if (user) {
+      const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
+      oldData = existing;
+    }
+
     const { data: updated, error } = await supabase
       .from(tableName)
       .update(data)
@@ -205,6 +278,20 @@ export const updateDokument = async (id, data) => {
       .single();
       
     if (error) throw error;
+
+    if (user) {
+      logAction({
+        action: 'UPDATE',
+        entity_type: 'DOCUMENT',
+        entity_id: id,
+        entity_name: updated.title,
+        changes: { old: oldData, new: updated },
+        user_id: user.id,
+        user_email: user.email,
+        company_id: updated.company_id
+      });
+    }
+
     return updated;
   } catch (error) {
     console.error('Supabase updateDokument error:', error);
@@ -222,6 +309,20 @@ export const updateDokument = async (id, data) => {
           .single();
           
         if (retryError) throw retryError;
+
+        if (user) {
+          // Note: we don't have oldData here easily if it failed before, but we can try to log what we have
+          logAction({
+            action: 'UPDATE',
+            entity_type: 'DOCUMENT',
+            entity_id: id,
+            entity_name: retryUpdated.title,
+            user_id: user.id,
+            user_email: user.email,
+            company_id: retryUpdated.company_id
+          });
+        }
+
         return retryUpdated;
       }
     }
@@ -238,6 +339,19 @@ export const updateDokument = async (id, data) => {
         .single();
         
       if (retryError) throw retryError;
+
+      if (user) {
+        logAction({
+          action: 'UPDATE',
+          entity_type: 'DOCUMENT',
+          entity_id: id,
+          entity_name: retryUpdated.title,
+          user_id: user.id,
+          user_email: user.email,
+          company_id: retryUpdated.company_id
+        });
+      }
+
       return retryUpdated;
     }
     
@@ -245,13 +359,37 @@ export const updateDokument = async (id, data) => {
   }
 };
 
-export const deleteDokument = async (id) => {
+export const deleteDokument = async (id, user = null) => {
+  // Get name and company_id before deleting
+  let entityName = id;
+  let companyId = null;
+  if (user) {
+    const { data } = await supabase.from(tableName).select('title, company_id').eq('id', id).single();
+    if (data) {
+      entityName = data.title;
+      companyId = data.company_id;
+    }
+  }
+
   const { error } = await supabase
     .from(tableName)
     .delete()
     .eq('id', id);
     
   if (error) throw error;
+
+  if (user) {
+    logAction({
+      action: 'DELETE',
+      entity_type: 'DOCUMENT',
+      entity_id: id,
+      entity_name: entityName,
+      user_id: user.id,
+      user_email: user.email,
+      company_id: companyId
+    });
+  }
+
   return { id };
 };
 
