@@ -745,10 +745,16 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
               </button>
             </>
           )}
+          {(selectedNode || selectedEdge) && isEditMode && (
+            <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm({ isOpen: true, id: selectedNode?.id || selectedEdge?.id, title: selectedNode?.data?.label || 'denna koppling', type: selectedNode ? 'steg' : 'koppling' })}>
+              <Trash2 size={16} />
+              <span>Ta bort vald</span>
+            </button>
+          )}
         </>
       )}
     </div>
-  ), [onBack, userProfile, isEditMode, isSaving, saveProcess]);
+  ), [onBack, userProfile, isEditMode, isSaving, saveProcess, selectedNode, selectedEdge]);
 
   const centerTools = useMemo(() => {
     if (!isEditMode) return null;
@@ -767,6 +773,18 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
           <div className="shape diamond"></div>
           <span>Beslut</span>
         </button>
+        <button className="tool-btn" onClick={() => addNode('document')} title="Dokument">
+          <div className="shape doc"></div>
+          <span>Dok</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('data')} title="Data">
+          <div className="shape parallelogram"></div>
+          <span>Data</span>
+        </button>
+        <button className="tool-btn" onClick={() => addNode('database')} title="Databas">
+          <div className="shape cylinder"></div>
+          <span>Bas</span>
+        </button>
         
         <div className="relative">
           <button 
@@ -775,7 +793,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
             title="Fler former"
           >
             <Layout size={16} />
-            <span>Former</span>
+            <span>Mer</span>
           </button>
           
           {showShapesDropdown && (
@@ -783,18 +801,6 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
               <div className="fixed inset-0 z-10" onClick={() => setShowShapesDropdown(false)}></div>
               <div className="shapes-dropdown-card">
                 <div className="shapes-grid">
-                  <button className="shape-item" onClick={() => { addNode('document'); setShowShapesDropdown(false); }}>
-                    <div className="shape doc"></div>
-                    <span>Dokument</span>
-                  </button>
-                  <button className="shape-item" onClick={() => { addNode('data'); setShowShapesDropdown(false); }}>
-                    <div className="shape parallelogram"></div>
-                    <span>Data</span>
-                  </button>
-                  <button className="shape-item" onClick={() => { addNode('database'); setShowShapesDropdown(false); }}>
-                    <div className="shape cylinder"></div>
-                    <span>Databas</span>
-                  </button>
                   <button className="shape-item" onClick={() => { addNode('manualInput'); setShowShapesDropdown(false); }}>
                     <div className="shape trapezoid"></div>
                     <span>Manuell</span>

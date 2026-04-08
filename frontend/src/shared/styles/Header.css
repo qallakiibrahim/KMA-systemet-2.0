@@ -98,12 +98,6 @@
   border-radius: 0.75rem;
   border: 1px solid var(--border-color);
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none; /* Hide scrollbar for Firefox */
-}
-
-.header-center-tools::-webkit-scrollbar {
-  display: none; /* Hide scrollbar for Chrome/Safari */
 }
 
 .header-toolbar-group {
