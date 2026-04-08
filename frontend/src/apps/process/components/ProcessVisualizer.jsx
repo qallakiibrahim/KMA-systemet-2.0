@@ -335,6 +335,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
   const [allProcesses, setAllProcesses] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: 'process', title: '', nodeId: null });
+  const [showShapesDropdown, setShowShapesDropdown] = useState(false);
 
   // Helper to remove non-serializable data (functions) before saving
   const cleanNodesForStorage = (nodesToClean) => {
@@ -766,37 +767,58 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
           <div className="shape diamond"></div>
           <span>Beslut</span>
         </button>
-        <button className="tool-btn" onClick={() => addNode('document')} title="Dokument">
-          <div className="shape doc"></div>
-          <span>Dok</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('data')} title="Data">
-          <div className="shape parallelogram"></div>
-          <span>Data</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('database')} title="Databas">
-          <div className="shape cylinder"></div>
-          <span>Bas</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('manualInput')} title="Manuell inmatning">
-          <div className="shape trapezoid"></div>
-          <span>Manuell</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('delay')} title="Fördröjning">
-          <div className="shape delay-shape"></div>
-          <span>Vänt</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('display')} title="Visa/Display">
-          <div className="shape bullet"></div>
-          <span>Visa</span>
-        </button>
-        <button className="tool-btn" onClick={() => addNode('preparation')} title="Förberedelse">
-          <div className="shape hexagon"></div>
-          <span>Förber.</span>
-        </button>
+        
+        <div className="relative">
+          <button 
+            className={`tool-btn ${showShapesDropdown ? 'active' : ''}`} 
+            onClick={() => setShowShapesDropdown(!showShapesDropdown)}
+            title="Fler former"
+          >
+            <Layout size={16} />
+            <span>Former</span>
+          </button>
+          
+          {showShapesDropdown && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowShapesDropdown(false)}></div>
+              <div className="shapes-dropdown-card">
+                <div className="shapes-grid">
+                  <button className="shape-item" onClick={() => { addNode('document'); setShowShapesDropdown(false); }}>
+                    <div className="shape doc"></div>
+                    <span>Dokument</span>
+                  </button>
+                  <button className="shape-item" onClick={() => { addNode('data'); setShowShapesDropdown(false); }}>
+                    <div className="shape parallelogram"></div>
+                    <span>Data</span>
+                  </button>
+                  <button className="shape-item" onClick={() => { addNode('database'); setShowShapesDropdown(false); }}>
+                    <div className="shape cylinder"></div>
+                    <span>Databas</span>
+                  </button>
+                  <button className="shape-item" onClick={() => { addNode('manualInput'); setShowShapesDropdown(false); }}>
+                    <div className="shape trapezoid"></div>
+                    <span>Manuell</span>
+                  </button>
+                  <button className="shape-item" onClick={() => { addNode('delay'); setShowShapesDropdown(false); }}>
+                    <div className="shape delay-shape"></div>
+                    <span>Vänt</span>
+                  </button>
+                  <button className="shape-item" onClick={() => { addNode('display'); setShowShapesDropdown(false); }}>
+                    <div className="shape bullet"></div>
+                    <span>Visa</span>
+                  </button>
+                  <button className="shape-item" onClick={() => { addNode('preparation'); setShowShapesDropdown(false); }}>
+                    <div className="shape hexagon"></div>
+                    <span>Förber.</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     );
-  }, [isEditMode, addNode]);
+  }, [isEditMode, addNode, showShapesDropdown]);
 
   const rightPanelContent = useMemo(() => {
     if (!selectedNode) return null;

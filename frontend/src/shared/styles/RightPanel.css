@@ -1,7 +1,7 @@
 .right-panel {
   width: 350px;
   height: calc(100vh - 64px);
-  background: white;
+  background-color: var(--bg-primary);
   border-left: 1px solid var(--border-color);
   position: fixed;
   right: 0;
@@ -11,6 +11,7 @@
   flex-direction: column;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
   animation: slideInRight 0.3s ease;
+  color: var(--text-primary);
 }
 
 .right-panel-content {
