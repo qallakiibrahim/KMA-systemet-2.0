@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import '../styles/AdminPanel.css';
 
 const AdminPanel = ({ isEmbedded = false }) => {
-  const { userProfile } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -98,7 +98,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
       return;
     }
     try {
-      await inviteUser(newInvite);
+      await inviteUser(newInvite, currentUser);
       toast.success('Inbjudan skickad!');
       setIsInviteModalOpen(false);
       setNewInvite({ email: '', company_id: '', role: 'user' });
@@ -120,7 +120,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
   const handleDeleteInvite = async (id) => {
     if (!window.confirm('Är du säker på att du vill ta bort denna inbjudan?')) return;
     try {
-      await deleteInvitation(id);
+      await deleteInvitation(id, currentUser);
       toast.success('Inbjudan borttagen');
       // Refresh data
       const invitesData = await getPendingInvitations();
@@ -140,7 +140,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
     if (!window.confirm(`Är du säker på att du vill ta bort företaget "${name}"? Detta kommer även att påverka alla användare och data kopplat till företaget.`)) return;
     
     try {
-      await deleteCompany(id);
+      await deleteCompany(id, currentUser);
       toast.success('Företaget har tagits bort');
       // Refresh data
       const companiesData = await getCompanies();
@@ -210,7 +210,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
         role: editingUser.role,
         permissions: editingUser.permissions,
         company_id: editingUser.company_id
-      });
+      }, currentUser);
       // Update local state
       setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
       setIsModalOpen(false);
@@ -266,7 +266,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
     
     try {
       if (editingCompany) {
-        const updated = await updateCompany(editingCompany.id, companyData);
+        const updated = await updateCompany(editingCompany.id, companyData, currentUser);
         setCompanies(companies.map(c => c.id === editingCompany.id ? updated : c));
         toast.success('Företag uppdaterat');
       } else {
@@ -279,7 +279,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
           ...companyData,
           status: newCompany.plan === 'Trial' ? 'trial' : 'active',
           expires_at: expiresAt
-        });
+        }, currentUser);
         
         setCompanies([...companies, created]);
         toast.success('Företag skapat');

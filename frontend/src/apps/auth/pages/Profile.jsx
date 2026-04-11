@@ -154,7 +154,28 @@ const Profile = () => {
     Low: 'Låg',
     Medium: 'Medium',
     High: 'Hög',
-    Critical: 'Kritisk'
+    Critical: 'Kritisk',
+    likelihood: 'Sannolikhet',
+    risk_score: 'Riskpoäng',
+    responsible_name: 'Ansvarig',
+    deadline: 'Deadline',
+    start_date: 'Startdatum',
+    end_date: 'Slutdatum',
+    all_day: 'Heldag',
+    recurrence: 'Upprepning',
+    iso_chapter: 'ISO-kapitel',
+    file_url: 'Fil-URL',
+    type: 'Typ',
+    name: 'Namn',
+    address: 'Adress',
+    org_nr: 'Org.nr',
+    phone: 'Telefon',
+    email: 'E-post',
+    website: 'Webbplats',
+    is_global: 'Global',
+    creator_uid: 'Skapad av (ID)',
+    created_at: 'Skapad den',
+    updated_at: 'Uppdaterad den'
   };
 
   const translateField = (field) => fieldTranslations[field] || field;
@@ -503,7 +524,10 @@ const Profile = () => {
                   <label>Vem</label>
                   <div className="value">
                     <User size={14} />
-                    <span>{selectedLog.user_email}</span>
+                    <span>{selectedLog.user_email || 'Systemet / Okänd'}</span>
+                    <span className="text-xs text-muted" style={{ marginLeft: '0.5rem' }}>
+                      (ID: {selectedLog.user_id?.substring(0, 8) || 'N/A'})
+                    </span>
                   </div>
                 </div>
                 <div className="iso-audit-item">
@@ -524,9 +548,15 @@ const Profile = () => {
                 <div className="iso-audit-item">
                   <label>Objekt</label>
                   <div className="value">
-                    <strong>{selectedLog.entity_type}:</strong> {selectedLog.entity_name}
+                    <strong>{selectedLog.entity_type || 'SYSTEM'}:</strong> {selectedLog.entity_name || 'Okänt objekt'}
                   </div>
                 </div>
+              </div>
+
+              <div className="iso-audit-summary" style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--primary-color)' }}>
+                <p style={{ margin: 0, fontSize: '0.95rem', color: '#334155' }}>
+                  <strong>Händelse:</strong> {selectedLog.user_email || 'Systemet'} {getActionText(selectedLog.action).toLowerCase()} {selectedLog.entity_type?.toLowerCase() || 'objektet'} <em>"{selectedLog.entity_name || 'Okänt'}"</em> den {format(new Date(selectedLog.created_at), 'd MMMM yyyy', { locale: sv })}.
+                </p>
               </div>
 
               <div className="iso-changes-section">

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
 import { toast } from 'react-toastify';
+import { logAction } from './auditLog';
 
 const AuthContext = createContext();
 
@@ -389,6 +390,9 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (updates) => {
     if (!user) return;
     try {
+      // Get old data for logging
+      const { data: oldData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
@@ -397,6 +401,18 @@ export const AuthProvider = ({ children }) => {
         .single();
         
       if (error) throw error;
+
+      logAction({
+        action: 'UPDATE',
+        entity_type: 'USER_PROFILE',
+        entity_id: user.id,
+        entity_name: data.display_name || data.username || user.email,
+        changes: { old: oldData, new: data },
+        user_id: user.id,
+        user_email: user.email,
+        company_id: data.company_id
+      });
+
       await refreshProfile();
       return data;
     } catch (error) {

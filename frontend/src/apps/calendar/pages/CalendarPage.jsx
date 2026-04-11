@@ -250,7 +250,7 @@ const CalendarPage = () => {
 
       if (selectedEvent) {
         // Update existing event
-        await updateEvent(selectedEvent.id, formData);
+        await updateEvent(selectedEvent.id, formData, currentUser);
         toast.success('Händelse uppdaterad!');
       } else {
         // Create new event
@@ -259,7 +259,7 @@ const CalendarPage = () => {
           created_by: currentUser?.id || 'anonymous',
           company_id: userProfile?.company_id || null
         };
-        await createEvent(newEvent);
+        await createEvent(newEvent, currentUser);
         toast.success('Händelse skapad!');
       }
       queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
@@ -277,7 +277,7 @@ const CalendarPage = () => {
     if (!window.confirm('Är du säker på att du vill ta bort denna händelse?')) return;
 
     try {
-      await deleteEvent(selectedEvent.id);
+      await deleteEvent(selectedEvent.id, currentUser);
       queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
       setIsModalOpen(false);
       setSelectedEvent(null);
