@@ -419,12 +419,27 @@ const Profile = () => {
                               )}
                             </div>
                             <button 
-                              className="btn-icon-mini" 
-                              onClick={() => setSelectedLog(log)}
+                              className="btn-icon-mini eye-btn" 
+                              onClick={() => {
+                                console.log('Opening log:', log.id);
+                                setSelectedLog(log);
+                              }}
                               title="Visa detaljer"
-                              style={{ marginLeft: '1rem' }}
+                              style={{ 
+                                marginLeft: '1rem',
+                                width: '36px',
+                                height: '36px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: 'var(--primary-color)',
+                                color: 'white',
+                                borderRadius: '8px',
+                                border: 'none',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                              }}
                             >
-                              <Eye size={14} />
+                              <Eye size={18} />
                             </button>
                           </div>
                         </div>
@@ -558,9 +573,9 @@ const Profile = () => {
         <div className="fixed-modal-overlay">
           <div className="profile-modal">
             <div className="profile-modal-header">
-              <h3><History size={20} /> Händelsedetaljer (ISO-spårbarhet)</h3>
-              <button onClick={() => setSelectedLog(null)} className="btn-icon-mini">
-                <X size={20} />
+              <h3><History size={20} /> Händelsedetaljer</h3>
+              <button onClick={() => setSelectedLog(null)} className="btn-icon-mini" style={{ width: '40px', height: '40px' }}>
+                <X size={24} />
               </button>
             </div>
             <div className="profile-modal-body">
