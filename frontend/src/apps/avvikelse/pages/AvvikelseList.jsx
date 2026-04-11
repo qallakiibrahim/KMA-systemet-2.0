@@ -53,9 +53,6 @@ const AvvikelseList = () => {
   });
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('info'); // 'info' or 'history'
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [isLogsLoading, setIsLogsLoading] = useState(false);
   const fileInputRef = useRef(null);
   const followUpFileInputRef = useRef(null);
 
@@ -364,21 +361,6 @@ const AvvikelseList = () => {
   const openFollowUp = async (avvikelse) => {
     setSelectedAvvikelse(avvikelse);
     setIsFollowUpModalOpen(true);
-    setActiveTab('info');
-    
-    // Fetch logs in background
-    setIsLogsLoading(true);
-    try {
-      const logsResponse = await getAuditLogs(1, 50, { 
-        entity_type: 'ISSUE', 
-        entity_id: avvikelse.id 
-      });
-      setAuditLogs(logsResponse.data || []);
-    } catch (error) {
-      console.error('Failed to fetch audit logs', error);
-    } finally {
-      setIsLogsLoading(false);
-    }
     
     // Parse problemdefinition to populate 5W2H fields if possible
     const pd = avvikelse.problemdefinition || '';
@@ -882,227 +864,139 @@ const AvvikelseList = () => {
               </div>
             </div>
             <div className="follow-up-container">
-              {/* Vänster: Info / Historik */}
+              {/* Vänster: Info */}
               <div className="avvikelse-info-panel">
-                <div className="panel-tabs">
-                  <button 
-                    className={`panel-tab ${activeTab === 'info' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('info')}
-                  >
-                    Information
-                  </button>
-                  <button 
-                    className={`panel-tab ${activeTab === 'history' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('history')}
-                  >
-                    Historik
-                  </button>
+                <div className="info-header">
+                  <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+                    <select 
+                      name="priority" 
+                      value={formData.priority} 
+                      onChange={handleInputChange}
+                      className={`priority-badge priority-${(formData.priority || 'Medium').toLowerCase()}`}
+                      style={{ border: 'none', cursor: 'pointer', appearance: 'none', padding: '0.1rem 0.4rem' }}
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Critical">Critical</option>
+                    </select>
+                    
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      <select name="severity" value={formData.severity} onChange={handleInputChange} className="risk-badge-mini" style={{ padding: '0 2px', fontSize: '0.65rem' }}>
+                        {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                      <span style={{ fontSize: '0.65rem' }}>×</span>
+                      <select name="probability" value={formData.probability} onChange={handleInputChange} className="risk-badge-mini" style={{ padding: '0 2px', fontSize: '0.65rem' }}>
+                        {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  {getStatusIcon(selectedAvvikelse.status)}
                 </div>
 
-                {activeTab === 'info' ? (
-                  <>
-                    <div className="info-header">
-                      <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
-                        <select 
-                          name="priority" 
-                          value={formData.priority} 
-                          onChange={handleInputChange}
-                          className={`priority-badge priority-${(formData.priority || 'Medium').toLowerCase()}`}
-                          style={{ border: 'none', cursor: 'pointer', appearance: 'none', padding: '0.1rem 0.4rem' }}
-                        >
-                          <option value="Low">Low</option>
-                          <option value="Medium">Medium</option>
-                          <option value="High">High</option>
-                          <option value="Critical">Critical</option>
-                        </select>
-                        
-                        <div style={{ display: 'flex', gap: '2px' }}>
-                          <select name="severity" value={formData.severity} onChange={handleInputChange} className="risk-badge-mini" style={{ padding: '0 2px', fontSize: '0.65rem' }}>
-                            {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                          </select>
-                          <span style={{ fontSize: '0.65rem' }}>×</span>
-                          <select name="probability" value={formData.probability} onChange={handleInputChange} className="risk-badge-mini" style={{ padding: '0 2px', fontSize: '0.65rem' }}>
-                            {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      {getStatusIcon(selectedAvvikelse.status)}
-                    </div>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <input 
+                    type="text" 
+                    name="titel" 
+                    value={formData.titel} 
+                    onChange={handleInputChange}
+                    style={{ fontWeight: '600', fontSize: '1rem', padding: '0.25rem 0.5rem' }}
+                  />
+                </div>
 
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
-                      <input 
-                        type="text" 
-                        name="titel" 
-                        value={formData.titel} 
-                        onChange={handleInputChange}
-                        style={{ fontWeight: '600', fontSize: '1rem', padding: '0.25rem 0.5rem' }}
-                      />
-                    </div>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Deadline:</label>
+                  <input 
+                    type="date" 
+                    name="deadline" 
+                    value={formData.deadline} 
+                    onChange={handleInputChange}
+                    style={{ width: '100%', border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }}
+                  />
+                </div>
 
-                    <div className="form-group" style={{ marginBottom: '1rem' }}>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Deadline:</label>
-                      <input 
-                        type="date" 
-                        name="deadline" 
-                        value={formData.deadline} 
-                        onChange={handleInputChange}
-                        style={{ width: '100%', border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }}
-                      />
-                    </div>
+                <p className="info-date">Rapporterad: {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                
+                <div className="info-desc">
+                  <strong>Beskrivning:</strong>
+                  <textarea 
+                    name="beskrivning" 
+                    value={formData.beskrivning} 
+                    onChange={handleInputChange}
+                    rows="4"
+                    style={{ width: '100%', border: 'none', fontSize: '0.875rem', resize: 'none', padding: 0 }}
+                  />
+                </div>
 
-                    <p className="info-date">Rapporterad: {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                    
-                    <div className="info-desc">
-                      <strong>Beskrivning:</strong>
-                      <textarea 
-                        name="beskrivning" 
-                        value={formData.beskrivning} 
-                        onChange={handleInputChange}
-                        rows="4"
-                        style={{ width: '100%', border: 'none', fontSize: '0.875rem', resize: 'none', padding: 0 }}
-                      />
+                <div className="info-desc" style={{marginTop: '1rem'}}>
+                  <strong>Fakta (5W2H):</strong>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', width: '60px' }}>Vem:</span>
+                      <input type="text" name="vem" value={formData.vem} onChange={handleInputChange} style={{ flex: 1, border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }} />
                     </div>
-
-                    <div className="info-desc" style={{marginTop: '1rem'}}>
-                      <strong>Fakta (5W2H):</strong>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', width: '60px' }}>Vem:</span>
-                          <input type="text" name="vem" value={formData.vem} onChange={handleInputChange} style={{ flex: 1, border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }} />
-                        </div>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', width: '60px' }}>Vad:</span>
-                          <input type="text" name="vad" value={formData.vad} onChange={handleInputChange} style={{ flex: 1, border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }} />
-                        </div>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', width: '60px' }}>När:</span>
-                          <input type="text" name="nar" value={formData.nar} onChange={handleInputChange} style={{ flex: 1, border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }} />
-                        </div>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', width: '60px' }}>Var:</span>
-                          <input type="text" name="var" value={formData.var} onChange={handleInputChange} style={{ flex: 1, border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }} />
-                        </div>
-                      </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', width: '60px' }}>Vad:</span>
+                      <input type="text" name="vad" value={formData.vad} onChange={handleInputChange} style={{ flex: 1, border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }} />
                     </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', width: '60px' }}>När:</span>
+                      <input type="text" name="nar" value={formData.nar} onChange={handleInputChange} style={{ flex: 1, border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', width: '60px' }}>Var:</span>
+                      <input type="text" name="var" value={formData.var} onChange={handleInputChange} style={{ flex: 1, border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem' }} />
+                    </div>
+                  </div>
+                </div>
 
-                    <div className="info-desc" style={{marginTop: '1.5rem'}}>
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem'}}>
-                        <strong style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                          <Paperclip size={16} /> Bilagor
-                        </strong>
-                        <button 
-                          className="btn-secondary btn-sm" 
-                          onClick={() => followUpFileInputRef.current?.click()}
-                          disabled={isUploading}
-                        >
-                          {isUploading ? <Loader className="spin" size={14} style={{marginRight: '4px'}}/> : <Plus size={14} style={{marginRight: '4px'}}/>}
-                          {isUploading ? 'Laddar upp...' : 'Lägg till'}
-                        </button>
-                        <input 
-                          type="file" 
-                          multiple 
-                          onChange={handleFollowUpFileUpload} 
-                          ref={followUpFileInputRef}
-                          style={{ display: 'none' }} 
-                        />
-                      </div>
-                      
-                      {(!selectedAvvikelse.attachments || selectedAvvikelse.attachments.length === 0) && !isUploading ? (
-                        <p className="text-muted" style={{fontSize: '0.875rem', fontStyle: 'italic'}}>Inga bilagor uppladdade.</p>
-                      ) : (
-                        <div className="attachments-grid">
-                          {selectedAvvikelse.attachments?.map((file, index) => (
-                            file.type.startsWith('image/') ? (
-                              <a key={index} href={file.url} target="_blank" rel="noopener noreferrer" title={file.name}>
-                                <img src={file.url} alt={file.name} className="attachment-thumbnail" />
-                              </a>
-                            ) : (
-                              <a key={index} href={file.url} target="_blank" rel="noopener noreferrer" className="attachment-doc" title={file.name}>
-                                <FileText size={24} color="var(--primary-color)" />
-                                <span className="file-name">{file.name}</span>
-                              </a>
-                            )
-                          ))}
-                          {isUploading && (
-                             <div className="attachment-doc" style={{opacity: 0.7}}>
-                                <Loader className="spin" size={24} color="var(--text-muted)" />
-                                <span className="file-name">Laddar upp...</span>
-                             </div>
-                          )}
-                        </div>
+                <div className="info-desc" style={{marginTop: '1.5rem'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem'}}>
+                    <strong style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                      <Paperclip size={16} /> Bilagor
+                    </strong>
+                    <button 
+                      className="btn-secondary btn-sm" 
+                      onClick={() => followUpFileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? <Loader className="spin" size={14} style={{marginRight: '4px'}}/> : <Plus size={14} style={{marginRight: '4px'}}/>}
+                      {isUploading ? 'Laddar upp...' : 'Lägg till'}
+                    </button>
+                    <input 
+                      type="file" 
+                      multiple 
+                      onChange={handleFollowUpFileUpload} 
+                      ref={followUpFileInputRef}
+                      style={{ display: 'none' }} 
+                    />
+                  </div>
+                  
+                  {(!selectedAvvikelse.attachments || selectedAvvikelse.attachments.length === 0) && !isUploading ? (
+                    <p className="text-muted" style={{fontSize: '0.875rem', fontStyle: 'italic'}}>Inga bilagor uppladdade.</p>
+                  ) : (
+                    <div className="attachments-grid">
+                      {selectedAvvikelse.attachments?.map((file, index) => (
+                        file.type.startsWith('image/') ? (
+                          <a key={index} href={file.url} target="_blank" rel="noopener noreferrer" title={file.name}>
+                            <img src={file.url} alt={file.name} className="attachment-thumbnail" />
+                          </a>
+                        ) : (
+                          <a key={index} href={file.url} target="_blank" rel="noopener noreferrer" className="attachment-doc" title={file.name}>
+                            <FileText size={24} color="var(--primary-color)" />
+                            <span className="file-name">{file.name}</span>
+                          </a>
+                        )
+                      ))}
+                      {isUploading && (
+                         <div className="attachment-doc" style={{opacity: 0.7}}>
+                            <Loader className="spin" size={24} color="var(--text-muted)" />
+                            <span className="file-name">Laddar upp...</span>
+                         </div>
                       )}
                     </div>
-                  </>
-                ) : (
-                  <div className="audit-history">
-                    <h3>Händelsehistorik</h3>
-                    {isLogsLoading ? (
-                      <div className="loading-logs">
-                        <Loader className="spin" size={20} />
-                        <span>Hämtar historik...</span>
-                      </div>
-                    ) : auditLogs.length === 0 ? (
-                      <p className="no-logs">Ingen historik tillgänglig för detta ärende.</p>
-                    ) : (
-                      <div className="audit-timeline">
-                        {auditLogs.map((log) => (
-                          <div key={log.id} className="audit-item">
-                            <div className="audit-dot"></div>
-                            <div className="audit-content">
-                              <div className="audit-header">
-                                <span className="audit-action">
-                                  {log.action === 'CREATE' ? 'Skapad' : log.action === 'UPDATE' ? 'Uppdaterad' : 'Raderad'}
-                                </span>
-                                <span className="audit-time">
-                                  {new Date(log.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}
-                                </span>
-                              </div>
-                              <div className="audit-user">
-                                {log.user_email || 'System'}
-                                <span className="text-[10px] text-gray-400 ml-2">ID: {log.user_id?.substring(0, 8)}...</span>
-                              </div>
-                              {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
-                                <div className="audit-changes">
-                                  {Object.keys(log.changes.new).map(key => {
-                                    if (JSON.stringify(log.changes.old[key]) === JSON.stringify(log.changes.new[key])) return null;
-                                    if (['updated_at', 'attachments', 'problemdefinition'].includes(key)) return null;
-                                    
-                                    if (key === 'uppfoljning') {
-                                      const oldU = log.changes.old[key] || {};
-                                      const newU = log.changes.new[key] || {};
-                                      return Object.keys(newU).map(uKey => {
-                                        if (JSON.stringify(oldU[uKey]) !== JSON.stringify(newU[uKey])) {
-                                          return (
-                                            <div key={`${key}-${uKey}`} className="change-item">
-                                              <span className="change-key">{uKey}:</span>
-                                              <span className="change-old">{String(oldU[uKey] || 'n/a')}</span>
-                                              <span className="change-arrow">→</span>
-                                              <span className="change-new">{String(newU[uKey] || 'n/a')}</span>
-                                            </div>
-                                          );
-                                        }
-                                        return null;
-                                      });
-                                    }
-
-                                    return (
-                                      <div key={key} className="change-item">
-                                        <span className="change-key">{key}:</span>
-                                        <span className="change-old">{String(log.changes.old[key] || 'n/a')}</span>
-                                        <span className="change-arrow">→</span>
-                                        <span className="change-new">{String(log.changes.new[key] || 'n/a')}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Höger: Tidslinje/Steg */}

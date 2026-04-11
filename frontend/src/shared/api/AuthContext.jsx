@@ -251,19 +251,37 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // BroadcastChannel for cross-tab/iframe communication
+    const bc = new BroadcastChannel('supabase-auth');
+    bc.onmessage = async (event) => {
+      console.log('BroadcastChannel message received:', event.data?.type);
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS' && event.data.session) {
+        try {
+          const { access_token, refresh_token } = event.data.session;
+          await supabase.auth.setSession({ access_token, refresh_token });
+          console.log('Session set via BroadcastChannel');
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            setUser(session.user);
+            fetchUserProfile(session.user);
+          }
+        } catch (err) {
+          console.error('Error setting session via BroadcastChannel:', err);
+        }
+      }
+    };
+
     // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null;
+      console.log('Initial session check:', currentUser ? 'User found' : 'No user');
       setUser(currentUser);
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
-        if (window.opener && window.name === 'google-login') {
-          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', session }, '*');
-          window.close();
-        }
       } else {
         // Don't stop loading if we are in the middle of an OAuth callback
         const isOAuthCallback = window.location.search.includes('code=') || window.location.hash.includes('access_token=');
+        console.log('No session, isOAuthCallback:', isOAuthCallback);
         if (!isOAuthCallback) {
           setLoading(false);
         } else {
@@ -274,14 +292,11 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
-        if (window.opener && window.name === 'google-login') {
-          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', session }, '*');
-          window.close();
-        }
       } else {
         setUserProfile(null);
         const isOAuthCallback = window.location.search.includes('code=') || window.location.hash.includes('access_token=');
@@ -295,8 +310,10 @@ export const AuthProvider = ({ children }) => {
 
     // Refresh session when window gains focus (e.g. after popup closes)
     const handleFocus = () => {
+      console.log('Window gained focus, checking session...');
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
+          console.log('User found on focus');
           setUser(session.user);
           fetchUserProfile(session.user);
         }
@@ -304,23 +321,25 @@ export const AuthProvider = ({ children }) => {
     };
 
     const handleMessage = async (event) => {
+      console.log('Received message:', event.data?.type);
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        console.log('OAUTH_AUTH_SUCCESS received in main window');
         if (event.data.session) {
           try {
-            await supabase.auth.setSession({
-              access_token: event.data.session.access_token,
-              refresh_token: event.data.session.refresh_token
-            });
+            const { access_token, refresh_token } = event.data.session;
+            await supabase.auth.setSession({ access_token, refresh_token });
+            console.log('Session set successfully from message tokens');
           } catch (err) {
-            console.error('Error setting session from popup:', err);
+            console.error('Error setting session from message tokens:', err);
           }
         }
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            setUser(session.user);
-            fetchUserProfile(session.user);
-          }
-        });
+        
+        // Final check
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          fetchUserProfile(session.user);
+        }
       }
     };
 
@@ -329,6 +348,7 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       subscription.unsubscribe();
+      bc.close();
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('message', handleMessage);
     };
@@ -345,32 +365,53 @@ export const AuthProvider = ({ children }) => {
       throw new Error(errorMsg);
     }
 
-    // Ensure the redirect URL matches exactly what's in Supabase
-    const redirectUrl = `${window.location.origin}/process`;
+    // Use the new server-side callback route
+    const redirectUrl = `${window.location.origin}/api/auth/callback`;
 
     try {
+      // Use popup flow for OAuth to stay within Gemini Studio
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: true, // This gives us the URL instead of redirecting automatically
+          skipBrowserRedirect: true,
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline',
+          }
         },
       });
       
       if (error) throw error;
 
       if (data?.url) {
-        // Open the login URL in a popup window to bypass iframe restrictions (Google 403 error)
+        console.log('Opening OAuth popup with URL:', data.url);
         const width = 600;
         const height = 700;
         const left = window.screen.width / 2 - width / 2;
         const top = window.screen.height / 2 - height / 2;
         
-        window.open(
+        const popup = window.open(
           data.url,
           'google-login',
           `width=${width},height=${height},left=${left},top=${top}`
         );
+
+        // Fallback: Poll for session if message passing fails
+        const pollTimer = setInterval(async () => {
+          if (popup && popup.closed) {
+            clearInterval(pollTimer);
+            console.log('Popup closed, checking session...');
+            setTimeout(async () => {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session) {
+                console.log('Session found after popup closed');
+                setUser(session.user);
+                fetchUserProfile(session.user);
+              }
+            }, 1000);
+          }
+        }, 1000);
       }
     } catch (error) {
       console.error('Supabase OAuth error:', error);

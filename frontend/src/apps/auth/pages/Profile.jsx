@@ -305,8 +305,8 @@ const Profile = () => {
         {activeTab === 'history' && (
           <div className="profile-history-section">
             <div className="profile-card full-width">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div>
+              <div className="history-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div className="history-title">
                   <h3><History size={20} /> {showAllLogs ? 'Systemets Händelselogg' : 'Din Händelsehistorik'}</h3>
                   <p className="text-muted">
                     {showAllLogs 
@@ -315,7 +315,7 @@ const Profile = () => {
                   </p>
                 </div>
                 {canManageCompany && (
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center history-controls">
                     <select 
                       className="form-control btn-sm" 
                       style={{ width: 'auto', minWidth: '150px', height: '36px', fontSize: '0.85rem' }}
@@ -570,8 +570,8 @@ const Profile = () => {
         )}
       </div>
       {selectedLog && (
-        <div className="fixed-modal-overlay">
-          <div className="profile-modal">
+        <div className="fixed-modal-overlay" onClick={() => setSelectedLog(null)}>
+          <div className="profile-modal" onClick={e => e.stopPropagation()}>
             <div className="profile-modal-header">
               <h3><History size={20} /> Händelsedetaljer</h3>
               <button onClick={() => setSelectedLog(null)} className="btn-icon-mini" style={{ width: '40px', height: '40px' }}>
@@ -594,13 +594,13 @@ const Profile = () => {
                   <label>När</label>
                   <div className="value">
                     <Clock size={14} />
-                    <span>{format(new Date(selectedLog.created_at), 'PPPP p', { locale: sv })}</span>
+                    <span>{selectedLog.created_at ? format(new Date(selectedLog.created_at), 'PPPP p', { locale: sv }) : 'Okänt datum'}</span>
                   </div>
                 </div>
                 <div className="iso-audit-item">
                   <label>Handling</label>
                   <div className="value">
-                    <span className={`audit-action-badge ${selectedLog.action.toLowerCase()}`}>
+                    <span className={`audit-action-badge ${(selectedLog.action || 'UPDATE').toLowerCase()}`}>
                       {getActionText(selectedLog.action)}
                     </span>
                   </div>
@@ -630,7 +630,7 @@ const Profile = () => {
 
               <div className="iso-audit-summary" style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--primary-color)' }}>
                 <p style={{ margin: 0, fontSize: '0.95rem', color: '#334155' }}>
-                  <strong>Händelse:</strong> {selectedLog.user_email || 'Systemet'} {getActionText(selectedLog.action).toLowerCase()} {translateEntityType(selectedLog.entity_type).toLowerCase()} <em>"{selectedLog.entity_name || 'Okänt'}"</em> den {format(new Date(selectedLog.created_at), 'd MMMM yyyy', { locale: sv })}.
+                  <strong>Händelse:</strong> {selectedLog.user_email || 'Systemet'} {(getActionText(selectedLog.action) || '').toLowerCase()} {(translateEntityType(selectedLog.entity_type) || 'objektet').toLowerCase()} <em>"{selectedLog.entity_name || 'Okänt'}"</em> den {selectedLog.created_at ? format(new Date(selectedLog.created_at), 'd MMMM yyyy', { locale: sv }) : 'okänt datum'}.
                 </p>
               </div>
 

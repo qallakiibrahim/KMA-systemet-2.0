@@ -23,7 +23,6 @@ const Dashboard = () => {
   const [aiInsight, setAiInsight] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
-  const [recentLogs, setRecentLogs] = useState([]);
   const { userProfile } = useAuth();
 
   const generateAiInsight = async (currentStats) => {
@@ -81,12 +80,6 @@ Data:
         
         setStats(newStats);
         generateAiInsight(newStats);
-
-        // Fetch recent logs if company_id is available
-        if (userProfile?.company_id) {
-          const logs = await getCompanyAuditLogs(userProfile.company_id, 10);
-          setRecentLogs(logs);
-        }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -166,37 +159,6 @@ Data:
 
   const trendData = Object.values(trendDataMap);
 
-  const getEntityIcon = (type) => {
-    switch (type) {
-      case 'PROCESS': return <Activity size={16} />;
-      case 'DOCUMENT': return <FileText size={16} />;
-      case 'RISK': return <Shield size={16} />;
-      case 'ISSUE': return <AlertTriangle size={16} />;
-      case 'TASK': return <CheckSquare size={16} />;
-      default: return <FileText size={16} />;
-    }
-  };
-
-  const getActionText = (action) => {
-    switch (action) {
-      case 'CREATE': return 'skapade';
-      case 'UPDATE': return 'uppdaterade';
-      case 'DELETE': return 'raderade';
-      default: return 'utförde';
-    }
-  };
-
-  const getEntityText = (type) => {
-    switch (type) {
-      case 'PROCESS': return 'en process';
-      case 'DOCUMENT': return 'ett dokument';
-      case 'RISK': return 'en risk';
-      case 'ISSUE': return 'en avvikelse';
-      case 'TASK': return 'en uppgift';
-      default: return 'ett objekt';
-    }
-  };
-
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
@@ -259,31 +221,6 @@ Data:
       </div>
 
       <div className="charts-grid">
-        <div className="chart-container full-width">
-          <h2>Senaste händelser i systemet</h2>
-          {recentLogs.length > 0 ? (
-            <div className="recent-activity-list">
-              {recentLogs.map(log => (
-                <div key={log.id} className="activity-item">
-                  <div className="activity-icon">
-                    {getEntityIcon(log.entity_type)}
-                  </div>
-                  <div className="activity-info">
-                    <span className="activity-text">
-                      <strong>{log.user_email?.split('@')[0] || 'System'}</strong> {getActionText(log.action)} {getEntityText(log.entity_type)}: <em>{log.entity_name}</em>
-                    </span>
-                    <span className="activity-time">
-                      {new Date(log.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="no-data-text">Ingen aktivitet loggad ännu.</p>
-          )}
-        </div>
-
         <div className="chart-container full-width">
           <h2>Registrerade ärenden (Senaste 6 månaderna)</h2>
           <ResponsiveContainer width="100%" height={300}>
