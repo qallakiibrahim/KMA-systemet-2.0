@@ -20,6 +20,10 @@ const Profile = () => {
   });
   const [notifications, setNotifications] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [totalLogs, setTotalLogs] = useState(0);
+  const [logPage, setLogPage] = useState(1);
+  const [logPageSize] = useState(20);
+  const [showAllLogs, setShowAllLogs] = useState(false);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
 
@@ -29,14 +33,12 @@ const Profile = () => {
     } else if (activeTab === 'history') {
       fetchUserLogs();
     }
-  }, [activeTab]);
+  }, [activeTab, logPage, showAllLogs]);
 
   const fetchNotifications = async () => {
     setIsLoadingNotifs(true);
     try {
       const data = await getNotifications();
-      // Filter for current user if needed, but getNotifications might already be scoped or we filter here
-      // Assuming getNotifications returns all for now, we should filter by user_id if the API doesn't
       const userNotifs = data.filter(n => n.user_id === user?.id);
       setNotifications(userNotifs);
     } catch (error) {
@@ -49,8 +51,10 @@ const Profile = () => {
   const fetchUserLogs = async () => {
     setIsLoadingLogs(true);
     try {
-      const data = await getAuditLogs(1, 50, { user_id: user?.id });
+      const filters = showAllLogs ? {} : { user_id: user?.id };
+      const data = await getAuditLogs(logPage, logPageSize, filters);
       setAuditLogs(data.data || []);
+      setTotalLogs(data.count || 0);
     } catch (error) {
       console.error('Failed to fetch logs', error);
     } finally {
@@ -150,7 +154,7 @@ const Profile = () => {
           className={`profile-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
           onClick={() => setActiveTab('history')}
         >
-          <History size={18} /> Min Historik
+          <History size={18} /> {canManageCompany ? 'Händelselogg' : 'Min Historik'}
         </button>
         {canManageCompany && (
           <button 
@@ -217,8 +221,32 @@ const Profile = () => {
         {activeTab === 'history' && (
           <div className="profile-history-section">
             <div className="profile-card full-width">
-              <h3><History size={20} /> Din Händelsehistorik</h3>
-              <p className="text-muted mb-4">Här ser du dina senaste aktiviteter i systemet.</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div>
+                  <h3><History size={20} /> {showAllLogs ? 'Systemets Händelselogg' : 'Din Händelsehistorik'}</h3>
+                  <p className="text-muted">
+                    {showAllLogs 
+                      ? 'Här visas alla aktiviteter i systemet (Admin-vy).' 
+                      : 'Här ser du dina senaste aktiviteter i systemet.'}
+                  </p>
+                </div>
+                {canManageCompany && (
+                  <div className="flex gap-2">
+                    <button 
+                      className={`btn ${!showAllLogs ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                      onClick={() => { setShowAllLogs(false); setLogPage(1); }}
+                    >
+                      Min historik
+                    </button>
+                    <button 
+                      className={`btn ${showAllLogs ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                      onClick={() => { setShowAllLogs(true); setLogPage(1); }}
+                    >
+                      Visa alla
+                    </button>
+                  </div>
+                )}
+              </div>
               
               {isLoadingLogs ? (
                 <div className="loading-inline">Laddar historik...</div>
@@ -228,44 +256,71 @@ const Profile = () => {
                   <p>Ingen historik hittades</p>
                 </div>
               ) : (
-                <div className="audit-timeline profile-timeline">
-                  {auditLogs.map(log => (
-                    <div key={log.id} className="audit-item">
-                      <div className="audit-dot"></div>
-                      <div className="audit-content">
-                        <div className="audit-header">
-                          <span className={`audit-action-badge ${log.action.toLowerCase()}`}>
-                            {log.action}
-                          </span>
-                          <span className="audit-time">
-                            {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm', { locale: sv })}
-                          </span>
-                        </div>
-                        <div className="audit-entity">
-                          <strong>{log.entity_type}:</strong> {log.entity_name}
-                        </div>
-                        {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
-                          <div className="audit-changes-mini">
-                            {Object.keys(log.changes.new).map(key => {
-                              if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
-                                  !['updated_at', 'company_id', 'creator_uid'].includes(key)) {
-                                return (
-                                  <div key={key} className="change-row-mini">
-                                    <span className="key">{key}:</span>
-                                    <span className="old">{String(log.changes.old[key] || 'n/a')}</span>
-                                    <ChevronRight size={10} />
-                                    <span className="new">{String(log.changes.new[key] || 'n/a')}</span>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })}
+                <>
+                  <div className="audit-timeline profile-timeline">
+                    {auditLogs.map(log => (
+                      <div key={log.id} className="audit-item">
+                        <div className="audit-dot"></div>
+                        <div className="audit-content">
+                          <div className="audit-header">
+                            <span className={`audit-action-badge ${log.action.toLowerCase()}`}>
+                              {log.action}
+                            </span>
+                            <span className="audit-time">
+                              {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm', { locale: sv })}
+                            </span>
                           </div>
-                        )}
+                          <div className="audit-entity">
+                            <strong>{log.entity_type}:</strong> {log.entity_name}
+                            {showAllLogs && (
+                              <span className="audit-user-info" style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: '#666' }}>
+                                • {log.user_email}
+                              </span>
+                            )}
+                          </div>
+                          {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
+                            <div className="audit-changes-mini">
+                              {Object.keys(log.changes.new).map(key => {
+                                if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
+                                    !['updated_at', 'company_id', 'creator_uid'].includes(key)) {
+                                  return (
+                                    <div key={key} className="change-row-mini">
+                                      <span className="key">{key}:</span>
+                                      <span className="old">{String(log.changes.old[key] || 'n/a')}</span>
+                                      <ChevronRight size={10} />
+                                      <span className="new">{String(log.changes.new[key] || 'n/a')}</span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                  
+                  {totalLogs > logPageSize && (
+                    <div className="pagination-simple" style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center' }}>
+                      <button 
+                        className="btn-secondary btn-sm" 
+                        disabled={logPage === 1}
+                        onClick={() => setLogPage(p => p - 1)}
+                      >
+                        Föregående
+                      </button>
+                      <span style={{ fontSize: '0.9rem' }}>Sida {logPage} av {Math.ceil(totalLogs / logPageSize)}</span>
+                      <button 
+                        className="btn-secondary btn-sm" 
+                        disabled={logPage >= Math.ceil(totalLogs / logPageSize)}
+                        onClick={() => setLogPage(p => p + 1)}
+                      >
+                        Nästa
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           </div>

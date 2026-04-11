@@ -22,7 +22,6 @@ const Sidebar = ({ isExpanded, onToggle }) => {
       </div>
       <nav className="sidebar-nav">
         <Link to="/process"><Activity /> {isExpanded && <span>Processer</span>}</Link>
-        <Link to="/audit"><History /> {isExpanded && <span>Händelselogg</span>}</Link>
         <Link to="/avvikelse"><AlertTriangle /> {isExpanded && <span>Avvikelser</span>}</Link>
         <Link to="/risk"><Shield /> {isExpanded && <span>Risker</span>}</Link>
         <Link to="/dokument"><FileText /> {isExpanded && <span>Dokument</span>}</Link>
