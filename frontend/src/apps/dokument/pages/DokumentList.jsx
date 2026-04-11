@@ -838,7 +838,10 @@ const DokumentList = () => {
                               {new Date(log.created_at).toLocaleString('sv-SE')}
                             </span>
                           </div>
-                          <div className="audit-user text-sm font-medium mb-2">{log.user_email}</div>
+                          <div className="audit-user text-sm font-medium mb-2">
+                            {log.user_email}
+                            <span className="text-[10px] text-gray-400 ml-2">ID: {log.user_id?.substring(0, 8)}...</span>
+                          </div>
                           {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
                             <div className="audit-changes bg-gray-50 dark:bg-slate-900/50 rounded-lg p-3 text-xs space-y-1">
                               {Object.keys(log.changes.new).map(key => {

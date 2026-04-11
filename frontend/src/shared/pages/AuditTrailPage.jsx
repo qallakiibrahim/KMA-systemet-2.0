@@ -157,6 +157,7 @@ const AuditTrailPage = () => {
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Användare</label>
                   <p className="text-gray-900 dark:text-white">{selectedLog.user_email}</p>
+                  <p className="text-[10px] text-gray-400 font-mono mt-0.5">ID: {selectedLog.user_id}</p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Handling</label>

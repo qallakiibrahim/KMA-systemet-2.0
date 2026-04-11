@@ -11,6 +11,7 @@ import { getAvvikelser } from '../../avvikelse/api/avvikelse';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { Plus, X, AlertOctagon } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/calendar.css';
 
@@ -31,6 +32,13 @@ const CalendarPage = () => {
   const navigate = useNavigate();
   const { currentUser, userProfile } = useAuth();
   
+  useRegisterHeaderActions(
+    <button className="btn btn-primary" onClick={() => handleAddNew()}>
+      <Plus size={20} />
+      <span>Ny händelse</span>
+    </button>
+  );
+
   const [view, setView] = useState('month');
   const [date, setDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -291,10 +299,6 @@ const CalendarPage = () => {
             <span className="legend-item"><span className="dot event" style={{backgroundColor: 'var(--event-custom)'}}></span> Händelse</span>
           </div>
         </div>
-        <button className="btn-primary" onClick={handleAddNew}>
-          <Plus size={20} />
-          <span>Ny händelse</span>
-        </button>
       </div>
       
       <div className="calendar-wrapper">

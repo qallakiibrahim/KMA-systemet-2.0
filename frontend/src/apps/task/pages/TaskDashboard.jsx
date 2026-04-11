@@ -392,7 +392,10 @@ const TaskDashboard = () => {
                           <span className="log-action">{log.action}</span>
                           <span className="log-date">{format(new Date(log.created_at), 'yyyy-MM-dd HH:mm')}</span>
                         </div>
-                        <div className="log-user">{log.user_email}</div>
+                        <div className="log-user">
+                          {log.user_email}
+                          <span className="text-[10px] text-gray-400 ml-2">ID: {log.user_id?.substring(0, 8)}...</span>
+                        </div>
                         {log.changes && (
                           <div className="log-changes">
                             {Object.entries(log.changes.new || {}).map(([key, val]) => {

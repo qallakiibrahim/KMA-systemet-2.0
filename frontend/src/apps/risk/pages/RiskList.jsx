@@ -6,6 +6,7 @@ import { sendEmailNotification } from '../../../shared/api/sendEmailNotification
 import { useAuth } from '../../../shared/api/AuthContext';
 import { Plus, Trash2, X, AlertOctagon, ShieldAlert, Activity, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import '../styles/RiskList.css';
 
 const RiskList = () => {
@@ -32,6 +33,13 @@ const RiskList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useRegisterHeaderActions(
+    <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+      <Plus size={20} />
+      <span>Registrera Risk</span>
+    </button>
+  );
 
   // TanStack Query for data fetching
   const { data: riskerData, isLoading: loading, isError, error } = useQuery({
@@ -252,12 +260,6 @@ const RiskList = () => {
           <p className="subtitle">Identifiera, analysera och hantera risker</p>
         </div>
         <div className="header-actions">
-          {isMobile && (
-            <button className="btn btn-primary btn-responsive" onClick={() => setIsModalOpen(true)}>
-              <Plus size={20} />
-              <span>Registrera Risk</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -270,18 +272,6 @@ const RiskList = () => {
                 <h2>{column.title}</h2>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {!isMobile && (
-                  <button 
-                    className="btn-icon-mini" 
-                    onClick={() => {
-                      setFormData({...formData, status: column.id});
-                      setIsModalOpen(true);
-                    }}
-                    title={`Lägg till i ${column.title}`}
-                  >
-                    <Plus size={16} />
-                  </button>
-                )}
                 <span className="column-count">
                   {risker.filter(r => r.status === column.id).length}
                 </span>
@@ -553,7 +543,10 @@ const RiskList = () => {
                               {new Date(log.created_at).toLocaleString('sv-SE')}
                             </span>
                           </div>
-                          <div className="audit-user">{log.user_email}</div>
+                          <div className="audit-user">
+                            {log.user_email}
+                            <span className="text-[10px] text-gray-400 ml-2">ID: {log.user_id?.substring(0, 8)}...</span>
+                          </div>
                           {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
                             <div className="audit-changes">
                               {Object.keys(log.changes.new).map(key => {

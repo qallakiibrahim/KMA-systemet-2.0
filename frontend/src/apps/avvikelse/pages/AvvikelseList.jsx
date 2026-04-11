@@ -1059,6 +1059,7 @@ const AvvikelseList = () => {
                               </div>
                               <div className="audit-user">
                                 {log.user_email || 'System'}
+                                <span className="text-[10px] text-gray-400 ml-2">ID: {log.user_id?.substring(0, 8)}...</span>
                               </div>
                               {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
                                 <div className="audit-changes">

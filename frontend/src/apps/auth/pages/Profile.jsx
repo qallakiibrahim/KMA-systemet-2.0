@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { User, Mail, Shield, Building, Calendar, CheckCircle, Settings, CreditCard, Globe, MapPin, Phone, Save, Activity, Edit2, X } from 'lucide-react';
+import { User, Mail, Shield, Building, Calendar, CheckCircle, Settings, CreditCard, Globe, MapPin, Phone, Save, Activity, Edit2, X, History, Bell, Trash2, Clock, ChevronRight } from 'lucide-react';
 import CompanyList from '../../company/pages/CompanyList';
 import AdminPanel from '../../admin/pages/AdminPanel';
 import { toast } from 'react-toastify';
+import { getAuditLogs } from '../../../shared/api/auditLog';
+import { getNotifications, deleteNotification, updateNotification } from '../../notification/api/notification';
+import { format } from 'date-fns';
+import { sv } from 'date-fns/locale';
 import '../styles/Profile.css';
 
 const Profile = () => {
@@ -14,6 +18,68 @@ const Profile = () => {
     display_name: '',
     username: ''
   });
+  const [notifications, setNotifications] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'notifications') {
+      fetchNotifications();
+    } else if (activeTab === 'history') {
+      fetchUserLogs();
+    }
+  }, [activeTab]);
+
+  const fetchNotifications = async () => {
+    setIsLoadingNotifs(true);
+    try {
+      const data = await getNotifications();
+      // Filter for current user if needed, but getNotifications might already be scoped or we filter here
+      // Assuming getNotifications returns all for now, we should filter by user_id if the API doesn't
+      const userNotifs = data.filter(n => n.user_id === user?.id);
+      setNotifications(userNotifs);
+    } catch (error) {
+      console.error('Failed to fetch notifications', error);
+    } finally {
+      setIsLoadingNotifs(false);
+    }
+  };
+
+  const fetchUserLogs = async () => {
+    setIsLoadingLogs(true);
+    try {
+      const data = await getAuditLogs(1, 50, { user_id: user?.id });
+      setAuditLogs(data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch logs', error);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
+  const handleClearNotification = async (id) => {
+    try {
+      await deleteNotification(id);
+      setNotifications(notifications.filter(n => n.id !== id));
+      toast.success('Notis borttagen');
+    } catch (error) {
+      toast.error('Kunde inte ta bort notis');
+    }
+  };
+
+  const handleClearAllNotifications = async () => {
+    if (!window.confirm('Är du säker på att du vill rensa alla notiser?')) return;
+    try {
+      for (const n of notifications) {
+        await deleteNotification(n.id);
+      }
+      setNotifications([]);
+      toast.success('Alla notiser rensade');
+    } catch (error) {
+      toast.error('Kunde inte rensa alla notiser');
+    }
+  };
 
   if (loading) return <div className="loading">Laddar profil...</div>;
   if (!userProfile) return <div className="loading">Kunde inte ladda profil. Försök logga ut och in igen.</div>;
@@ -74,6 +140,18 @@ const Profile = () => {
         >
           <User size={18} /> Personlig Info
         </button>
+        <button 
+          className={`profile-tab-btn ${activeTab === 'notifications' ? 'active' : ''}`}
+          onClick={() => setActiveTab('notifications')}
+        >
+          <Bell size={18} /> Notiser
+        </button>
+        <button 
+          className={`profile-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          <History size={18} /> Min Historik
+        </button>
         {canManageCompany && (
           <button 
             className={`profile-tab-btn ${activeTab === 'company' ? 'active' : ''}`}
@@ -93,6 +171,105 @@ const Profile = () => {
       </div>
 
       <div className="profile-tab-content">
+        {activeTab === 'notifications' && (
+          <div className="profile-notifications-section">
+            <div className="profile-card full-width">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3><Bell size={20} /> Dina Notifikationer</h3>
+                {notifications.length > 0 && (
+                  <button className="btn-secondary btn-sm" onClick={handleClearAllNotifications}>
+                    Rensa alla
+                  </button>
+                )}
+              </div>
+              
+              {isLoadingNotifs ? (
+                <div className="loading-inline">Laddar notiser...</div>
+              ) : notifications.length === 0 ? (
+                <div className="empty-state-simple">
+                  <Bell size={40} className="text-muted" style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                  <p>Du har inga nya notiser</p>
+                </div>
+              ) : (
+                <div className="notifications-list">
+                  {notifications.map(n => (
+                    <div key={n.id} className={`notification-item ${n.read ? 'read' : 'unread'}`}>
+                      <div className="notification-icon">
+                        <Bell size={16} />
+                      </div>
+                      <div className="notification-content">
+                        <p className="notification-text">{n.message}</p>
+                        <span className="notification-time">
+                          {format(new Date(n.created_at), 'yyyy-MM-dd HH:mm', { locale: sv })}
+                        </span>
+                      </div>
+                      <button className="btn-icon-mini delete" onClick={() => handleClearNotification(n.id)}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'history' && (
+          <div className="profile-history-section">
+            <div className="profile-card full-width">
+              <h3><History size={20} /> Din Händelsehistorik</h3>
+              <p className="text-muted mb-4">Här ser du dina senaste aktiviteter i systemet.</p>
+              
+              {isLoadingLogs ? (
+                <div className="loading-inline">Laddar historik...</div>
+              ) : auditLogs.length === 0 ? (
+                <div className="empty-state-simple">
+                  <History size={40} className="text-muted" style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                  <p>Ingen historik hittades</p>
+                </div>
+              ) : (
+                <div className="audit-timeline profile-timeline">
+                  {auditLogs.map(log => (
+                    <div key={log.id} className="audit-item">
+                      <div className="audit-dot"></div>
+                      <div className="audit-content">
+                        <div className="audit-header">
+                          <span className={`audit-action-badge ${log.action.toLowerCase()}`}>
+                            {log.action}
+                          </span>
+                          <span className="audit-time">
+                            {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm', { locale: sv })}
+                          </span>
+                        </div>
+                        <div className="audit-entity">
+                          <strong>{log.entity_type}:</strong> {log.entity_name}
+                        </div>
+                        {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
+                          <div className="audit-changes-mini">
+                            {Object.keys(log.changes.new).map(key => {
+                              if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
+                                  !['updated_at', 'company_id', 'creator_uid'].includes(key)) {
+                                return (
+                                  <div key={key} className="change-row-mini">
+                                    <span className="key">{key}:</span>
+                                    <span className="old">{String(log.changes.old[key] || 'n/a')}</span>
+                                    <ChevronRight size={10} />
+                                    <span className="new">{String(log.changes.new[key] || 'n/a')}</span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {activeTab === 'personal' && (
           <div className="profile-grid">
             <div className="profile-card">
