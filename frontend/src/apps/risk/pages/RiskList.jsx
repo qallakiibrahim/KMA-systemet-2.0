@@ -34,12 +34,14 @@ const RiskList = () => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-  useRegisterHeaderActions(
+  const headerActions = useMemo(() => (
     <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
       <Plus size={20} />
       <span>Registrera Risk</span>
     </button>
-  );
+  ), []);
+
+  useRegisterHeaderActions(headerActions);
 
   // TanStack Query for data fetching
   const { data: riskerData, isLoading: loading, isError, error } = useQuery({

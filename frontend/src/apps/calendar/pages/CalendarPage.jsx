@@ -32,12 +32,14 @@ const CalendarPage = () => {
   const navigate = useNavigate();
   const { currentUser, userProfile } = useAuth();
   
-  useRegisterHeaderActions(
+  const headerActions = useMemo(() => (
     <button className="btn btn-primary" onClick={() => handleAddNew()}>
       <Plus size={20} />
       <span>Ny händelse</span>
     </button>
-  );
+  ), []);
+
+  useRegisterHeaderActions(headerActions);
 
   const [view, setView] = useState('month');
   const [date, setDate] = useState(new Date());

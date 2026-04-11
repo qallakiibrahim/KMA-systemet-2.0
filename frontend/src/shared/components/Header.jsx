@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../api/AuthContext';
-import { getTasks } from '../../apps/task/api/tasksApi';
+import { getOpenTasks } from '../../apps/task/api/tasksApi';
 import { getNotifications, updateNotification } from '../../apps/notification/api/notification';
 import { Bell, User, Search, Menu, X } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
@@ -31,13 +31,12 @@ const Header = ({ onMenuClick }) => {
   };
 
   // TanStack Query for tasks
-  const { data: tasksData } = useQuery({
-    queryKey: ['tasks', 1, -1],
-    queryFn: () => getTasks(1, -1),
+  const { data: tasks } = useQuery({
+    queryKey: ['tasks', 'open'],
+    queryFn: () => getOpenTasks(),
     enabled: !!user,
+    initialData: [],
   });
-
-  const tasks = tasksData?.data || (Array.isArray(tasksData) ? tasksData : []);
 
   // TanStack Query for notifications
   const { data: notificationsData } = useQuery({

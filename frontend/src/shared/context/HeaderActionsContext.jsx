@@ -9,18 +9,18 @@ export const HeaderActionsProvider = ({ children }) => {
   const [rightPanel, setRightPanel] = useState(null);
 
   const registerActions = useCallback((newActions) => {
-    setActions(newActions);
-    return () => setActions(null);
+    setActions(prev => prev === newActions ? prev : newActions);
+    return () => setActions(prev => prev === newActions ? null : prev);
   }, []);
 
   const registerCenterTools = useCallback((newTools) => {
-    setCenterTools(newTools);
-    return () => setCenterTools(null);
+    setCenterTools(prev => prev === newTools ? prev : newTools);
+    return () => setCenterTools(prev => prev === newTools ? null : prev);
   }, []);
 
   const registerRightPanel = useCallback((newPanel) => {
-    setRightPanel(newPanel);
-    return () => setRightPanel(null);
+    setRightPanel(prev => prev === newPanel ? prev : newPanel);
+    return () => setRightPanel(prev => prev === newPanel ? null : prev);
   }, []);
 
   const stateValue = useMemo(() => ({ actions, centerTools, rightPanel }), [actions, centerTools, rightPanel]);
