@@ -3,14 +3,18 @@ import { logAction } from '../../../shared/api/auditLog';
 
 const tableName = 'profiles';
 
-export const getUsers = async () => {
-  const { data, error } = await supabase
+export const getUsers = async (page = 1, pageSize = 50) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from(tableName)
-    .select('*, companies(name)')
-    .order('display_name', { ascending: true });
+    .select('*, companies(name)', { count: 'exact' })
+    .order('display_name', { ascending: true })
+    .range(from, to);
     
   if (error) throw error;
-  return data;
+  return { data, count };
 };
 
 export const updateUserRole = async (userId, role, adminUser = null) => {

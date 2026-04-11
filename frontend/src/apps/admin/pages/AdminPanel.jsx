@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Users, Building, Activity, Plus, Search, MoreVertical, Shield, CheckCircle, Clock, XCircle, Eye, Edit2, CheckSquare, Archive, X, Info, Trash2, Key, Bot } from 'lucide-react';
 import { getUsers, updateUser, getPendingInvitations, inviteUser, deleteInvitation } from '../api/users';
 import { getCompanies, createCompany, updateCompany, deleteCompany } from '../../company/api/company';
+import { getAuditLogs } from '../../../shared/api/auditLog';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { toast } from 'react-toastify';
 import '../styles/AdminPanel.css';
@@ -63,6 +64,16 @@ const AdminPanel = ({ isEmbedded = false }) => {
   
   const [isUserInfoModalOpen, setIsUserInfoModalOpen] = useState(false);
 
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditCount, setAuditCount] = useState(0);
+  const [auditPage, setAuditPage] = useState(1);
+  const [isAuditLoading, setIsAuditLoading] = useState(false);
+
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersCount, setUsersCount] = useState(0);
+  const [companiesPage, setCompaniesPage] = useState(1);
+  const [companiesCount, setCompaniesCount] = useState(0);
+
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
@@ -74,13 +85,15 @@ const AdminPanel = ({ isEmbedded = false }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersData, companiesData, invitesData] = await Promise.all([
-          getUsers(),
-          getCompanies(),
+        const [usersRes, companiesRes, invitesData] = await Promise.all([
+          getUsers(usersPage, 20),
+          getCompanies(companiesPage, 20),
           getPendingInvitations()
         ]);
-        setUsers(usersData);
-        setCompanies(companiesData);
+        setUsers(usersRes.data);
+        setUsersCount(usersRes.count);
+        setCompanies(companiesRes.data);
+        setCompaniesCount(companiesRes.count);
         setInvitations(invitesData);
       } catch (error) {
         console.error('Failed to fetch admin data', error);
@@ -89,7 +102,27 @@ const AdminPanel = ({ isEmbedded = false }) => {
       }
     };
     fetchData();
-  }, []);
+  }, [usersPage, companiesPage]);
+
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      fetchAuditLogs();
+    }
+  }, [activeTab, auditPage]);
+
+  const fetchAuditLogs = async () => {
+    setIsAuditLoading(true);
+    try {
+      const { data, count } = await getAuditLogs(auditPage, 20);
+      setAuditLogs(data);
+      setAuditCount(count);
+    } catch (error) {
+      console.error('Failed to fetch audit logs', error);
+      toast.error('Kunde inte hämta händelseloggen');
+    } finally {
+      setIsAuditLoading(false);
+    }
+  };
 
   const handleInviteUser = async (e) => {
     e.preventDefault();
@@ -103,13 +136,15 @@ const AdminPanel = ({ isEmbedded = false }) => {
       setIsInviteModalOpen(false);
       setNewInvite({ email: '', company_id: '', role: 'user' });
       // Refresh data
-      const [usersData, companiesData, invitesData] = await Promise.all([
-        getUsers(),
-        getCompanies(),
+      const [usersRes, companiesRes, invitesData] = await Promise.all([
+        getUsers(usersPage, 20),
+        getCompanies(companiesPage, 20),
         getPendingInvitations()
       ]);
-      setUsers(usersData);
-      setCompanies(companiesData);
+      setUsers(usersRes.data);
+      setUsersCount(usersRes.count);
+      setCompanies(companiesRes.data);
+      setCompaniesCount(companiesRes.count);
       setInvitations(invitesData);
     } catch (error) {
       console.error('Error inviting user:', error);
@@ -143,8 +178,9 @@ const AdminPanel = ({ isEmbedded = false }) => {
       await deleteCompany(id, currentUser);
       toast.success('Företaget har tagits bort');
       // Refresh data
-      const companiesData = await getCompanies();
-      setCompanies(companiesData);
+      const companiesRes = await getCompanies(companiesPage, 20);
+      setCompanies(companiesRes.data);
+      setCompaniesCount(companiesRes.count);
     } catch (error) {
       console.error('Error deleting company:', error);
       toast.error(`Kunde inte ta bort företaget: ${error.message || 'Okänt fel'}`);
@@ -375,6 +411,12 @@ const AdminPanel = ({ isEmbedded = false }) => {
         >
           <Info size={18} /> Onboarding Guide
         </button>
+        <button 
+          className={`tab-btn ${activeTab === 'audit' ? 'active' : ''}`}
+          onClick={() => setActiveTab('audit')}
+        >
+          <Clock size={18} /> Händelselogg
+        </button>
       </div>
 
       <div className="admin-content">
@@ -488,6 +530,26 @@ const AdminPanel = ({ isEmbedded = false }) => {
                 </tbody>
               </table>
             </div>
+
+            {companiesCount > 20 && (
+              <div className="pagination mt-4">
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  disabled={companiesPage === 1}
+                  onClick={() => setCompaniesPage(p => p - 1)}
+                >
+                  Föregående
+                </button>
+                <span className="mx-3 text-muted">Sida {companiesPage} av {Math.ceil(companiesCount / 20)}</span>
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  disabled={companies.length < 20}
+                  onClick={() => setCompaniesPage(p => p + 1)}
+                >
+                  Nästa
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -553,6 +615,26 @@ const AdminPanel = ({ isEmbedded = false }) => {
                 </tbody>
               </table>
             </div>
+
+            {usersCount > 20 && (
+              <div className="pagination mt-4">
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  disabled={usersPage === 1}
+                  onClick={() => setUsersPage(p => p - 1)}
+                >
+                  Föregående
+                </button>
+                <span className="mx-3 text-muted">Sida {usersPage} av {Math.ceil(usersCount / 20)}</span>
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  disabled={users.length < 20}
+                  onClick={() => setUsersPage(p => p + 1)}
+                >
+                  Nästa
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -578,6 +660,88 @@ const AdminPanel = ({ isEmbedded = false }) => {
               <h3><Shield size={20} /> Viktigt om Säkerhet</h3>
               <p>Användare kan inte se någon data förrän de har blivit kopplade till ett företag. Som Superadmin kan du se all data för alla företag för att kunna ge support, men vanliga användare är strikt isolerade till sitt eget <code>company_id</code>.</p>
               <p className="mt-2"><strong>Tips:</strong> Du tillhör nu företaget <strong>SafeQMS</strong>, vilket gör att du kan skapa standardmallar som sedan kan importeras av andra företag via Biblioteket.</p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'audit' && (
+          <div className="audit-tab">
+            <div className="content-header">
+              <h2>Händelselogg (Audit Trail)</h2>
+              <p className="text-muted">Spårbarhet för alla kritiska ändringar i systemet.</p>
+            </div>
+
+            <div className="table-container mt-4">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Tidpunkt</th>
+                    <th>Användare</th>
+                    <th>Åtgärd</th>
+                    <th>Typ</th>
+                    <th>Objekt</th>
+                    <th>Detaljer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isAuditLoading ? (
+                    <tr><td colSpan="6" className="text-center py-4">Laddar loggar...</td></tr>
+                  ) : auditLogs.length === 0 ? (
+                    <tr><td colSpan="6" className="text-center py-4">Inga händelser loggade än.</td></tr>
+                  ) : (
+                    auditLogs.map((log) => (
+                      <tr key={log.id}>
+                        <td className="text-muted" style={{ fontSize: '0.8rem' }}>
+                          {new Date(log.created_at).toLocaleString('sv-SE')}
+                        </td>
+                        <td>
+                          <div className="font-medium">{log.user_email?.split('@')[0]}</div>
+                          <div className="text-muted" style={{ fontSize: '0.7rem' }}>{log.user_email}</div>
+                        </td>
+                        <td>
+                          <span className={`action-badge ${log.action.toLowerCase()}`}>
+                            {log.action}
+                          </span>
+                        </td>
+                        <td>{log.entity_type}</td>
+                        <td className="font-medium">{log.entity_name || log.entity_id}</td>
+                        <td>
+                          {log.changes ? (
+                            <button 
+                              className="btn-icon-mini" 
+                              title="Visa ändringar"
+                              onClick={() => {
+                                console.log('Changes:', log.changes);
+                                alert(JSON.stringify(log.changes, null, 2));
+                              }}
+                            >
+                              <Info size={14} />
+                            </button>
+                          ) : '-'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pagination mt-4">
+              <button 
+                className="btn btn-secondary btn-sm" 
+                disabled={auditPage === 1 || isAuditLoading}
+                onClick={() => setAuditPage(p => p - 1)}
+              >
+                Föregående
+              </button>
+              <span className="mx-3 text-muted">Sida {auditPage}</span>
+              <button 
+                className="btn btn-secondary btn-sm" 
+                disabled={auditLogs.length < 20 || isAuditLoading}
+                onClick={() => setAuditPage(p => p + 1)}
+              >
+                Nästa
+              </button>
             </div>
           </div>
         )}

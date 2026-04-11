@@ -62,6 +62,7 @@ const DokumentList = () => {
     category: 'general',
     iso_chapter: '',
     status: 'utkast',
+    version: '1.0',
     file_type: '',
     file_size: 0,
     is_template: false
@@ -181,6 +182,23 @@ const DokumentList = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleApprove = async () => {
+    if (!editingDokument) return;
+    try {
+      const updates = { 
+        status: 'godkänd',
+        approved_by: currentUser.id,
+        approved_at: new Date().toISOString()
+      };
+      await updateDokument(editingDokument.id, updates, currentUser);
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      toast.success('Dokumentet har godkänts!');
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Approval error:', error);
+      toast.error('Kunde inte godkänna dokumentet');
+    }
+  };
   const handleFileChange = async (e) => {
     const file = e.target.files ? e.target.files[0] : e;
     if (!file) return;
@@ -254,6 +272,7 @@ const DokumentList = () => {
         category: doc.category || 'general',
         iso_chapter: doc.iso_chapter || '',
         status: doc.status || 'utkast',
+        version: doc.version || '1.0',
         file_type: doc.file_type || '',
         file_size: doc.file_size || 0,
         is_template: doc.is_template || false
@@ -269,6 +288,7 @@ const DokumentList = () => {
         category: 'general',
         iso_chapter: '',
         status: 'utkast',
+        version: '1.0',
         file_type: '',
         file_size: 0,
         is_template: false
@@ -320,6 +340,8 @@ const DokumentList = () => {
         file_url: '', 
         category: 'general',
         iso_chapter: '',
+        status: 'utkast',
+        version: '1.0',
         file_type: '',
         file_size: 0,
         is_template: false
@@ -775,6 +797,18 @@ const DokumentList = () => {
                         <option value="arkiverad">Arkiverad</option>
                       </select>
                     </div>
+
+                    <div className="form-group">
+                      <label htmlFor="version">Version</label>
+                      <input
+                        type="text"
+                        id="version"
+                        name="version"
+                        value={formData.version}
+                        onChange={handleInputChange}
+                        placeholder="t.ex. 1.1"
+                      />
+                    </div>
                   </div>
 
                   <div className="form-group mt-4 pt-4 border-t">
@@ -810,6 +844,11 @@ const DokumentList = () => {
                   <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
                     Avbryt
                   </button>
+                  {editingDokument && formData.status === 'granskning' && (userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+                    <button type="button" className="btn-success" onClick={handleApprove}>
+                      Godkänn dokument
+                    </button>
+                  )}
                   <button type="submit" className="btn-primary" disabled={!formData.file_url || isUploading}>
                     {editingDokument ? 'Spara ändringar' : 'Ladda upp till bibliotek'}
                   </button>

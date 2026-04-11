@@ -85,6 +85,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
         },
         category: 'general',
         status: 'utkast',
+        version: '1.0',
         company_id: userProfile?.company_id,
         creator_uid: currentUser?.id,
         is_template: false,

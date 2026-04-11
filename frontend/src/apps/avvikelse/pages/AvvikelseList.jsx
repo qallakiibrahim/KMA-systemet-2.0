@@ -53,6 +53,9 @@ const AvvikelseList = () => {
   });
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeRightTab, setActiveRightTab] = useState('actions'); // 'actions' or 'history'
+  const [deviationLogs, setDeviationLogs] = useState([]);
+  const [isLogsLoading, setIsLogsLoading] = useState(false);
   const fileInputRef = useRef(null);
   const followUpFileInputRef = useRef(null);
 
@@ -169,6 +172,28 @@ const AvvikelseList = () => {
       }
     }
   }, [loading, location.state, avvikelser]);
+
+  useEffect(() => {
+    if (isFollowUpModalOpen && selectedAvvikelse && activeRightTab === 'history') {
+      fetchDeviationLogs();
+    }
+  }, [isFollowUpModalOpen, selectedAvvikelse, activeRightTab]);
+
+  const fetchDeviationLogs = async () => {
+    if (!selectedAvvikelse) return;
+    setIsLogsLoading(true);
+    try {
+      const { data } = await getAuditLogs(1, 50, { 
+        entity_type: 'AVVIKELSE', 
+        entity_id: selectedAvvikelse.id 
+      });
+      setDeviationLogs(data || []);
+    } catch (error) {
+      console.error('Failed to fetch deviation logs', error);
+    } finally {
+      setIsLogsLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -1001,15 +1026,32 @@ const AvvikelseList = () => {
 
               {/* Höger: Tidslinje/Steg */}
               <div className="timeline-panel">
-                <div className="timeline">
-                  {/* Steg 1 */}
-                  <div className="timeline-item completed">
-                    <div className="timeline-marker"><CheckCircle size={16} /></div>
-                    <div className="timeline-content">
-                      <h4>1. Registrerad</h4>
-                      <p className="text-muted">Avvikelsen skapades {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                <div className="panel-tabs">
+                  <button 
+                    className={`panel-tab ${activeRightTab === 'actions' ? 'active' : ''}`}
+                    onClick={() => setActiveRightTab('actions')}
+                  >
+                    Åtgärder
+                  </button>
+                  <button 
+                    className={`panel-tab ${activeRightTab === 'history' ? 'active' : ''}`}
+                    onClick={() => setActiveRightTab('history')}
+                  >
+                    Historik
+                  </button>
+                </div>
+
+                {activeRightTab === 'actions' ? (
+                  <div className="timeline">
+                    {/* Steg 1 */}
+                    <div className="timeline-item completed">
+                      <div className="timeline-marker"><CheckCircle size={16} /></div>
+                      <div className="timeline-content">
+                        <h4>1. Registrerad</h4>
+                        <p className="text-muted">Avvikelsen skapades {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                      </div>
                     </div>
-                  </div>
+                    {/* ... rest of timeline items ... */}
 
                   {/* Steg 2 */}
                   <div className={`timeline-item ${activeStep > 2 ? 'completed' : activeStep === 2 ? 'active' : 'disabled'}`}>
@@ -1129,6 +1171,33 @@ const AvvikelseList = () => {
                   </div>
 
                 </div>
+                ) : (
+                  <div className="deviation-history">
+                    {isLogsLoading ? (
+                      <div className="text-center py-4"><Loader className="spin" /></div>
+                    ) : deviationLogs.length === 0 ? (
+                      <p className="text-center py-4 text-muted">Ingen historik hittades.</p>
+                    ) : (
+                      <div className="history-list">
+                        {deviationLogs.map((log) => (
+                          <div key={log.id} className="history-item">
+                            <div className="history-header">
+                              <span className="history-user">{log.user_email?.split('@')[0]}</span>
+                              <span className="history-date">{new Date(log.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                            </div>
+                            <div className="history-body">
+                              <span className={`action-badge ${log.action.toLowerCase()}`}>{log.action}</span>
+                              <span className="history-text">
+                                {log.action === 'UPDATE' ? 'Uppdaterade avvikelsen' : 
+                                 log.action === 'CREATE' ? 'Skapade avvikelsen' : log.action}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             

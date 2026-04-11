@@ -66,7 +66,7 @@
 .tab-btn:hover {
   color: var(--text-primary);
   background-color: var(--bg-hover);
-  border-radius: 0.5rem 0.5rem 0 0;
+  border-radius: 0.625rem 0.625rem 0 0;
 }
 
 .tab-btn.active {
@@ -94,7 +94,7 @@
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.875rem;
@@ -656,4 +656,47 @@
   .kpi-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Audit Trail Styles */
+.action-badge {
+  display: inline-flex;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.action-badge.create { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
+.action-badge.update { background: rgba(66, 133, 244, 0.1); color: var(--primary-color); }
+.action-badge.delete { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
+.action-badge.login { background: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-icon-mini {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.625rem; /* Standardized per AGENTS.md */
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-icon-mini:hover {
+  background: var(--bg-hover);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
 }

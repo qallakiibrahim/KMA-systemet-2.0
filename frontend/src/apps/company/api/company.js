@@ -3,14 +3,18 @@ import { logAction } from '../../../shared/api/auditLog';
 
 const tableName = 'companies';
 
-export const getCompanies = async () => {
-  const { data, error } = await supabase
+export const getCompanies = async (page = 1, pageSize = 50) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from(tableName)
-    .select('*')
-    .order('name', { ascending: true });
+    .select('*', { count: 'exact' })
+    .order('name', { ascending: true })
+    .range(from, to);
     
   if (error) throw error;
-  return data;
+  return { data, count };
 };
 
 export const createCompany = async (data, user = null) => {
