@@ -25,6 +25,7 @@ const Profile = () => {
   const [logPage, setLogPage] = useState(1);
   const [logPageSize] = useState(20);
   const [showAllLogs, setShowAllLogs] = useState(false);
+  const [logEntityFilter, setLogEntityFilter] = useState('');
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
 
@@ -34,7 +35,7 @@ const Profile = () => {
     } else if (activeTab === 'history') {
       fetchUserLogs();
     }
-  }, [activeTab, logPage, showAllLogs]);
+  }, [activeTab, logPage, showAllLogs, logEntityFilter]);
 
   const fetchNotifications = async () => {
     setIsLoadingNotifs(true);
@@ -53,6 +54,9 @@ const Profile = () => {
     setIsLoadingLogs(true);
     try {
       const filters = showAllLogs ? {} : { user_id: user?.id };
+      if (logEntityFilter) {
+        filters.entity_type = logEntityFilter;
+      }
       const data = await getAuditLogs(logPage, logPageSize, filters);
       setAuditLogs(data.data || []);
       setTotalLogs(data.count || 0);
@@ -175,9 +179,20 @@ const Profile = () => {
     is_global: 'Global',
     creator_uid: 'Skapad av (ID)',
     created_at: 'Skapad den',
-    updated_at: 'Uppdaterad den'
+    updated_at: 'Uppdaterad den',
+    RISK: 'Risk',
+    AVVIKELSE: 'Avvikelse',
+    PROCESS: 'Process',
+    DOCUMENT: 'Dokument',
+    TASK: 'Uppgift',
+    USER_PROFILE: 'Användarprofil',
+    COMPANY: 'Företag',
+    CALENDAR_EVENT: 'Kalenderhändelse',
+    INVITATION: 'Inbjudan',
+    USER_ROLE: 'Användarroll'
   };
 
+  const translateEntityType = (type) => fieldTranslations[type] || type;
   const translateField = (field) => fieldTranslations[field] || field;
   const translateValue = (value) => {
     if (value === null || value === undefined) return 'n/a';
@@ -300,19 +315,37 @@ const Profile = () => {
                   </p>
                 </div>
                 {canManageCompany && (
-                  <div className="flex gap-2">
-                    <button 
-                      className={`btn ${!showAllLogs ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                      onClick={() => { setShowAllLogs(false); setLogPage(1); }}
+                  <div className="flex gap-2 items-center">
+                    <select 
+                      className="form-control btn-sm" 
+                      style={{ width: 'auto', minWidth: '150px', height: '36px', fontSize: '0.85rem' }}
+                      value={logEntityFilter}
+                      onChange={(e) => { setLogEntityFilter(e.target.value); setLogPage(1); }}
                     >
-                      Min historik
-                    </button>
-                    <button 
-                      className={`btn ${showAllLogs ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                      onClick={() => { setShowAllLogs(true); setLogPage(1); }}
-                    >
-                      Visa alla
-                    </button>
+                      <option value="">Alla typer</option>
+                      <option value="AVVIKELSE">Avvikelser</option>
+                      <option value="RISK">Risker</option>
+                      <option value="PROCESS">Processer</option>
+                      <option value="DOCUMENT">Dokument</option>
+                      <option value="TASK">Uppgifter</option>
+                      <option value="USER_PROFILE">Användarprofiler</option>
+                      <option value="COMPANY">Företag</option>
+                      <option value="CALENDAR_EVENT">Kalender</option>
+                    </select>
+                    <div className="flex gap-1" style={{ marginLeft: '0.5rem' }}>
+                      <button 
+                        className={`btn ${!showAllLogs ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                        onClick={() => { setShowAllLogs(false); setLogPage(1); }}
+                      >
+                        Min historik
+                      </button>
+                      <button 
+                        className={`btn ${showAllLogs ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                        onClick={() => { setShowAllLogs(true); setLogPage(1); }}
+                      >
+                        Visa alla
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -339,10 +372,22 @@ const Profile = () => {
                               {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm', { locale: sv })}
                             </span>
                           </div>
-                          <div className="audit-entity">
-                            <strong>{log.entity_type}:</strong> {log.entity_name}
+                          <div className="audit-entity" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className={`entity-badge ${log.entity_type?.toLowerCase()}`} style={{ 
+                              fontSize: '0.65rem', 
+                              padding: '2px 6px', 
+                              borderRadius: '4px', 
+                              backgroundColor: '#f1f5f9',
+                              color: '#475569',
+                              fontWeight: '600',
+                              textTransform: 'uppercase',
+                              border: '1px solid #e2e8f0'
+                            }}>
+                              {translateEntityType(log.entity_type)}
+                            </span>
+                            <span style={{ fontWeight: '500' }}>{log.entity_name}</span>
                             {showAllLogs && (
-                              <span className="audit-user-info" style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: '#666' }}>
+                              <span className="audit-user-info" style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#666' }}>
                                 • {log.user_email}
                               </span>
                             )}
@@ -546,16 +591,31 @@ const Profile = () => {
                   </div>
                 </div>
                 <div className="iso-audit-item">
-                  <label>Objekt</label>
+                  <label>Objekt-typ</label>
                   <div className="value">
-                    <strong>{selectedLog.entity_type || 'SYSTEM'}:</strong> {selectedLog.entity_name || 'Okänt objekt'}
+                    <span className="entity-badge-large" style={{ 
+                      padding: '4px 10px', 
+                      borderRadius: '6px', 
+                      backgroundColor: 'var(--primary-color)', 
+                      color: 'white',
+                      fontSize: '0.8rem',
+                      fontWeight: '600'
+                    }}>
+                      {translateEntityType(selectedLog.entity_type)}
+                    </span>
+                  </div>
+                </div>
+                <div className="iso-audit-item">
+                  <label>Objekt-namn</label>
+                  <div className="value">
+                    <strong>{selectedLog.entity_name || 'Okänt objekt'}</strong>
                   </div>
                 </div>
               </div>
 
               <div className="iso-audit-summary" style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--primary-color)' }}>
                 <p style={{ margin: 0, fontSize: '0.95rem', color: '#334155' }}>
-                  <strong>Händelse:</strong> {selectedLog.user_email || 'Systemet'} {getActionText(selectedLog.action).toLowerCase()} {selectedLog.entity_type?.toLowerCase() || 'objektet'} <em>"{selectedLog.entity_name || 'Okänt'}"</em> den {format(new Date(selectedLog.created_at), 'd MMMM yyyy', { locale: sv })}.
+                  <strong>Händelse:</strong> {selectedLog.user_email || 'Systemet'} {getActionText(selectedLog.action).toLowerCase()} {translateEntityType(selectedLog.entity_type).toLowerCase()} <em>"{selectedLog.entity_name || 'Okänt'}"</em> den {format(new Date(selectedLog.created_at), 'd MMMM yyyy', { locale: sv })}.
                 </p>
               </div>
 
