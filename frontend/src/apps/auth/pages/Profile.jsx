@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { User, Mail, Shield, Building, Calendar, CheckCircle, Settings, CreditCard, Globe, MapPin, Phone, Save, Activity, Edit2, X, History, Bell, Trash2, Clock, ChevronRight } from 'lucide-react';
+import { User, Mail, Shield, Building, Calendar, CheckCircle, Settings, CreditCard, Globe, MapPin, Phone, Save, Activity, Edit2, X, History, Bell, Trash2, Clock, ChevronRight, Eye } from 'lucide-react';
 import CompanyList from '../../company/pages/CompanyList';
 import AdminPanel from '../../admin/pages/AdminPanel';
 import { toast } from 'react-toastify';
@@ -14,6 +14,7 @@ const Profile = () => {
   const { user, userProfile, loading, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedLog, setSelectedLog] = useState(null);
   const [editData, setEditData] = useState({
     display_name: '',
     username: ''
@@ -123,6 +124,53 @@ const Profile = () => {
         default: return p;
       }
     }).join(', ');
+  };
+
+  const fieldTranslations = {
+    title: 'Titel',
+    description: 'Beskrivning',
+    status: 'Status',
+    priority: 'Prioritet',
+    due_date: 'Förfallodatum',
+    dueDate: 'Förfallodatum',
+    assigned_to: 'Tilldelad till',
+    category: 'Kategori',
+    severity: 'Allvarlighetsgrad',
+    probability: 'Sannolikhet',
+    impact: 'Konsekvens',
+    mitigation_plan: 'Åtgärdsplan',
+    version: 'Version',
+    content: 'Innehåll',
+    is_template: 'Är mall',
+    process_id: 'Process-ID',
+    parent_id: 'Förälder-ID',
+    display_name: 'Visningsnamn',
+    username: 'Användarnamn',
+    role: 'Roll',
+    company_name: 'Företagsnamn',
+    todo: 'Att göra',
+    'in-progress': 'Pågående',
+    done: 'Klar',
+    Low: 'Låg',
+    Medium: 'Medium',
+    High: 'Hög',
+    Critical: 'Kritisk'
+  };
+
+  const translateField = (field) => fieldTranslations[field] || field;
+  const translateValue = (value) => {
+    if (value === null || value === undefined) return 'n/a';
+    if (typeof value === 'boolean') return value ? 'Ja' : 'Nej';
+    return fieldTranslations[value] || String(value);
+  };
+
+  const getActionText = (action) => {
+    switch (action) {
+      case 'CREATE': return 'Skapade';
+      case 'UPDATE': return 'Uppdaterade';
+      case 'DELETE': return 'Tog bort';
+      default: return action;
+    }
   };
 
   return (
@@ -278,24 +326,41 @@ const Profile = () => {
                               </span>
                             )}
                           </div>
-                          {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
-                            <div className="audit-changes-mini">
-                              {Object.keys(log.changes.new).map(key => {
-                                if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
-                                    !['updated_at', 'company_id', 'creator_uid'].includes(key)) {
-                                  return (
-                                    <div key={key} className="change-row-mini">
-                                      <span className="key">{key}:</span>
-                                      <span className="old">{String(log.changes.old[key] || 'n/a')}</span>
-                                      <ChevronRight size={10} />
-                                      <span className="new">{String(log.changes.new[key] || 'n/a')}</span>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })}
+                          <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                            <div style={{ flex: 1 }}>
+                              {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
+                                <div className="audit-changes-mini">
+                                  {Object.keys(log.changes.new).map(key => {
+                                    if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
+                                        !['updated_at', 'company_id', 'creator_uid', 'id'].includes(key)) {
+                                      return (
+                                        <div key={key} className="change-row-mini">
+                                          <span className="key">{translateField(key)}:</span>
+                                          <span className="old">{translateValue(log.changes.old[key])}</span>
+                                          <ChevronRight size={10} />
+                                          <span className="new">{translateValue(log.changes.new[key])}</span>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })}
+                                </div>
+                              )}
+                              {log.action === 'CREATE' && (
+                                <div className="audit-changes-mini">
+                                  <span className="text-success" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Nytt objekt skapat</span>
+                                </div>
+                              )}
                             </div>
-                          )}
+                            <button 
+                              className="btn-icon-mini" 
+                              onClick={() => setSelectedLog(log)}
+                              title="Visa detaljer"
+                              style={{ marginLeft: '1rem' }}
+                            >
+                              <Eye size={14} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -423,6 +488,84 @@ const Profile = () => {
           </div>
         )}
       </div>
+      {selectedLog && (
+        <div className="fixed-modal-overlay">
+          <div className="profile-modal">
+            <div className="profile-modal-header">
+              <h3><History size={20} /> Händelsedetaljer (ISO-spårbarhet)</h3>
+              <button onClick={() => setSelectedLog(null)} className="btn-icon-mini">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="profile-modal-body">
+              <div className="iso-audit-grid">
+                <div className="iso-audit-item">
+                  <label>Vem</label>
+                  <div className="value">
+                    <User size={14} />
+                    <span>{selectedLog.user_email}</span>
+                  </div>
+                </div>
+                <div className="iso-audit-item">
+                  <label>När</label>
+                  <div className="value">
+                    <Clock size={14} />
+                    <span>{format(new Date(selectedLog.created_at), 'PPPP p', { locale: sv })}</span>
+                  </div>
+                </div>
+                <div className="iso-audit-item">
+                  <label>Handling</label>
+                  <div className="value">
+                    <span className={`audit-action-badge ${selectedLog.action.toLowerCase()}`}>
+                      {getActionText(selectedLog.action)}
+                    </span>
+                  </div>
+                </div>
+                <div className="iso-audit-item">
+                  <label>Objekt</label>
+                  <div className="value">
+                    <strong>{selectedLog.entity_type}:</strong> {selectedLog.entity_name}
+                  </div>
+                </div>
+              </div>
+
+              <div className="iso-changes-section">
+                <h4>Ändringshistorik</h4>
+                {selectedLog.changes && selectedLog.changes.old && selectedLog.changes.new ? (
+                  <div className="iso-changes-table">
+                    <div className="iso-changes-header">
+                      <span>Fält</span>
+                      <span>Före</span>
+                      <span>Efter</span>
+                    </div>
+                    {Object.keys(selectedLog.changes.new).map(key => {
+                      const oldVal = selectedLog.changes.old[key];
+                      const newVal = selectedLog.changes.new[key];
+                      if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return null;
+                      if (['updated_at', 'company_id', 'creator_uid', 'id'].includes(key)) return null;
+
+                      return (
+                        <div key={key} className="iso-change-row">
+                          <span className="field-name">{translateField(key)}</span>
+                          <span className="old-value">{translateValue(oldVal)}</span>
+                          <span className="new-value">{translateValue(newVal)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="iso-no-changes">
+                    <pre>{JSON.stringify(selectedLog.changes, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="profile-modal-footer">
+              <button className="btn-secondary" onClick={() => setSelectedLog(null)}>Stäng</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
