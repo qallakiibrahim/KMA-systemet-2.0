@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addDays, addWeeks, addMonths, isBefore, addYears } from 'date-fns';
@@ -32,12 +32,25 @@ const CalendarPage = () => {
   const navigate = useNavigate();
   const { currentUser, userProfile } = useAuth();
   
+  const handleAddNew = useCallback(() => {
+    setSelectedEvent(null);
+    setFormData({
+      title: '',
+      description: '',
+      start_date: '',
+      end_date: '',
+      all_day: false,
+      recurrence: 'none'
+    });
+    setIsModalOpen(true);
+  }, []);
+
   const headerActions = useMemo(() => (
     <button className="btn btn-primary" onClick={() => handleAddNew()}>
       <Plus size={20} />
       <span>Ny händelse</span>
     </button>
-  ), []);
+  ), [handleAddNew]);
 
   useRegisterHeaderActions(headerActions);
 
@@ -226,18 +239,6 @@ const CalendarPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleAddNew = () => {
-    setSelectedEvent(null);
-    setFormData({
-      title: '',
-      description: '',
-      start_date: '',
-      end_date: '',
-      all_day: false,
-      recurrence: 'none'
-    });
-    setIsModalOpen(true);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
