@@ -97,6 +97,7 @@ export const createRisk = async (data, user = null) => {
           entity_type: 'RISK',
           entity_id: retryInserted.id,
           entity_name: retryInserted.title,
+          changes: { new: retryInserted },
           user_id: user.id,
           user_email: user.email,
           company_id: retryInserted.company_id
@@ -114,6 +115,7 @@ export const createRisk = async (data, user = null) => {
       entity_type: 'RISK',
       entity_id: inserted.id,
       entity_name: inserted.title,
+      changes: { new: inserted },
       user_id: user.id,
       user_email: user.email,
       company_id: inserted.company_id

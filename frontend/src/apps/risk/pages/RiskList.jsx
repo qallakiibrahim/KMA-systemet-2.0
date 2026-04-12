@@ -12,7 +12,7 @@ import '../styles/RiskList.css';
 const RiskList = () => {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(50);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
   const [formData, setFormData] = useState({ 
@@ -137,6 +137,21 @@ const RiskList = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const translateKey = (key) => {
+    const translations = {
+      title: 'Titel',
+      description: 'Beskrivning',
+      likelihood: 'Sannolikhet',
+      impact: 'Konsekvens',
+      status: 'Status',
+      category: 'Kategori',
+      deadline: 'Deadline',
+      responsible_name: 'Ansvarig',
+      risk_score: 'Riskpoäng'
+    };
+    return translations[key] || key;
   };
 
   const handleSubmit = async (e) => {
@@ -553,13 +568,29 @@ const RiskList = () => {
                             <div className="audit-changes">
                               {Object.keys(log.changes.new).map(key => {
                                 if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
-                                    !['updated_at', 'company_id', 'creator_uid'].includes(key)) {
+                                    !['updated_at', 'company_id', 'creator_uid', 'id', 'created_at'].includes(key)) {
                                   return (
                                     <div key={key} className="change-item">
-                                      <span className="change-key">{key}:</span>
+                                      <span className="change-key">{translateKey(key)}:</span>
                                       <span className="change-old">{String(log.changes.old[key] || 'n/a')}</span>
                                       <span className="change-arrow">→</span>
                                       <span className="change-new">{String(log.changes.new[key] || 'n/a')}</span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                          )}
+                          {log.action === 'CREATE' && log.changes && log.changes.new && (
+                            <div className="audit-changes">
+                              <div className="text-[10px] text-gray-400 mb-1">Initial data:</div>
+                              {Object.keys(log.changes.new).map(key => {
+                                if (!['updated_at', 'company_id', 'creator_uid', 'id', 'created_at'].includes(key) && log.changes.new[key]) {
+                                  return (
+                                    <div key={key} className="change-item">
+                                      <span className="change-key">{translateKey(key)}:</span>
+                                      <span className="change-new">{String(log.changes.new[key])}</span>
                                     </div>
                                   );
                                 }

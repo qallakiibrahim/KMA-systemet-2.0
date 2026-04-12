@@ -16,7 +16,7 @@ import '../styles/AvvikelseList.css';
 const AvvikelseList = () => {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(50);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
   const [selectedAvvikelse, setSelectedAvvikelse] = useState(null);
@@ -325,6 +325,22 @@ const AvvikelseList = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const translateKey = (key) => {
+    const translations = {
+      titel: 'Titel',
+      beskrivning: 'Beskrivning',
+      priority: 'Prioritet',
+      severity: 'Allvarlighetsgrad',
+      probability: 'Sannolikhet',
+      status: 'Status',
+      deadline: 'Deadline',
+      uppfoljning: 'Uppföljning',
+      problemdefinition: 'Problemdefinition',
+      attachments: 'Bilagor'
+    };
+    return translations[key] || key;
   };
 
   const handleSubmit = async (e) => {
@@ -1192,6 +1208,40 @@ const AvvikelseList = () => {
                                  log.action === 'CREATE' ? 'Skapade avvikelsen' : log.action}
                               </span>
                             </div>
+                            {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
+                              <div className="audit-changes" style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '4px', fontSize: '0.75rem' }}>
+                                {Object.keys(log.changes.new).map(key => {
+                                  if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
+                                      !['updated_at', 'company_id', 'author_uid', 'id', 'created_at'].includes(key)) {
+                                    return (
+                                      <div key={key} className="change-item" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                        <span className="change-key" style={{ fontWeight: '600', color: 'var(--text-muted)' }}>{translateKey(key)}:</span>
+                                        <span className="change-old" style={{ textDecoration: 'line-through', opacity: 0.6 }}>{String(typeof log.changes.old[key] === 'object' ? 'Ändrad' : log.changes.old[key] || 'n/a')}</span>
+                                        <span className="change-arrow">→</span>
+                                        <span className="change-new" style={{ color: 'var(--success-color)' }}>{String(typeof log.changes.new[key] === 'object' ? 'Ändrad' : log.changes.new[key] || 'n/a')}</span>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })}
+                              </div>
+                            )}
+                            {log.action === 'CREATE' && log.changes && log.changes.new && (
+                              <div className="audit-changes" style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '4px', fontSize: '0.75rem' }}>
+                                <div className="text-[10px] text-gray-400 mb-1">Initiala data:</div>
+                                {Object.keys(log.changes.new).map(key => {
+                                  if (!['updated_at', 'company_id', 'author_uid', 'id', 'created_at'].includes(key) && log.changes.new[key]) {
+                                    return (
+                                      <div key={key} className="change-item" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                        <span className="change-key" style={{ fontWeight: '600', color: 'var(--text-muted)' }}>{translateKey(key)}:</span>
+                                        <span className="change-new" style={{ color: 'var(--success-color)' }}>{String(typeof log.changes.new[key] === 'object' ? 'Satt' : log.changes.new[key])}</span>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

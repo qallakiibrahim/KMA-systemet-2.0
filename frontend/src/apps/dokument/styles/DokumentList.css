@@ -257,7 +257,7 @@
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
   box-shadow: var(--card-shadow);
   display: flex;
   flex-direction: column;
@@ -269,10 +269,8 @@
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
   background-color: var(--bg-primary);
-  z-index: 10;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -282,11 +280,51 @@
   margin: 0;
 }
 
+.modal-tabs {
+  display: flex;
+  gap: 1rem;
+}
+
+.modal-tab {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-tab:hover {
+  color: var(--text-primary);
+}
+
+.modal-tab.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
 .modal-body {
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.dokument-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.history-tab-content {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .form-group {
@@ -328,9 +366,7 @@
   padding: 1.5rem;
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-primary);
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
+  flex-shrink: 0;
 }
 
 .form-actions button {
@@ -644,6 +680,10 @@
 }
 
 @media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
   .dokument-dashboard {
     padding: 1rem;
   }

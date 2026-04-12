@@ -150,6 +150,7 @@ export const createDokument = async (data, user = null) => {
             entity_type: 'DOCUMENT',
             entity_id: retryInserted.id,
             entity_name: retryInserted.title,
+            changes: { new: retryInserted },
             user_id: user.id,
             user_email: user.email,
             company_id: retryInserted.company_id
@@ -175,6 +176,7 @@ export const createDokument = async (data, user = null) => {
           entity_type: 'DOCUMENT',
           entity_id: retryInserted.id,
           entity_name: retryInserted.title,
+          changes: { new: retryInserted },
           user_id: user.id,
           user_email: user.email,
           company_id: retryInserted.company_id
@@ -204,6 +206,7 @@ export const createDokument = async (data, user = null) => {
             entity_type: 'DOCUMENT',
             entity_id: retryInserted.id,
             entity_name: retryInserted.title,
+            changes: { new: retryInserted },
             user_id: user.id,
             user_email: user.email,
             company_id: retryInserted.company_id
@@ -234,6 +237,7 @@ export const createDokument = async (data, user = null) => {
           entity_type: 'DOCUMENT',
           entity_id: retryInserted.id,
           entity_name: retryInserted.title,
+          changes: { new: retryInserted },
           user_id: user.id,
           user_email: user.email,
           company_id: retryInserted.company_id
@@ -252,6 +256,7 @@ export const createDokument = async (data, user = null) => {
       entity_type: 'DOCUMENT',
       entity_id: inserted.id,
       entity_name: inserted.title,
+      changes: { new: inserted },
       user_id: user.id,
       user_email: user.email,
       company_id: inserted.company_id
@@ -317,6 +322,7 @@ export const updateDokument = async (id, data, user = null) => {
             entity_type: 'DOCUMENT',
             entity_id: id,
             entity_name: retryUpdated.title,
+            changes: { old: oldData, new: retryUpdated },
             user_id: user.id,
             user_email: user.email,
             company_id: retryUpdated.company_id
@@ -346,6 +352,7 @@ export const updateDokument = async (id, data, user = null) => {
           entity_type: 'DOCUMENT',
           entity_id: id,
           entity_name: retryUpdated.title,
+          changes: { old: oldData, new: retryUpdated },
           user_id: user.id,
           user_email: user.email,
           company_id: retryUpdated.company_id

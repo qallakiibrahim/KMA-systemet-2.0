@@ -138,6 +138,7 @@ export const createAvvikelse = async (data, user = null) => {
       entity_type: 'ISSUE',
       entity_id: inserted.id,
       entity_name: inserted.title,
+      changes: { new: inserted },
       user_id: user.id,
       user_email: user.email,
       company_id: inserted.company_id

@@ -110,6 +110,7 @@ export const inviteUser = async (inviteData, adminUser = null) => {
       entity_type: 'INVITATION',
       entity_id: data.id,
       entity_name: data.email,
+      changes: { new: data },
       user_id: adminUser.id,
       user_email: adminUser.email,
       company_id: data.company_id

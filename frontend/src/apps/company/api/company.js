@@ -32,6 +32,7 @@ export const createCompany = async (data, user = null) => {
       entity_type: 'COMPANY',
       entity_id: inserted.id,
       entity_name: inserted.name,
+      changes: { new: inserted },
       user_id: user.id,
       user_email: user.email,
       company_id: inserted.id

@@ -299,6 +299,22 @@ const DokumentList = () => {
     setIsModalOpen(true);
   };
 
+  const translateKey = (key) => {
+    const translations = {
+      title: 'Titel',
+      description: 'Beskrivning',
+      category: 'Kategori',
+      iso_chapter: 'ISO-kapitel',
+      status: 'Status',
+      version: 'Version',
+      file_url: 'Fil-URL',
+      is_template: 'Mall',
+      file_type: 'Filtyp',
+      file_size: 'Filstorlek'
+    };
+    return translations[key] || key;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -885,13 +901,29 @@ const DokumentList = () => {
                             <div className="audit-changes bg-gray-50 dark:bg-slate-900/50 rounded-lg p-3 text-xs space-y-1">
                               {Object.keys(log.changes.new).map(key => {
                                 if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
-                                    !['updated_at', 'company_id', 'creator_uid'].includes(key)) {
+                                    !['updated_at', 'company_id', 'creator_uid', 'id', 'created_at'].includes(key)) {
                                   return (
                                     <div key={key} className="change-item flex items-center gap-2">
-                                      <span className="change-key font-semibold text-gray-500">{key}:</span>
+                                      <span className="change-key font-semibold text-gray-500">{translateKey(key)}:</span>
                                       <span className="change-old text-red-500 line-through opacity-70">{String(log.changes.old[key] || 'n/a')}</span>
                                       <ChevronRight size={10} className="text-gray-400" />
                                       <span className="change-new text-green-600">{String(log.changes.new[key] || 'n/a')}</span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                          )}
+                          {log.action === 'CREATE' && log.changes && log.changes.new && (
+                            <div className="audit-changes bg-gray-50 dark:bg-slate-900/50 rounded-lg p-3 text-xs space-y-1">
+                              <div className="text-[10px] text-gray-400 mb-1">Initiala data:</div>
+                              {Object.keys(log.changes.new).map(key => {
+                                if (!['updated_at', 'company_id', 'creator_uid', 'id', 'created_at'].includes(key) && log.changes.new[key]) {
+                                  return (
+                                    <div key={key} className="change-item flex items-center gap-2">
+                                      <span className="change-key font-semibold text-gray-500">{translateKey(key)}:</span>
+                                      <span className="change-new text-green-600">{String(log.changes.new[key])}</span>
                                     </div>
                                   );
                                 }
