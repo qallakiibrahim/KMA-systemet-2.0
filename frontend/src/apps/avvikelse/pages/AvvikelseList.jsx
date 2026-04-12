@@ -699,7 +699,8 @@ const AvvikelseList = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="avvikelse-form">
-              <div className="form-group">
+              <div className="avvikelse-form-body">
+                <div className="form-group">
                 <label htmlFor="titel">Titel</label>
                 <input
                   type="text"
@@ -871,6 +872,7 @@ const AvvikelseList = () => {
                     )}
                   </div>
                 )}
+                </div>
               </div>
 
               <div className="form-actions">

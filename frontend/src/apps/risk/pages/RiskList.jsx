@@ -407,7 +407,8 @@ const RiskList = () => {
 
             {activeTab === 'info' ? (
               <form onSubmit={handleSubmit} className="risk-form">
-                <fieldset disabled={!canEdit} style={{ border: 'none', padding: 0, margin: 0 }}>
+                <div className="modal-body">
+                  <fieldset disabled={!canEdit} style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div className="form-group">
                   <label htmlFor="title">Titel</label>
                   <input
@@ -525,8 +526,11 @@ const RiskList = () => {
                   ></textarea>
                 </div>
 
+                  </fieldset>
+                </div>
+
                 <div className="form-actions">
-                  <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={false}>
+                  <button type="button" className="btn-secondary" onClick={handleCloseModal}>
                     Avbryt
                   </button>
                   {canEdit && (
@@ -535,7 +539,6 @@ const RiskList = () => {
                     </button>
                   )}
                 </div>
-                </fieldset>
               </form>
             ) : (
               <div className="history-tab-content">
