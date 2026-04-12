@@ -147,16 +147,13 @@
   overflow-x: hidden;
   padding: 2rem;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  display: block; /* Use block for the most reliable scrolling behavior */
   -webkit-overflow-scrolling: touch;
 }
 
 .template-selection, .creation-options {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1 0 auto;
+  display: block;
 }
 
 /* Creation Options */
@@ -417,12 +414,11 @@
 
   .main-content {
     padding: 1rem;
-    padding-bottom: 5rem; /* Increased padding for better mobile clearance */
+    padding-bottom: 5rem;
     min-height: 0;
     flex: 1;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
+    display: block;
     -webkit-overflow-scrolling: touch;
   }
 
