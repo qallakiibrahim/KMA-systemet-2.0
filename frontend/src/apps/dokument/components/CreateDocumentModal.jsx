@@ -89,7 +89,8 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
         company_id: userProfile?.company_id,
         creator_uid: currentUser?.id,
         is_template: false,
-        is_global: false
+        is_global: false,
+        file_url: '' // Ensure file_url is present to satisfy not-null constraint
       };
 
       const created = await createDokument(newDoc, currentUser);
@@ -126,7 +127,8 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
         company_id: userProfile?.company_id,
         is_template: false,
         is_global: false,
-        status: 'utkast'
+        status: 'utkast',
+        file_url: template.file_url || '' // Ensure file_url is present
       };
 
       if (isProcess) {

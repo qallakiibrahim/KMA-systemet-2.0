@@ -342,7 +342,8 @@ const DokumentList = () => {
           ...formData,
           creator_uid: currentUser?.id || null,
           company_id: companyId,
-          is_global: userProfile?.role === 'superadmin' && formData.is_template
+          is_global: userProfile?.role === 'superadmin' && formData.is_template,
+          file_url: formData.file_url || '' // Ensure file_url is present
         };
         await createDokument(newDoc, currentUser);
         queryClient.invalidateQueries({ queryKey: ['documents'] });
