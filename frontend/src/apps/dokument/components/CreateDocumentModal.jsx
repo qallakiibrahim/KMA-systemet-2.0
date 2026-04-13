@@ -17,6 +17,18 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
+  // Prevent background scroll when modal is open
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   // Safety check for templates
   const safeTemplates = Array.isArray(templates) ? templates : [];
   const safeProcessTemplates = Array.isArray(processTemplates) ? processTemplates : [];
