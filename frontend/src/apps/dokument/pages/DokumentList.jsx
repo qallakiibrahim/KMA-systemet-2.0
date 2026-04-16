@@ -413,13 +413,6 @@ const DokumentList = () => {
     );
   }
 
-  if (loading) return <div className="loading-spinner">Laddar dokument...</div>;
-
-  const handleCreateNewClick = () => {
-    console.log('Button clicked, setting isCreateModalOpen to true');
-    setIsCreateModalOpen(true);
-  };
-
   const handleOpenItem = (item) => {
     if (item.is_process) {
       navigate(`/process?id=${item.id}`);
@@ -486,7 +479,12 @@ const DokumentList = () => {
       </div>
 
       <div className={`dokument-container ${viewMode}`}>
-        {filteredItems.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl w-full">
+            <Loader className="spin text-primary-color mb-4" size={40} />
+            <p className="text-gray-500 font-medium">Uppdaterar biblioteket...</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="empty-state">
             <FileText size={48} className="empty-icon" />
             <h3>Inga dokument hittades</h3>
@@ -628,6 +626,7 @@ const DokumentList = () => {
           templates={mergedDokuments}
           processTemplates={mergedProcesses}
           onCreated={(newDoc) => {
+            console.log('Document created, opening editor:', newDoc);
             queryClient.invalidateQueries({ queryKey: ['documents'] });
             setEditingDokument(newDoc);
             setIsEditorOpen(true);

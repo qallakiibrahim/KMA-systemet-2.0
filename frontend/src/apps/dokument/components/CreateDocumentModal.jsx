@@ -56,7 +56,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
   );
 
   const globalTemplates = useMemo(() => 
-    safeTemplates.filter(t => (t.is_global || !t.company_id) && (t.is_template || t.title?.toLowerCase().includes('mall'))),
+    safeTemplates.filter(t => t.is_global || !t.company_id || t.is_template),
     [safeTemplates]
   );
 

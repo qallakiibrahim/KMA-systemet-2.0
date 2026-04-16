@@ -203,8 +203,8 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Placeholder.configure({ placeholder: 'Börja skriva ditt dokument här...' }),
     ],
-    content: document?.content || '',
-  });
+    content: document?.content || { type: 'doc', content: [] },
+  }, [document?.id]);
 
   const handleSave = async () => {
     if (!title.trim()) {
