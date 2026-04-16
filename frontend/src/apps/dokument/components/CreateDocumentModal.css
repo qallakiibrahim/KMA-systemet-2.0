@@ -11,7 +11,7 @@
   justify-content: center;
   z-index: 2000;
   padding: 2rem;
-  overscroll-behavior: contain; /* Prevent scroll chaining to background */
+  overscroll-behavior: none; /* Hard stop for scroll chaining */
 }
 
 .create-doc-modal {
@@ -20,7 +20,8 @@
   max-width: 1000px;
   height: 80vh;
   border-radius: 1.5rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: 280px 1fr;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: modalAppear 0.3s ease-out;
@@ -99,12 +100,11 @@
 }
 
 .modal-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr;
   background: var(--bg-primary);
-  min-height: 0;
   overflow: hidden;
+  height: 100%;
 }
 
 .main-header {
@@ -144,14 +144,13 @@
 }
 
 .main-content {
-  flex: 1;
   overflow-y: auto;
   padding: 2rem;
-  min-height: 0;
-  display: block; /* Use block for natural expansion and scrolling */
   -webkit-overflow-scrolling: touch;
   position: relative;
-  touch-action: pan-y; /* Explicitly allow vertical scrolling */
+  flex: 1;
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 
 .template-selection, .creation-options {
@@ -258,6 +257,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1.5rem;
+  padding-bottom: 2rem;
 }
 
 .template-card {
@@ -360,6 +360,7 @@
   }
   
   .create-doc-modal {
+    display: flex;
     flex-direction: column;
     height: 90vh;
     border-radius: 1.5rem 1.5rem 0 0;
@@ -398,11 +399,12 @@
   }
 
   .modal-main {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
     overflow: hidden;
+    height: 100%;
+    flex: 1;
+    min-height: 0;
   }
 
   .main-header {
@@ -417,12 +419,12 @@
   .main-content {
     padding: 1rem;
     padding-bottom: 5rem;
-    min-height: 0;
-    flex: 1;
     overflow-y: auto;
-    display: block; /* Use block for reliable mobile scrolling */
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
+    flex: 1;
+    min-height: 0;
+    overscroll-behavior: contain;
   }
 
   .template-grid {

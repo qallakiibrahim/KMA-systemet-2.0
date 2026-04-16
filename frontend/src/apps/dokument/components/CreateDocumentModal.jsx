@@ -20,15 +20,29 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
   // Prevent background scroll when modal is open
   React.useEffect(() => {
     if (isOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset';
-      document.documentElement.style.overflow = 'unset';
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     }
     return () => {
-      document.body.style.overflow = 'unset';
-      document.documentElement.style.overflow = 'unset';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, [isOpen]);
 
@@ -234,7 +248,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
             </button>
           </header>
 
-          <div className="main-content">
+          <div className="main-content" key={activeCategory}>
             {activeCategory === 'new' ? (
               <div className="creation-options">
                 <div className="option-card" onClick={() => handleCreateNew(false)}>
@@ -271,7 +285,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
                   />
                 </div>
 
-                <div className="template-grid">
+                <div className="template-grid" key={`${activeCategory}-grid`}>
                   {filteredTemplates.map(template => (
                     <div 
                       key={template.id} 

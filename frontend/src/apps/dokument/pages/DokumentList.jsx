@@ -121,33 +121,30 @@ const DokumentList = () => {
     queryFn: getGlobalProcesses,
   });
 
-  const dokumentsList = docsData?.data || (Array.isArray(docsData) ? docsData : []);
-  const totalCount = docsData?.count || (Array.isArray(docsData) ? docsData.length : 0);
+  const dokumentsList = useMemo(() => docsData?.data || (Array.isArray(docsData) ? docsData : []), [docsData]);
+  const totalCount = docsData?.count || (Array.isArray(docsData) ? (docsData.length || 0) : 0);
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  const processesList = processesData?.data || (Array.isArray(processesData) ? processesData : []);
-  const globalDocs = globalDocsData || [];
-  const globalProcesses = globalProcessesData || [];
+  const processesList = useMemo(() => processesData?.data || (Array.isArray(processesData) ? processesData : []), [processesData]);
+  const globalDocs = useMemo(() => globalDocsData || [], [globalDocsData]);
+  const globalProcesses = useMemo(() => globalProcessesData || [], [globalProcessesData]);
 
-  // Merge items
-  const [mergedDokuments, setMergedDokuments] = useState([]);
-  const [mergedProcesses, setMergedProcesses] = useState([]);
-
-  useEffect(() => {
-    // Merge global items if they are not already in the list
-    const mergedD = [...dokumentsList];
+  // Merge items using useMemo instead of state + useEffect to avoid infinite loops
+  const mergedDokuments = useMemo(() => {
+    const merged = [...dokumentsList];
     globalDocs.forEach(gd => {
-      if (!mergedD.find(d => d.id === gd.id)) mergedD.push(gd);
+      if (!merged.find(d => d.id === gd.id)) merged.push(gd);
     });
-    
-    const mergedP = [...processesList];
-    globalProcesses.forEach(gp => {
-      if (!mergedP.find(p => p.id === gp.id)) mergedP.push(gp);
-    });
+    return merged;
+  }, [dokumentsList, globalDocs]);
 
-    setMergedDokuments(mergedD);
-    setMergedProcesses(mergedP);
-  }, [dokumentsList, processesList, globalDocs, globalProcesses]);
+  const mergedProcesses = useMemo(() => {
+    const merged = [...processesList];
+    globalProcesses.forEach(gp => {
+      if (!merged.find(p => p.id === gp.id)) merged.push(gp);
+    });
+    return merged;
+  }, [processesList, globalProcesses]);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
