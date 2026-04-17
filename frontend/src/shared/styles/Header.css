@@ -77,6 +77,28 @@
   animation: fadeIn 0.3s ease-out;
 }
 
+@media (max-width: 768px) {
+  .header-app-actions {
+    border-right: none;
+    padding-right: 0;
+    margin-right: 0;
+    gap: 0.5rem;
+  }
+  
+  .header-app-actions button span {
+    display: none;
+  }
+  
+  .header-app-actions button {
+    padding: 0.5rem;
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
@@ -98,6 +120,12 @@
   border-radius: 0.75rem;
   border: 1px solid var(--border-color);
   max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .header-center {
+    display: none; /* Hide complex center tools on small mobile by default */
+  }
 }
 
 .header-toolbar-group {

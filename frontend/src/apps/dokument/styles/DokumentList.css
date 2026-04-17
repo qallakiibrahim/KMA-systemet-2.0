@@ -419,4 +419,8 @@
   .doc-list-modal-header { padding: 1.25rem; }
   .doc-list-modal-body { padding: 1.25rem; }
   .doc-list-form-actions { padding: 1.25rem; }
+  .dokument-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+  }
 }
