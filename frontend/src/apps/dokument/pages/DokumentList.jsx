@@ -174,6 +174,43 @@ const DokumentList = () => {
 
   const loading = docsLoading || processesLoading || globalDocsLoading || globalProcessesLoading;
 
+  useEffect(() => {
+    if (isModalOpen) {
+      const scrollY = window.pageYOffset;
+      document.body.dataset.scrollY = scrollY.toString();
+      document.body.style.top = `-${scrollY}px`;
+      document.body.classList.add('modal-open-lock');
+    } else {
+      const scrollY = document.body.dataset.scrollY;
+      document.body.classList.remove('modal-open-lock');
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0'));
+      }
+    }
+    return () => {
+      document.body.classList.remove('modal-open-lock');
+      document.body.style.top = '';
+    };
+  }, [isModalOpen]);
+
+  // Handle background scroll for CreateDocumentModal too
+  useEffect(() => {
+    if (isCreateModalOpen) {
+      const scrollY = window.pageYOffset;
+      document.body.dataset.scrollY = scrollY.toString();
+      document.body.style.top = `-${scrollY}px`;
+      document.body.classList.add('modal-open-lock');
+    } else if (!isModalOpen) { // Only remove if main modal is not also open
+      const scrollY = document.body.dataset.scrollY;
+      document.body.classList.remove('modal-open-lock');
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0'));
+      }
+    }
+  }, [isCreateModalOpen, isModalOpen]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -650,62 +687,62 @@ const DokumentList = () => {
       )}
 
       {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="modal-tabs">
+        <div className="doc-list-modal-overlay">
+          <div className="doc-list-modal-content">
+            <div className="doc-list-modal-header">
+              <div className="doc-list-modal-tabs">
                 <button 
-                  className={`modal-tab ${activeTab === 'info' ? 'active' : ''}`}
+                  className={`doc-list-modal-tab ${activeTab === 'info' ? 'active' : ''}`}
                   onClick={() => setActiveTab('info')}
                 >
                   {editingDokument ? 'Redigera dokument' : 'Ladda upp nytt dokument'}
                 </button>
                 {editingDokument && (
                   <button 
-                    className={`modal-tab ${activeTab === 'history' ? 'active' : ''}`}
+                    className={`doc-list-modal-tab ${activeTab === 'history' ? 'active' : ''}`}
                     onClick={() => setActiveTab('history')}
                   >
                     Historik
                   </button>
                 )}
               </div>
-              <button className="close-btn" onClick={() => setIsModalOpen(false)}>
+              <button className="doc-list-close-btn" onClick={() => setIsModalOpen(false)}>
                 <X size={24} />
               </button>
             </div>
 
             {activeTab === 'info' ? (
-              <form onSubmit={handleSubmit} className="dokument-form">
-                <div className="modal-body">
+              <form onSubmit={handleSubmit} className="doc-list-dokument-form">
+                <div className="doc-list-modal-body">
                   <div 
-                    className={`drop-zone ${isDragging ? 'dragging' : ''} ${formData.file_url ? 'has-file' : ''}`}
+                    className={`doc-list-drop-zone ${isDragging ? 'dragging' : ''} ${formData.file_url ? 'has-file' : ''}`}
                     onDragOver={onDragOver}
                     onDragLeave={onDragLeave}
                     onDrop={onDrop}
                   >
                     {isUploading ? (
-                      <div className="upload-status">
+                      <div className="doc-list-upload-status">
                         <Loader className="spin" size={32} />
                         <p>Laddar upp fil...</p>
                       </div>
                     ) : formData.file_url ? (
-                      <div className="upload-status success">
+                      <div className="doc-list-upload-status success">
                         <FileIcon type={formData.file_type} size={32} />
                         <p>Fil klar: {formData.title}</p>
-                        <button type="button" className="btn-text" onClick={() => setFormData({...formData, file_url: '', file_type: '', file_size: 0})}>
+                        <button type="button" className="doc-list-btn-text" onClick={() => setFormData({...formData, file_url: '', file_type: '', file_size: 0})}>
                           Byt fil
                         </button>
                       </div>
                     ) : (
-                      <div className="upload-prompt">
+                      <div className="doc-list-upload-prompt">
                         <UploadCloud size={32} />
                         <p>Dra och släpp fil här eller klicka för att välja</p>
-                        <input type="file" onChange={handleFileChange} className="file-input" />
+                        <input type="file" onChange={handleFileChange} className="doc-list-file-input" />
                       </div>
                     )}
                   </div>
 
-                  <div className="form-group">
+                  <div className="doc-list-form-group">
                     <label htmlFor="title">Titel *</label>
                     <input
                       type="text"
@@ -718,8 +755,8 @@ const DokumentList = () => {
                     />
                   </div>
                   
-                  <div className="form-row">
-                    <div className="form-group">
+                  <div className="doc-list-form-row">
+                    <div className="doc-list-form-group">
                       <label htmlFor="category">Kategori</label>
                       <select
                         id="category"
@@ -735,7 +772,7 @@ const DokumentList = () => {
                       </select>
                     </div>
 
-                    <div className="form-group">
+                    <div className="doc-list-form-group">
                       <label htmlFor="iso_chapter">ISO-kapitel</label>
                       <select
                         id="iso_chapter"
@@ -796,7 +833,7 @@ const DokumentList = () => {
                       </select>
                     </div>
 
-                    <div className="form-group">
+                    <div className="doc-list-form-group">
                       <label htmlFor="status">Status</label>
                       <select
                         id="status"
@@ -811,7 +848,7 @@ const DokumentList = () => {
                       </select>
                     </div>
 
-                    <div className="form-group">
+                    <div className="doc-list-form-group">
                       <label htmlFor="version">Version</label>
                       <input
                         type="text"
@@ -824,7 +861,7 @@ const DokumentList = () => {
                     </div>
                   </div>
 
-                  <div className="form-group mt-4 pt-4 border-t">
+                  <div className="doc-list-form-group mt-4 pt-4 border-t">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input 
                         type="checkbox" 
@@ -840,7 +877,7 @@ const DokumentList = () => {
                     </p>
                   </div>
 
-                  <div className="form-group">
+                  <div className="doc-list-form-group">
                     <label htmlFor="description">Beskrivning</label>
                     <textarea
                       id="description"
@@ -853,49 +890,49 @@ const DokumentList = () => {
                   </div>
                 </div>
 
-                <div className="form-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                <div className="doc-list-form-actions">
+                  <button type="button" className="doc-list-btn-secondary" onClick={() => setIsModalOpen(false)}>
                     Avbryt
                   </button>
                   {editingDokument && formData.status === 'granskning' && (userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
-                    <button type="button" className="btn-success" onClick={handleApprove}>
+                    <button type="button" className="doc-list-btn-success" onClick={handleApprove}>
                       Godkänn dokument
                     </button>
                   )}
-                  <button type="submit" className="btn-primary" disabled={!formData.file_url || isUploading}>
+                  <button type="submit" className="doc-list-btn-primary" disabled={!formData.file_url || isUploading}>
                     {editingDokument ? 'Spara ändringar' : 'Ladda upp till bibliotek'}
                   </button>
                 </div>
               </form>
             ) : (
-              <div className="history-tab-content p-6">
+              <div className="doc-list-history-tab-content p-6">
                 {isLogsLoading ? (
-                  <div className="loading-logs">Laddar historik...</div>
+                  <div className="doc-list-loading-logs">Laddar historik...</div>
                 ) : auditLogs.length === 0 ? (
-                  <div className="empty-logs text-center py-8">
+                  <div className="doc-list-empty-logs text-center py-8">
                     <p className="text-gray-500">Ingen historik hittades för detta dokument.</p>
                     <p className="text-xs text-gray-400 mt-2">Loggning påbörjades 2026-04-08.</p>
                   </div>
                 ) : (
-                  <div className="audit-timeline space-y-4">
+                  <div className="doc-list-audit-timeline space-y-4">
                     {auditLogs.map(log => (
-                      <div key={log.id} className="audit-item flex gap-4 border-l-2 border-gray-100 dark:border-slate-700 pl-4 relative">
-                        <div className="audit-dot absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-primary-color border-4 border-white dark:border-slate-800"></div>
-                        <div className="audit-content flex-1">
-                          <div className="audit-header flex justify-between items-center mb-1">
-                            <span className="audit-action text-xs font-bold uppercase tracking-wider text-primary-color">
+                      <div key={log.id} className="doc-list-audit-item flex gap-4 border-l-2 border-gray-100 dark:border-slate-700 pl-4 relative">
+                        <div className="doc-list-audit-dot absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-primary-color border-4 border-white dark:border-slate-800"></div>
+                        <div className="doc-list-audit-content flex-1">
+                          <div className="doc-list-audit-header flex justify-between items-center mb-1">
+                            <span className="doc-list-audit-action text-xs font-bold uppercase tracking-wider text-primary-color">
                               {log.action === 'CREATE' ? 'Skapad' : log.action === 'UPDATE' ? 'Uppdaterad' : 'Raderad'}
                             </span>
-                            <span className="audit-time text-xs text-gray-400">
+                            <span className="doc-list-audit-time text-xs text-gray-400">
                               {new Date(log.created_at).toLocaleString('sv-SE')}
                             </span>
                           </div>
-                          <div className="audit-user text-sm font-medium mb-2">
+                          <div className="doc-list-audit-user text-sm font-medium mb-2">
                             {log.user_email}
                             <span className="text-[10px] text-gray-400 ml-2">ID: {log.user_id?.substring(0, 8)}...</span>
                           </div>
                           {log.action === 'UPDATE' && log.changes && log.changes.old && log.changes.new && (
-                            <div className="audit-changes bg-gray-50 dark:bg-slate-900/50 rounded-lg p-3 text-xs space-y-1">
+                            <div className="doc-list-audit-changes bg-gray-50 dark:bg-slate-900/50 rounded-lg p-3 text-xs space-y-1">
                               {Object.keys(log.changes.new).map(key => {
                                 if (JSON.stringify(log.changes.old[key]) !== JSON.stringify(log.changes.new[key]) && 
                                     !['updated_at', 'company_id', 'creator_uid', 'id', 'created_at'].includes(key)) {
@@ -913,7 +950,7 @@ const DokumentList = () => {
                             </div>
                           )}
                           {log.action === 'CREATE' && log.changes && log.changes.new && (
-                            <div className="audit-changes bg-gray-50 dark:bg-slate-900/50 rounded-lg p-3 text-xs space-y-1">
+                            <div className="doc-list-audit-changes bg-gray-50 dark:bg-slate-900/50 rounded-lg p-3 text-xs space-y-1">
                               <div className="text-[10px] text-gray-400 mb-1">Initiala data:</div>
                               {Object.keys(log.changes.new).map(key => {
                                 if (!['updated_at', 'company_id', 'creator_uid', 'id', 'created_at'].includes(key) && log.changes.new[key]) {

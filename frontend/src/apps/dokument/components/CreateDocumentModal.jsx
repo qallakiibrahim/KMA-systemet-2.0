@@ -20,29 +20,28 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
   // Prevent background scroll when modal is open
   React.useEffect(() => {
     if (isOpen) {
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
+      // Keep track of scroll position
+      const scrollY = window.pageYOffset;
+      document.body.dataset.scrollY = scrollY.toString();
+      
+      // Lock scroll
       document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
+      document.body.classList.add('modal-open-lock');
     } else {
-      const scrollY = document.body.style.top;
-      document.body.style.position = '';
+      // Unlock scroll
+      const scrollY = document.body.dataset.scrollY;
+      document.body.classList.remove('modal-open-lock');
       document.body.style.top = '';
-      document.body.style.width = '';
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
+      
       if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+        window.scrollTo(0, parseInt(scrollY));
+        delete document.body.dataset.scrollY;
       }
     }
+    
     return () => {
-      document.body.style.position = '';
+      document.body.classList.remove('modal-open-lock');
       document.body.style.top = '';
-      document.body.style.width = '';
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
     };
   }, [isOpen]);
 
@@ -187,49 +186,49 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
 
   return (
     <div className="create-doc-modal-overlay" onClick={onClose}>
-      <div className="create-doc-modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-sidebar">
-          <div className="sidebar-header">
+      <div className="create-doc-modal-container" onClick={e => e.stopPropagation()}>
+        <div className="create-doc-sidebar">
+          <div className="create-doc-sidebar-header">
             <h3>Skapa Nytt</h3>
           </div>
-          <nav className="sidebar-nav">
+          <nav className="create-doc-sidebar-nav">
             <button 
-              className={`nav-item ${activeCategory === 'new' ? 'active' : ''}`}
+              className={`create-doc-nav-item ${activeCategory === 'new' ? 'active' : ''}`}
               onClick={() => setActiveCategory('new')}
             >
               <Plus size={20} />
               <span>Nytt Dokument</span>
             </button>
             <button 
-              className={`nav-item ${activeCategory === 'company' ? 'active' : ''}`}
+              className={`create-doc-nav-item ${activeCategory === 'company' ? 'active' : ''}`}
               onClick={() => setActiveCategory('company')}
             >
               <Building2 size={20} />
               <span>Företagets Mallar</span>
-              <span className="count">{companyTemplates.length}</span>
+              <span className="create-doc-count">{companyTemplates.length}</span>
             </button>
             <button 
-              className={`nav-item ${activeCategory === 'global' ? 'active' : ''}`}
+              className={`create-doc-nav-item ${activeCategory === 'global' ? 'active' : ''}`}
               onClick={() => setActiveCategory('global')}
             >
               <Globe size={20} />
               <span>SafeQMS Dokument</span>
-              <span className="count">{globalTemplates.length}</span>
+              <span className="create-doc-count">{globalTemplates.length}</span>
             </button>
             <button 
-              className={`nav-item ${activeCategory === 'process' ? 'active' : ''}`}
+              className={`create-doc-nav-item ${activeCategory === 'process' ? 'active' : ''}`}
               onClick={() => setActiveCategory('process')}
             >
               <Activity size={20} />
               <span>Processmallar</span>
-              <span className="count">{companyProcessTemplates.length + globalProcessTemplates.length}</span>
+              <span className="create-doc-count">{companyProcessTemplates.length + globalProcessTemplates.length}</span>
             </button>
           </nav>
         </div>
 
-        <div className="modal-main">
-          <header className="main-header">
-            <div className="header-info">
+        <div className="create-doc-main">
+          <header className="create-doc-main-header">
+            <div className="create-doc-header-info">
               <h2>
                 {activeCategory === 'new' && 'Välj dokumenttyp'}
                 {activeCategory === 'company' && 'Välj från företagets mallar'}
@@ -243,39 +242,39 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
                 {activeCategory === 'process' && 'Skapa en ny process baserat på en mall.'}
               </p>
             </div>
-            <button className="close-btn" onClick={onClose}>
+            <button className="create-doc-close-btn" onClick={onClose}>
               <X size={24} />
             </button>
           </header>
 
-          <div className="main-content" key={activeCategory}>
+          <div className="create-doc-main-content" key={activeCategory}>
             {activeCategory === 'new' ? (
-              <div className="creation-options">
-                <div className="option-card" onClick={() => handleCreateNew(false)}>
-                  <div className="option-icon standard">
+              <div className="create-doc-creation-options">
+                <div className="create-doc-option-card" onClick={() => handleCreateNew(false)}>
+                  <div className="create-doc-option-icon standard">
                     <File size={32} />
                   </div>
-                  <div className="option-info">
+                  <div className="create-doc-option-info">
                     <h4>Vanligt Dokument</h4>
                     <p>Standard textdokument för policyer, manualer och rapporter.</p>
                   </div>
-                  <ChevronRight size={20} className="arrow" />
+                  <ChevronRight size={20} className="create-doc-arrow" />
                 </div>
 
-                <div className="option-card" onClick={() => handleCreateNew(true)}>
-                  <div className="option-icon visual">
+                <div className="create-doc-option-card" onClick={() => handleCreateNew(true)}>
+                  <div className="create-doc-option-icon visual">
                     <ImageIcon size={32} />
                   </div>
-                  <div className="option-info">
+                  <div className="create-doc-option-info">
                     <h4>Visuellt Dokument</h4>
                     <p>Fokus på bilder, media och en luftigare layout.</p>
                   </div>
-                  <ChevronRight size={20} className="arrow" />
+                  <ChevronRight size={20} className="create-doc-arrow" />
                 </div>
               </div>
             ) : (
-              <div className="template-selection">
-                <div className="template-search">
+              <div className="create-doc-template-selection">
+                <div className="create-doc-template-search">
                   <Search size={18} />
                   <input 
                     type="text" 
@@ -285,24 +284,24 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
                   />
                 </div>
 
-                <div className="template-grid" key={`${activeCategory}-grid`}>
+                <div className="create-doc-template-grid" key={`${activeCategory}-grid`}>
                   {filteredTemplates.map(template => (
                     <div 
                       key={template.id} 
-                      className="template-card"
+                      className="create-doc-template-card"
                       onClick={() => handleUseTemplate(template)}
                     >
-                      <div className="template-preview">
+                      <div className="create-doc-template-preview">
                         {activeCategory === 'process' ? <Activity size={32} /> : <FileText size={32} />}
                       </div>
-                      <div className="template-info">
+                      <div className="create-doc-template-info">
                         <h4>{template.title}</h4>
                         <p>{template.description || 'Ingen beskrivning.'}</p>
                       </div>
                     </div>
                   ))}
                   {filteredTemplates.length === 0 && (
-                    <div className="empty-templates">
+                    <div className="create-doc-empty-templates">
                       <Layout size={48} />
                       <p>Inga mallar hittades i denna kategori.</p>
                     </div>
@@ -315,8 +314,8 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
       </div>
       
       {isCreating && (
-        <div className="creating-overlay">
-          <div className="loader"></div>
+        <div className="create-doc-creating-overlay">
+          <div className="create-doc-loader"></div>
           <p>Skapar dokument...</p>
         </div>
       )}

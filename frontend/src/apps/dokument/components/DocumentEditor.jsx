@@ -357,8 +357,8 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
 
         {isSidebarOpen && (
           <>
-            <div className="sidebar-overlay" onClick={() => window.innerWidth <= 768 && setIsSidebarOpen(false)}></div>
-            <aside className="editor-sidebar">
+            <div className="doc-editor-sidebar-overlay" onClick={() => window.innerWidth <= 768 && setIsSidebarOpen(false)}></div>
+            <aside className="doc-editor-sidebar">
               <div className="sidebar-header-mobile">
                 <h3><Globe size={16} /> Metadata & Bilagor</h3>
                 <button className="btn-icon" onClick={() => setIsSidebarOpen(false)}>
@@ -514,10 +514,10 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
       </div>
 
       {showLinkModal && (
-        <div className="editor-modal-overlay">
-          <div className="editor-modal">
+        <div className="doc-editor-modal-overlay">
+          <div className="doc-editor-modal">
             <h4>Lägg till extern länk</h4>
-            <div className="form-group">
+            <div className="doc-editor-form-group">
               <label>Etikett</label>
               <input 
                 type="text" 
@@ -526,7 +526,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
                 placeholder="t.ex. Referensmaterial"
               />
             </div>
-            <div className="form-group">
+            <div className="doc-editor-form-group">
               <label>URL</label>
               <input 
                 type="text" 
@@ -535,22 +535,22 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
                 placeholder="https://example.com"
               />
             </div>
-            <div className="editor-modal-actions">
-              <button className="btn-cancel" onClick={() => setShowLinkModal(false)}>Avbryt</button>
-              <button className="btn-confirm" onClick={handleAddLink}>Lägg till</button>
+            <div className="doc-editor-modal-actions">
+              <button className="doc-editor-btn-cancel" onClick={() => setShowLinkModal(false)}>Avbryt</button>
+              <button className="doc-editor-btn-confirm" onClick={handleAddLink}>Lägg till</button>
             </div>
           </div>
         </div>
       )}
 
       {showConfirmDelete && (
-        <div className="editor-modal-overlay">
-          <div className="editor-modal">
+        <div className="doc-editor-modal-overlay">
+          <div className="doc-editor-modal">
             <h4>Ta bort bilaga</h4>
             <p>Är du säker på att du vill ta bort bilagan "{showConfirmDelete.file_name}"?</p>
-            <div className="editor-modal-actions">
-              <button className="btn-cancel" onClick={() => setShowConfirmDelete(null)}>Avbryt</button>
-              <button className="btn-confirm" onClick={confirmDeleteAttachment}>Ta bort</button>
+            <div className="doc-editor-modal-actions">
+              <button className="doc-editor-btn-cancel" onClick={() => setShowConfirmDelete(null)}>Avbryt</button>
+              <button className="doc-editor-btn-confirm" onClick={confirmDeleteAttachment}>Ta bort</button>
             </div>
           </div>
         </div>

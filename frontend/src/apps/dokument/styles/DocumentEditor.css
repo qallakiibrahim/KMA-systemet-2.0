@@ -11,7 +11,7 @@
   overflow: hidden;
 }
 
-.editor-header {
+.doc-editor-header {
   height: 64px;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
@@ -20,6 +20,7 @@
   justify-content: space-between;
   padding: 0 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
 }
 
 .document-editor-container .header-left {
@@ -80,11 +81,12 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.editor-main {
+.doc-editor-main {
   flex: 1;
   display: flex;
   overflow: hidden;
   position: relative;
+  min-height: 0;
 }
 
 .editor-content-wrapper {
@@ -108,14 +110,6 @@
   z-index: 10;
   overflow-x: auto;
   white-space: nowrap;
-}
-
-.editor-menubar::-webkit-scrollbar {
-  height: 4px;
-}
-.editor-menubar::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 4px;
 }
 
 .menubar-group {
@@ -157,6 +151,7 @@
   padding: 2rem 0;
   display: flex;
   justify-content: center;
+  -webkit-overflow-scrolling: touch;
 }
 
 .editor-paper {
@@ -177,39 +172,7 @@
   color: var(--text-primary);
 }
 
-.ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: var(--text-muted);
-  pointer-events: none;
-  height: 0;
-}
-
-.ProseMirror table {
-  border-collapse: collapse;
-  table-layout: fixed;
-  width: 100%;
-  margin: 0;
-  overflow: hidden;
-}
-
-.ProseMirror td,
-.ProseMirror th {
-  min-width: 1em;
-  border: 2px solid var(--border-color);
-  padding: 3px 5px;
-  vertical-align: top;
-  box-sizing: border-box;
-  position: relative;
-}
-
-.ProseMirror th {
-  font-weight: bold;
-  text-align: left;
-  background-color: var(--bg-secondary);
-}
-
-.sidebar-overlay {
+.doc-editor-sidebar-overlay {
   display: none;
 }
 
@@ -217,7 +180,7 @@
   display: none;
 }
 
-.editor-sidebar {
+.doc-editor-sidebar {
   width: 320px;
   background: var(--bg-primary);
   border-left: 1px solid var(--border-color);
@@ -226,6 +189,7 @@
   padding: 1.5rem;
   gap: 2rem;
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .sidebar-section h3 {
@@ -249,23 +213,6 @@
 
 .section-header h3 {
   margin-bottom: 0;
-}
-
-.btn-add-small {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  background: var(--bg-hover);
-  border-radius: 4px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-add-small:hover {
-  background: var(--border-color);
-  color: var(--text-primary);
 }
 
 .attachment-list, .link-list {
@@ -306,10 +253,6 @@
   color: var(--text-muted);
 }
 
-.attachment-actions a:hover, .attachment-actions button:hover, .link-item button:hover {
-  color: var(--danger-color);
-}
-
 .empty-text {
   font-size: 0.875rem;
   color: var(--text-muted);
@@ -318,199 +261,156 @@
   padding: 1rem 0;
 }
 
-.metadata-info {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--bg-hover);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.metadata-info p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-
-.metadata-info strong {
-  color: var(--text-primary);
-}
-
-.ml-auto {
-  margin-left: auto;
-}
-
 /* Modal Styles */
-.editor-modal-overlay {
+.doc-editor-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  backdrop-filter: blur(4px);
+  padding: 1rem;
 }
 
-.editor-modal {
+.doc-editor-modal {
   background: var(--bg-primary);
-  border-radius: 12px;
+  border-radius: 1rem;
   width: 100%;
   max-width: 400px;
   padding: 1.5rem;
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
 }
 
-.editor-modal h4 {
+.doc-editor-modal h4 {
   margin: 0 0 1rem 0;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-.editor-modal .form-group {
-  margin-bottom: 1rem;
+.doc-editor-form-group {
+  margin-bottom: 1.25rem;
 }
 
-.editor-modal label {
+.doc-editor-form-group label {
   display: block;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
-.editor-modal input, .editor-modal select {
+.doc-editor-form-group input, .doc-editor-form-group select {
   width: 100%;
-  padding: 0.625rem;
+  padding: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
-  background: var(--input-bg);
+  background: var(--bg-secondary);
   color: var(--text-primary);
+  outline: none;
 }
 
-.editor-modal-actions {
+.doc-editor-form-group input:focus {
+  border-color: var(--primary-color);
+}
+
+.doc-editor-modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
-.btn-cancel {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+.doc-editor-btn-cancel {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
+  font-weight: 600;
   color: var(--text-secondary);
-}
-
-.btn-confirm {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background: var(--primary-color);
-  color: #ffffff;
-}
-
-/* Form group overrides for sidebar */
-.editor-sidebar .form-group label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin-bottom: 0.25rem;
-}
-
-.editor-sidebar .form-group select,
-.editor-sidebar .form-group input {
-  width: 100%;
-  padding: 0.5rem;
+  background: transparent;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  cursor: pointer;
+}
+
+.doc-editor-btn-confirm {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
-  background: var(--input-bg);
-  color: var(--text-primary);
+  font-weight: 600;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  cursor: pointer;
 }
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-  .editor-header {
+  .doc-editor-header {
     height: auto;
-    min-height: 64px;
-    flex-wrap: wrap;
-    padding: 0.5rem 1rem;
-    gap: 0.5rem;
+    padding: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
   }
 
-  .document-editor-container .header-left {
-    width: 100%;
-    gap: 0.5rem;
-  }
-
+  .document-editor-container .header-left,
   .document-editor-container .header-right {
     width: 100%;
     justify-content: space-between;
   }
 
-  .status-toggle {
-    flex: 1;
-    justify-content: center;
-  }
-
   .editor-paper {
     padding: 1.5rem;
-    min-height: calc(100vh - 120px);
     border-radius: 0;
+    box-shadow: none;
   }
 
-  .editor-scroller {
-    padding: 0;
-  }
-
-  .sidebar-overlay {
+  .doc-editor-sidebar-overlay {
     display: block;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 15;
-    backdrop-filter: blur(2px);
+    background: rgba(15, 23, 42, 0.4);
+    z-index: 1001;
+    backdrop-filter: blur(4px);
+  }
+
+  .doc-editor-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 85%;
+    max-width: 320px;
+    z-index: 1002;
+    transform: translateX(0);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-left: 1px solid var(--border-color);
+    box-shadow: -10px 0 15px -3px rgba(0, 0, 0, 0.1);
   }
 
   .sidebar-header-mobile {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-bottom: 1rem;
-    margin-bottom: 1rem;
+    padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
   }
 
   .sidebar-header-mobile h3 {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
     margin: 0;
-  }
-
-  .editor-sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    width: 85%;
-    max-width: 360px;
-    z-index: 20;
-    box-shadow: -4px 0 15px rgba(0,0,0,0.1);
-    transform: translateX(0);
-    transition: transform 0.3s ease;
-    padding-bottom: env(safe-area-inset-bottom);
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
   }
 }
