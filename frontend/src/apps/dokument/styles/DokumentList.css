@@ -420,7 +420,16 @@
   .doc-list-modal-body { padding: 1.25rem; }
   .doc-list-form-actions { padding: 1.25rem; }
   .dokument-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 0.75rem;
+  }
+
+  .dokument-card {
+    padding: 0.5rem;
+  }
+
+  .dokument-icon-wrapper {
+    width: 28px;
+    height: 28px;
   }
 }
