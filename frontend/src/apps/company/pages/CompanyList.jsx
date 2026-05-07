@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { getCompanies, updateCompany } from '../api/company';
 import { Building, Mail, Phone, Globe, MapPin, Save, Shield, CreditCard, Upload, X } from 'lucide-react';
 import { useAuth } from '../../../shared/api/AuthContext';
-import { supabase } from '../../../supabase';
+import { storage } from '../../../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'react-toastify';
 import '../styles/CompanyList.css';
 
@@ -69,13 +70,11 @@ const CompanyList = ({ isEmbedded = false }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('Vänligen ladda upp en bildfil (PNG, JPG, etc)');
       return;
     }
 
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error('Bilden är för stor. Max 2MB tillåts.');
       return;
@@ -84,32 +83,11 @@ const CompanyList = ({ isEmbedded = false }) => {
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `company-${company.id}-${Date.now()}.${fileExt}`;
-      const filePath = fileName; // Sparar direkt i roten av 'logos'-bucketen
+      const fileName = `logos/company-${company.id}-${Date.now()}.${fileExt}`;
+      const storageRef = ref(storage, fileName);
 
-      // Upload the file to Supabase Storage
-      const { error: uploadError, data } = await supabase.storage
-        .from('logos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error('Supabase upload error details:', uploadError);
-        if (uploadError.message?.toLowerCase().includes('bucket not found') || uploadError.error === 'Bucket not found') {
-          throw new Error('Mappen "logos" saknas i Supabase Storage.');
-        }
-        if (uploadError.message?.toLowerCase().includes('row level security') || uploadError.statusCode === 403) {
-          throw new Error('Behörighet saknas (RLS). Kör SQL-skriptet för policies i Supabase.');
-        }
-        throw new Error(`Uppladdningsfel: ${uploadError.message}`);
-      }
-
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('logos')
-        .getPublicUrl(filePath);
+      await uploadBytes(storageRef, file);
+      const publicUrl = await getDownloadURL(storageRef);
 
       setFormData(prev => ({ ...prev, logo_url: publicUrl }));
       toast.success('Logotyp uppladdad!');
@@ -130,7 +108,6 @@ const CompanyList = ({ isEmbedded = false }) => {
       setCompany(updated);
       setIsEditing(false);
       
-      // Refresh the user profile to update the logo in the sidebar
       if (refreshProfile) {
         await refreshProfile();
       }

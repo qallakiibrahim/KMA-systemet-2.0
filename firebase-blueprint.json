@@ -1,0 +1,156 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "full_name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["user", "admin", "superadmin"] },
+        "company_id": { "type": "string" },
+        "avatar_url": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role"]
+    },
+    "Company": {
+      "title": "Company",
+      "description": "Organization information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "org_nr": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "plan": { "type": "string" },
+        "logo_url": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "status"]
+    },
+    "Process": {
+      "title": "Process",
+      "description": "Business process definition",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "company_id": { "type": "string" },
+        "status": { "type": "string" },
+        "steps": { "type": "object" },
+        "created_by": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Risk": {
+      "title": "Risk",
+      "description": "Risk assessment entry",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "company_id": { "type": "string" },
+        "likelihood": { "type": "integer" },
+        "impact": { "type": "integer" },
+        "risk_score": { "type": "integer" },
+        "status": { "type": "string" }
+      }
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Action item or task",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "company_id": { "type": "string" },
+        "status": { "type": "string" },
+        "assigned_to": { "type": "string" }
+      }
+    },
+    "Deviation": {
+      "title": "Deviation",
+      "description": "Non-conformance or incident",
+      "type": "object",
+      "properties": {
+        "titel": { "type": "string" },
+        "company_id": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Controlled document",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "company_id": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "System activity log",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "entity_type": { "type": "string" },
+        "entity_id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "company_id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notification",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "message": { "type": "string" },
+        "is_read": { "type": "boolean" }
+      }
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "companies/{companyId}": {
+      "schema": "Company",
+      "description": "Company data"
+    },
+    "processes/{processId}": {
+      "schema": "Process",
+      "description": "Business processes"
+    },
+    "risker/{riskId}": {
+      "schema": "Risk",
+      "description": "Risk assessments"
+    },
+    "tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Action items"
+    },
+    "avvikelser/{deviationId}": {
+      "schema": "Deviation",
+      "description": "Incidents and deviations"
+    },
+    "documents/{documentId}": {
+      "schema": "Document",
+      "description": "Managed documents"
+    },
+    "audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Activity history"
+    },
+    "notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User alerts"
+    },
+    "pending_users/{inviteId}": {
+      "schema": { "type": "object" },
+      "description": "Company invitations"
+    }
+  }
+}

@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getRisker, createRisk, updateRisk, deleteRisk } from '../api/risk';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { db } from '../../../firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Plus, Trash2, X, AlertOctagon, ShieldAlert, Activity, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
@@ -166,9 +168,11 @@ const RiskList = () => {
       let companyId = userProfile?.company_id;
       
       if (!companyId && userProfile?.role === 'superadmin') {
-        const { data: companies } = await supabase.from('companies').select('id').eq('name', 'SafeQMS').limit(1);
-        if (companies && companies.length > 0) {
-          companyId = companies[0].id;
+        const companiesRef = collection(db, 'companies');
+        const qComp = query(companiesRef, where('name', '==', 'SafeQMS'), limit(1));
+        const companiesSnap = await getDocs(qComp);
+        if (!companiesSnap.empty) {
+          companyId = companiesSnap.docs[0].id;
         }
       }
 

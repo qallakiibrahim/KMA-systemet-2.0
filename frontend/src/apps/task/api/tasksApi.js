@@ -1,125 +1,155 @@
-import { supabase } from '../../../supabase';
+import { db } from '../../../firebase';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp,
+  orderBy,
+  limit
+} from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
+import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
 
-const tableName = 'tasks';
+const collectionName = 'tasks';
 
 export const getTasks = async (page = 1, pageSize = 20) => {
-  let query = supabase
-    .from(tableName)
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false });
+  try {
+    const collRef = collection(db, collectionName);
+    let q = query(collRef, orderBy('created_at', 'desc'));
 
-  if (pageSize !== -1) {
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    query = query.range(from, to);
-  }
+    if (pageSize !== -1) {
+      q = query(q, limit(page * pageSize));
+    }
 
-  const { data, error, count } = await query;
+    const snapshot = await getDocs(q);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
-  if (error) throw error;
-  return pageSize === -1 ? data : { data, count };
+    // Manual slicing for simple page simulation
+    const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
+    const totalCount = (await getDocs(collRef)).size;
+    
+    return pageSize === -1 ? data : { data: pagedData, count: totalCount };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collectionName);
+  }
 };
 
 export const getOpenTasks = async () => {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
-    .not('status', 'eq', 'done')
-    .not('status', 'eq', 'closed')
-    .not('dueDate', 'is', null);
+  try {
+    const collRef = collection(db, collectionName);
+    // Firestore doesn't support 'not in' with multiple values easily without custom queries
+    // We'll fetch and filter if necessary, or use composite queries if permitted.
+    // For now, let's fetch all and filter in JS to avoid complex index requirements.
+    const snapshot = await getDocs(collRef);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
-  if (error) throw error;
-  return data;
+    return data.filter(t => t.status !== 'done' && t.status !== 'closed' && t.due_date);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collectionName);
+  }
 };
 
 export const createTask = async (data, user = null) => {
-  const { data: inserted, error } = await supabase
-    .from(tableName)
-    .insert([data])
-    .select()
-    .single();
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'CREATE',
-      entity_type: 'TASK',
-      entity_id: inserted.id,
-      entity_name: inserted.title,
-      user_id: user.id,
-      user_email: user.email,
-      company_id: inserted.company_id
+  try {
+    const docRef = await addDoc(collection(db, collectionName), {
+      ...data,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
     });
-  }
+    
+    const inserted = { id: docRef.id, ...data };
+    
+    if (user) {
+      logAction({
+        action: 'CREATE',
+        entity_type: 'TASK',
+        entity_id: docRef.id,
+        entity_name: inserted.title,
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: inserted.company_id
+      });
+    }
 
-  return inserted;
+    return inserted;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, collectionName);
+  }
 };
 
 export const updateTask = async (id, data, user = null) => {
-  // Get old data for logging changes
-  let oldData = null;
-  if (user) {
-    const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
-    oldData = existing;
-  }
+  try {
+    const docRef = doc(db, collectionName, id);
 
-  const { data: updated, error } = await supabase
-    .from(tableName)
-    .update(data)
-    .eq('id', id)
-    .select()
-    .single();
-    
-  if (error) throw error;
+    let oldData = null;
+    if (user) {
+      const snap = await getDoc(docRef);
+      oldData = snap.data();
+    }
 
-  if (user) {
-    logAction({
-      action: 'UPDATE',
-      entity_type: 'TASK',
-      entity_id: id,
-      entity_name: updated.title,
-      changes: { old: oldData, new: updated },
-      user_id: user.id,
-      user_email: user.email,
-      company_id: updated.company_id
+    await updateDoc(docRef, {
+      ...data,
+      updated_at: serverTimestamp()
     });
-  }
+    
+    const updated = { id, ...data };
 
-  return updated;
+    if (user) {
+      logAction({
+        action: 'UPDATE',
+        entity_type: 'TASK',
+        entity_id: id,
+        entity_name: updated.title,
+        changes: { old: oldData, new: updated },
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: updated.company_id
+      });
+    }
+
+    return updated;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
+  }
 };
 
 export const deleteTask = async (id, user = null) => {
-  // Get name and company_id before deleting
-  let entityName = id;
-  let companyId = null;
-  if (user) {
-    const { data } = await supabase.from(tableName).select('title, company_id').eq('id', id).single();
-    if (data) {
-      entityName = data.title;
-      companyId = data.company_id;
+  try {
+    let entityName = id;
+    let companyId = null;
+    const docRef = doc(db, collectionName, id);
+
+    if (user) {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        entityName = data.title;
+        companyId = data.company_id;
+      }
     }
+
+    await deleteDoc(docRef);
+      
+    if (user) {
+      logAction({
+        action: 'DELETE',
+        entity_type: 'TASK',
+        entity_id: id,
+        entity_name: entityName,
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: companyId
+      });
+    }
+
+    return { id };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
   }
-
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq('id', id);
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'DELETE',
-      entity_type: 'TASK',
-      entity_id: id,
-      entity_name: entityName,
-      user_id: user.id,
-      user_email: user.email,
-      company_id: companyId
-    });
-  }
-
-  return { id };
 };

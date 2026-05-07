@@ -1,288 +1,113 @@
-import { supabase } from '../../../supabase';
+import { db, storage } from '../../../firebase';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp,
+  orderBy,
+  limit
+} from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { logAction } from '../../../shared/api/auditLog';
+import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
 
-const tableName = 'documents';
+const collectionName = 'documents';
 
 export const getDokuments = async (page = 1, pageSize = 20) => {
   try {
-    let query = supabase
-      .from(tableName)
-      .select('*, attachments(*)', { count: 'exact' })
-      .order('created_at', { ascending: false });
+    const collRef = collection(db, collectionName);
+    let q = query(collRef, orderBy('created_at', 'desc'));
 
     if (pageSize !== -1) {
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
+      q = query(q, limit(page * pageSize));
     }
 
-    const { data, error, count } = await query;
-      
-    if (error) {
-      // If the error is because the attachments relationship doesn't exist, try without it
-      if (error.message.includes('relationship') || error.message.includes('column') || error.code === 'PGRST204') {
-        console.warn('Failed to fetch with attachments, retrying without them...', error);
-        let fallbackQuery = supabase
-          .from(tableName)
-          .select('*', { count: 'exact' })
-          .order('created_at', { ascending: false });
-
-        if (pageSize !== -1) {
-          const from = (page - 1) * pageSize;
-          const to = from + pageSize - 1;
-          fallbackQuery = fallbackQuery.range(from, to);
-        }
-
-        const { data: fallbackData, error: fallbackError, count: fallbackCount } = await fallbackQuery;
-          
-        if (fallbackError) throw fallbackError;
-        return pageSize === -1 ? fallbackData : { data: fallbackData, count: fallbackCount };
-      }
-      throw error;
-    }
-    return pageSize === -1 ? data : { data, count };
+    const snapshot = await getDocs(q);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
+    const totalCount = (await getDocs(collRef)).size;
+    
+    return pageSize === -1 ? data : { data: pagedData, count: totalCount };
   } catch (error) {
-    console.error('Error fetching documents:', error);
-    throw error;
+    handleFirestoreError(error, OperationType.LIST, collectionName);
   }
 };
 
 export const getGlobalTemplates = async () => {
   try {
-    console.log('Fetching global templates from Supabase...');
-    // Try the full query first
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*, attachments(*)')
-      .or('is_global.eq.true,company_id.is.null');
-      
-    if (error) {
-      console.warn('Full global templates query failed, trying fallback...', error);
-      
-      // If it's a relationship error, try without attachments
-      if (error.message.includes('relationship') || error.message.includes('column') || error.code === 'PGRST204') {
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from(tableName)
-          .select('*')
-          .or('is_global.eq.true,company_id.is.null');
-          
-        if (fallbackError) {
-          console.error('Fallback global templates query failed:', fallbackError);
-          // Last resort: fetch all and filter
-          const { data: allDocs, error: allDocsError } = await supabase
-            .from(tableName)
-            .select('*');
-          if (allDocsError) throw allDocsError;
-          return allDocs.filter(d => d.is_global === true || !d.company_id || d.is_template === true);
-        }
-        
-        console.log(`Fetched ${fallbackData?.length || 0} global templates via fallback query`);
-        return fallbackData.filter(d => d.is_global === true || !d.company_id || d.is_template === true || d.title?.toLowerCase().includes('mall'));
-      }
-      throw error;
-    }
-    
-    console.log(`Fetched ${data?.length || 0} global templates`);
-    // Filter to ensure we only get templates
+    const collRef = collection(db, collectionName);
+    const q = query(collRef, where('is_global', '==', true));
+    const snap = await getDocs(q);
+    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     return data.filter(d => d.is_global === true || !d.company_id || d.is_template === true || d.title?.toLowerCase().includes('mall'));
   } catch (error) {
-    console.error('Error fetching global templates:', error);
-    return [];
+    handleFirestoreError(error, OperationType.LIST, collectionName);
   }
 };
 
 export const getDokumentById = async (id) => {
   try {
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*, attachments(*)')
-      .eq('id', id)
-      .single();
-      
-    if (error) {
-      if (error.message.includes('relationship') || error.message.includes('column') || error.code === 'PGRST204') {
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from(tableName)
-          .select('*')
-          .eq('id', id)
-          .single();
-          
-        if (fallbackError) throw fallbackError;
-        return fallbackData;
-      }
-      throw error;
-    }
-    return data;
+    const docRef = doc(db, collectionName, id);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) throw new Error('Document not found');
+    return { id: snap.id, ...snap.data() };
   } catch (error) {
-    console.error('Error fetching document by id:', error);
-    throw error;
+    handleFirestoreError(error, OperationType.GET, `${collectionName}/${id}`);
   }
 };
 
 export const createDokument = async (data, user = null) => {
-  // Strip out attachments if they are present (they are a relationship, not a column)
-  const { attachments, ...insertData } = data;
-  
-  const { data: inserted, error } = await supabase
-    .from(tableName)
-    .insert([insertData])
-    .select()
-    .single();
-    
-  if (error) {
-    console.error('Supabase createDokument error:', error);
-    // If it's a missing column error, try without SaaS columns
-    if (error.message.includes('column') && error.message.includes('does not exist')) {
-      if (error.message.includes('iso_chapter')) {
-        console.warn('Retrying document creation without iso_chapter...');
-        const { iso_chapter, ...dataWithoutIso } = data;
-        const { data: retryInserted, error: retryError } = await supabase
-          .from(tableName)
-          .insert([dataWithoutIso])
-          .select()
-          .single();
-          
-        if (retryError) throw retryError;
-
-        if (user) {
-          logAction({
-            action: 'CREATE',
-            entity_type: 'DOCUMENT',
-            entity_id: retryInserted.id,
-            entity_name: retryInserted.title,
-            changes: { new: retryInserted },
-            user_id: user.id,
-            user_email: user.email,
-            company_id: retryInserted.company_id
-          });
-        }
-
-        return retryInserted;
-      }
-
-      console.warn('Retrying document creation without SaaS columns...');
-      const { company_id, is_template, is_global, iso_chapter, ...minimalData } = data;
-      const { data: retryInserted, error: retryError } = await supabase
-        .from(tableName)
-        .insert([minimalData])
-        .select()
-        .single();
-        
-      if (retryError) throw retryError;
-
-      if (user) {
-        logAction({
-          action: 'CREATE',
-          entity_type: 'DOCUMENT',
-          entity_id: retryInserted.id,
-          entity_name: retryInserted.title,
-          changes: { new: retryInserted },
-          user_id: user.id,
-          user_email: user.email,
-          company_id: retryInserted.company_id
-        });
-      }
-
-      return retryInserted;
-    }
-    
-    // Fallback for not-null constraint on company_id
-    if (error.message.includes('column "company_id"') && error.message.includes('violates not-null constraint')) {
-      console.warn('Retrying document creation with a default company...');
-      const { data: companies } = await supabase.from('companies').select('id').limit(1);
-      if (companies && companies.length > 0) {
-        data.company_id = companies[0].id;
-        const { data: retryInserted, error: retryError } = await supabase
-          .from(tableName)
-          .insert([data])
-          .select()
-          .single();
-          
-        if (retryError) throw retryError;
-
-        if (user) {
-          logAction({
-            action: 'CREATE',
-            entity_type: 'DOCUMENT',
-            entity_id: retryInserted.id,
-            entity_name: retryInserted.title,
-            changes: { new: retryInserted },
-            user_id: user.id,
-            user_email: user.email,
-            company_id: retryInserted.company_id
-          });
-        }
-
-        return retryInserted;
-      } else {
-        throw new Error('Du måste tillhöra ett företag för att spara dokument.');
-      }
-    }
-
-    // Fallback for not-null constraint on file_url
-    if (error.message.includes('column "file_url"') && error.message.includes('violates not-null constraint')) {
-      console.warn('Retrying document creation with empty file_url...');
-      data.file_url = ''; 
-      const { data: retryInserted, error: retryError } = await supabase
-        .from(tableName)
-        .insert([data])
-        .select()
-        .single();
-        
-      if (retryError) throw retryError;
-
-      if (user) {
-        logAction({
-          action: 'CREATE',
-          entity_type: 'DOCUMENT',
-          entity_id: retryInserted.id,
-          entity_name: retryInserted.title,
-          changes: { new: retryInserted },
-          user_id: user.id,
-          user_email: user.email,
-          company_id: retryInserted.company_id
-        });
-      }
-
-      return retryInserted;
-    }
-
-    throw error;
-  }
-
-  if (user) {
-    logAction({
-      action: 'CREATE',
-      entity_type: 'DOCUMENT',
-      entity_id: inserted.id,
-      entity_name: inserted.title,
-      changes: { new: inserted },
-      user_id: user.id,
-      user_email: user.email,
-      company_id: inserted.company_id
+  try {
+    const { attachments, ...insertData } = data;
+    const docRef = await addDoc(collection(db, collectionName), {
+      ...insertData,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
     });
-  }
+    
+    const inserted = { id: docRef.id, ...insertData };
+    
+    if (user) {
+      logAction({
+        action: 'CREATE',
+        entity_type: 'DOCUMENT',
+        entity_id: docRef.id,
+        entity_name: inserted.title,
+        changes: { new: inserted },
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: inserted.company_id
+      });
+    }
 
-  return inserted;
+    return inserted;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, collectionName);
+  }
 };
 
 export const updateDokument = async (id, data, user = null) => {
   try {
-    // Get old data for logging changes
+    const docRef = doc(db, collectionName, id);
     let oldData = null;
     if (user) {
-      const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
-      oldData = existing;
+      const snap = await getDoc(docRef);
+      oldData = snap.data();
     }
 
-    const { data: updated, error } = await supabase
-      .from(tableName)
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) throw error;
+    await updateDoc(docRef, {
+      ...data,
+      updated_at: serverTimestamp()
+    });
+    
+    const updated = { id, ...data };
 
     if (user) {
       logAction({
@@ -291,7 +116,7 @@ export const updateDokument = async (id, data, user = null) => {
         entity_id: id,
         entity_name: updated.title,
         changes: { old: oldData, new: updated },
-        user_id: user.id,
+        user_id: user.uid,
         user_email: user.email,
         company_id: updated.company_id
       });
@@ -299,131 +124,63 @@ export const updateDokument = async (id, data, user = null) => {
 
     return updated;
   } catch (error) {
-    console.error('Supabase updateDokument error:', error);
-    
-    // Fallback for missing columns
-    if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
-      if (error.message.includes('iso_chapter')) {
-        console.warn('Retrying document update without iso_chapter...');
-        const { iso_chapter, ...dataWithoutIso } = data;
-        const { data: retryUpdated, error: retryError } = await supabase
-          .from(tableName)
-          .update(dataWithoutIso)
-          .eq('id', id)
-          .select()
-          .single();
-          
-        if (retryError) throw retryError;
-
-        if (user) {
-          // Note: we don't have oldData here easily if it failed before, but we can try to log what we have
-          logAction({
-            action: 'UPDATE',
-            entity_type: 'DOCUMENT',
-            entity_id: id,
-            entity_name: retryUpdated.title,
-            changes: { old: oldData, new: retryUpdated },
-            user_id: user.id,
-            user_email: user.email,
-            company_id: retryUpdated.company_id
-          });
-        }
-
-        return retryUpdated;
-      }
-    }
-
-    // Fallback for not-null constraint on file_url
-    if (error.message && error.message.includes('column "file_url"') && error.message.includes('violates not-null constraint')) {
-      console.warn('Retrying document update with empty file_url...');
-      data.file_url = ''; 
-      const { data: retryUpdated, error: retryError } = await supabase
-        .from(tableName)
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single();
-        
-      if (retryError) throw retryError;
-
-      if (user) {
-        logAction({
-          action: 'UPDATE',
-          entity_type: 'DOCUMENT',
-          entity_id: id,
-          entity_name: retryUpdated.title,
-          changes: { old: oldData, new: retryUpdated },
-          user_id: user.id,
-          user_email: user.email,
-          company_id: retryUpdated.company_id
-        });
-      }
-
-      return retryUpdated;
-    }
-    
-    throw error;
+    handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
   }
 };
 
 export const deleteDokument = async (id, user = null) => {
-  // Get name and company_id before deleting
-  let entityName = id;
-  let companyId = null;
-  if (user) {
-    const { data } = await supabase.from(tableName).select('title, company_id').eq('id', id).single();
-    if (data) {
-      entityName = data.title;
-      companyId = data.company_id;
+  try {
+    let entityName = id;
+    let companyId = null;
+    const docRef = doc(db, collectionName, id);
+
+    if (user) {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        entityName = data.title;
+        companyId = data.company_id;
+      }
     }
+
+    await deleteDoc(docRef);
+      
+    if (user) {
+      logAction({
+        action: 'DELETE',
+        entity_type: 'DOCUMENT',
+        entity_id: id,
+        entity_name: entityName,
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: companyId
+      });
+    }
+
+    return { id };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
   }
-
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq('id', id);
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'DELETE',
-      entity_type: 'DOCUMENT',
-      entity_id: id,
-      entity_name: entityName,
-      user_id: user.id,
-      user_email: user.email,
-      company_id: companyId
-    });
-  }
-
-  return { id };
 };
 
 export const uploadDocument = async (file) => {
-  const timestamp = Date.now();
-  const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-  const filePath = `${timestamp}_${safeName}`;
+  try {
+    const timestamp = Date.now();
+    const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const filePath = `documents/${timestamp}_${safeName}`;
+    const storageRef = ref(storage, filePath);
 
-  const { data, error } = await supabase.storage
-    .from('documents')
-    .upload(filePath, file);
+    await uploadBytes(storageRef, file);
+    const publicUrl = await getDownloadURL(storageRef);
 
-  if (error) {
-    if (error.message.includes('bucket not found')) {
-      throw new Error('Supabase Storage bucket "documents" saknas. Skapa en publik bucket med namnet "documents" i din Supabase-panel.');
-    }
+    return {
+      name: file.name,
+      url: publicUrl,
+      type: file.type,
+      size: file.size
+    };
+  } catch (error) {
+    console.error("Upload error:", error);
     throw error;
   }
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('documents')
-    .getPublicUrl(filePath);
-
-  return {
-    name: file.name,
-    url: publicUrl,
-    type: file.type,
-    size: file.size
-  };
 };

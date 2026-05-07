@@ -1,46 +1,60 @@
-import { supabase } from '../../../supabase';
+import { db } from '../../../firebase';
+import { 
+  collection, 
+  query, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp,
+  orderBy
+} from 'firebase/firestore';
+import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
 
-const tableName = 'notifications';
+const collectionName = 'notifications';
 
 export const getNotifications = async () => {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
-    .order('created_at', { ascending: false });
-    
-  if (error) throw error;
-  return data;
+  try {
+    const collRef = collection(db, collectionName);
+    const q = query(collRef, orderBy('created_at', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collectionName);
+  }
 };
 
 export const createNotification = async (data) => {
-  const { data: inserted, error } = await supabase
-    .from(tableName)
-    .insert([data])
-    .select()
-    .single();
-    
-  if (error) throw error;
-  return inserted;
+  try {
+    const docRef = await addDoc(collection(db, collectionName), {
+      ...data,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
+    });
+    return { id: docRef.id, ...data };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, collectionName);
+  }
 };
 
 export const updateNotification = async (id, data) => {
-  const { data: updated, error } = await supabase
-    .from(tableName)
-    .update(data)
-    .eq('id', id)
-    .select()
-    .single();
-    
-  if (error) throw error;
-  return updated;
+  try {
+    const docRef = doc(db, collectionName, id);
+    await updateDoc(docRef, { ...data, updated_at: serverTimestamp() });
+    const snap = await getDoc(docRef);
+    return { id: snap.id, ...snap.data() };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
+  }
 };
 
 export const deleteNotification = async (id) => {
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq('id', id);
-    
-  if (error) throw error;
-  return { id };
+  try {
+    await deleteDoc(doc(db, collectionName, id));
+    return { id };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
+  }
 };

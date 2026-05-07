@@ -6,7 +6,8 @@ import { getProcesses, createProcess, getGlobalProcesses } from '../../process/a
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
 import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
-import { supabase } from '../../../supabase';
+import { db } from '../../../firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import DocumentEditor from '../components/DocumentEditor';
 import { 
   Plus, Edit2, Trash2, X, FileText, Download, ExternalLink, 
@@ -361,9 +362,11 @@ const DokumentList = () => {
       let companyId = userProfile?.company_id;
       
       if (!companyId && userProfile?.role === 'superadmin') {
-        const { data: companies } = await supabase.from('companies').select('id').eq('name', 'SafeQMS').limit(1);
-        if (companies && companies.length > 0) {
-          companyId = companies[0].id;
+        const companiesRef = collection(db, 'companies');
+        const qComp = query(companiesRef, where('name', '==', 'SafeQMS'), limit(1));
+        const companiesSnap = await getDocs(qComp);
+        if (!companiesSnap.empty) {
+          companyId = companiesSnap.docs[0].id;
         }
       }
 

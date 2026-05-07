@@ -1,104 +1,127 @@
-import { supabase } from '../../../supabase';
+import { db } from '../../../firebase';
+import { 
+  collection, 
+  query, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp,
+  orderBy,
+  limit
+} from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
+import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
 
-const tableName = 'companies';
+const collectionName = 'companies';
 
 export const getCompanies = async (page = 1, pageSize = 50) => {
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  try {
+    const collRef = collection(db, collectionName);
+    const q = query(collRef, orderBy('name', 'asc'), limit(page * pageSize));
 
-  const { data, error, count } = await supabase
-    .from(tableName)
-    .select('*', { count: 'exact' })
-    .order('name', { ascending: true })
-    .range(from, to);
+    const snapshot = await getDocs(q);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
-  if (error) throw error;
-  return { data, count };
+    const pagedData = data.slice((page - 1) * pageSize, page * pageSize);
+    const totalCount = (await getDocs(collRef)).size;
+
+    return { data: pagedData, count: totalCount };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collectionName);
+  }
 };
 
 export const createCompany = async (data, user = null) => {
-  const { data: inserted, error } = await supabase
-    .from(tableName)
-    .insert([data])
-    .select()
-    .single();
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'CREATE',
-      entity_type: 'COMPANY',
-      entity_id: inserted.id,
-      entity_name: inserted.name,
-      changes: { new: inserted },
-      user_id: user.id,
-      user_email: user.email,
-      company_id: inserted.id
+  try {
+    const docRef = await addDoc(collection(db, collectionName), {
+      ...data,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
     });
-  }
+    
+    const inserted = { id: docRef.id, ...data };
+    
+    if (user) {
+      logAction({
+        action: 'CREATE',
+        entity_type: 'COMPANY',
+        entity_id: docRef.id,
+        entity_name: inserted.name,
+        changes: { new: inserted },
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: docRef.id
+      });
+    }
 
-  return inserted;
+    return inserted;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, collectionName);
+  }
 };
 
 export const updateCompany = async (id, data, user = null) => {
-  let oldData = null;
-  if (user) {
-    const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
-    oldData = existing;
-  }
+  try {
+    const docRef = doc(db, collectionName, id);
+    let oldData = null;
+    if (user) {
+      const snap = await getDoc(docRef);
+      oldData = snap.data();
+    }
 
-  const { data: updated, error } = await supabase
-    .from(tableName)
-    .update(data)
-    .eq('id', id)
-    .select()
-    .single();
+    await updateDoc(docRef, { ...data, updated_at: serverTimestamp() });
     
-  if (error) throw error;
+    const freshSnap = await getDoc(docRef);
+    const updated = { id: freshSnap.id, ...freshSnap.data() };
 
-  if (user) {
-    logAction({
-      action: 'UPDATE',
-      entity_type: 'COMPANY',
-      entity_id: id,
-      entity_name: updated.name,
-      changes: { old: oldData, new: updated },
-      user_id: user.id,
-      user_email: user.email,
-      company_id: id
-    });
+    if (user) {
+      logAction({
+        action: 'UPDATE',
+        entity_type: 'COMPANY',
+        entity_id: id,
+        entity_name: updated.name,
+        changes: { old: oldData, new: updated },
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: id
+      });
+    }
+
+    return updated;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
   }
-
-  return updated;
 };
 
 export const deleteCompany = async (id, user = null) => {
-  let entityName = id;
-  if (user) {
-    const { data } = await supabase.from(tableName).select('name').eq('id', id).single();
-    if (data) entityName = data.name;
+  try {
+    let entityName = id;
+    const docRef = doc(db, collectionName, id);
+
+    if (user) {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) entityName = snap.data().name;
+    }
+
+    await deleteDoc(docRef);
+      
+    if (user) {
+      logAction({
+        action: 'DELETE',
+        entity_type: 'COMPANY',
+        entity_id: id,
+        entity_name: entityName,
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: id
+      });
+    }
+
+    return { id };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
   }
-
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq('id', id);
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'DELETE',
-      entity_type: 'COMPANY',
-      entity_id: id,
-      entity_name: entityName,
-      user_id: user.id,
-      user_email: user.email,
-      company_id: id
-    });
-  }
-
-  return { id };
 };

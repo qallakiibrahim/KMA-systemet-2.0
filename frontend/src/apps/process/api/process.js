@@ -1,176 +1,118 @@
-import { supabase } from '../../../supabase';
+import { db, auth } from '../../../firebase';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp,
+  orderBy,
+  limit,
+  startAfter,
+  getDocsFromServer
+} from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
+import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
 
-const tableName = 'processes';
+const collectionName = 'processes';
 
 export const getProcesses = async (page = 1, pageSize = 20) => {
   try {
-    console.log(`Fetching processes: page=${page}, pageSize=${pageSize}`);
-    let query = supabase
-      .from(tableName)
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false });
+    console.log(`Fetching processes from Firestore: page=${page}, pageSize=${pageSize}`);
+    const collRef = collection(db, collectionName);
+    let q = query(collRef, orderBy('created_at', 'desc'));
 
     if (pageSize !== -1) {
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
+      // For simple pagination without cursor (since we don't have previous doc)
+      // This is less efficient than cursor-based but works for small datasets
+      q = query(q, limit(page * pageSize));
     }
 
-    const { data, error, count } = await query;
+    const snapshot = await getDocs(q);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
-    if (error) {
-      console.error('Supabase getProcesses error:', error);
-      throw error;
-    }
+    // Manual slicing for simple page simulation if page > 1
+    const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
+    const totalCount = (await getDocs(collRef)).size; // Exact count
     
-    console.log(`Fetched ${data?.length || 0} processes, total count: ${count}`);
-    return pageSize === -1 ? data : { data, count };
+    return pageSize === -1 ? data : { data: pagedData, count: totalCount };
   } catch (error) {
-    console.error('Error in getProcesses:', error);
-    throw error;
+    handleFirestoreError(error, OperationType.LIST, collectionName);
   }
 };
 
 export const getGlobalProcesses = async () => {
   try {
-    console.log('Fetching global processes from Supabase...');
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*')
-      .or('is_global.eq.true,company_id.is.null');
-      
-    if (error) {
-      console.warn('Full global processes query failed, trying fallback...', error);
-      const { data: allProcs, error: allProcsError } = await supabase
-        .from(tableName)
-        .select('*');
-        
-      if (allProcsError) throw allProcsError;
-      
-      return allProcs.filter(p => 
-        p.is_global === true || 
-        !p.company_id ||
-        p.is_template === true ||
-        p.title?.toLowerCase().includes('mall')
-      );
-    }
+    console.log('Fetching global processes from Firestore...');
+    const collRef = collection(db, collectionName);
     
-    console.log(`Fetched ${data?.length || 0} global processes`);
-    return data.filter(p => p.is_global === true || !p.company_id || p.is_template === true || p.title?.toLowerCase().includes('mall'));
+    // Firestore doesn't support OR across different fields easily in 1 query without composite indexes or multiple queries
+    // We'll fetch global ones
+    const qGlobal = query(collRef, where('is_global', '==', true));
+    const globalSnap = await getDocs(qGlobal);
+    
+    // And null company_id ones (represented as non-existent or empty string in Firestore usually)
+    // Actually, following the blueprint, they should have company_id.
+    // Let's just fetch template-like and global ones
+    const allGlobal = globalSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    return allGlobal.filter(p => p.is_global === true || !p.company_id || p.is_template === true || p.title?.toLowerCase().includes('mall'));
   } catch (error) {
-    console.error('Error fetching global processes:', error);
-    return [];
+    handleFirestoreError(error, OperationType.LIST, collectionName);
   }
 };
 
 export const createProcess = async (data, user = null) => {
-  // Strip out attachments if they are present (they are a relationship, not a column)
-  const { attachments, ...insertData } = data;
-  
-  // Defensive: try to insert, if it fails due to missing columns, try a minimal version
-  const { data: inserted, error } = await supabase
-    .from(tableName)
-    .insert([insertData])
-    .select()
-    .single();
+  try {
+    const { attachments, ...insertData } = data;
     
-  if (error) {
-    // ... (existing error handling)
-    if (error.message.includes('column') && error.message.includes('does not exist')) {
-      const { company_id, is_template, is_global, category, ...minimalData } = data;
-      const { data: retryInserted, error: retryError } = await supabase
-        .from(tableName)
-        .insert([minimalData])
-        .select()
-        .single();
-        
-      if (retryError) throw retryError;
-      
-      if (user) {
-        logAction({
-          action: 'CREATE',
-          entity_type: 'PROCESS',
-          entity_id: retryInserted.id,
-          entity_name: retryInserted.title,
-          user_id: user.id,
-          user_email: user.email,
-          company_id: retryInserted.company_id
-        });
-      }
-      
-      return retryInserted;
-    }
-    
-    throw error;
-  }
-
-  if (user) {
-    logAction({
-      action: 'CREATE',
-      entity_type: 'PROCESS',
-      entity_id: inserted.id,
-      entity_name: inserted.title,
-      user_id: user.id,
-      user_email: user.email,
-      company_id: inserted.company_id
+    const docRef = await addDoc(collection(db, collectionName), {
+      ...insertData,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
     });
-  }
+    
+    const inserted = { id: docRef.id, ...insertData };
+    
+    if (user) {
+      logAction({
+        action: 'CREATE',
+        entity_type: 'PROCESS',
+        entity_id: docRef.id,
+        entity_name: inserted.title,
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: inserted.company_id
+      });
+    }
 
-  return inserted;
+    return inserted;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, collectionName);
+  }
 };
 
 export const updateProcess = async (id, data, user = null) => {
   try {
-    console.log(`Updating process ${id} with data:`, JSON.stringify(data, null, 2));
-    // Strip out attachments if they are present (they are a relationship, not a column)
     const { attachments, ...updateData } = data;
+    const docRef = doc(db, collectionName, id);
 
-    // Get old data for logging changes
     let oldData = null;
     if (user) {
-      const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
-      oldData = existing;
+      const existing = await getDoc(docRef);
+      oldData = existing.data();
     }
 
-    const { data: updated, error } = await supabase
-      .from(tableName)
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      // ... (existing error handling)
-      if (error.message.includes('column') && error.message.includes('does not exist')) {
-        const { company_id, is_template, is_global, category, ...minimalData } = updateData;
-        const { data: retryUpdated, error: retryError } = await supabase
-          .from(tableName)
-          .update(minimalData)
-          .eq('id', id)
-          .select()
-          .single();
-          
-        if (retryError) throw retryError;
-
-        if (user) {
-          logAction({
-            action: 'UPDATE',
-            entity_type: 'PROCESS',
-            entity_id: id,
-            entity_name: retryUpdated.title,
-            changes: { old: oldData, new: retryUpdated },
-            user_id: user.id,
-            user_email: user.email,
-            company_id: retryUpdated.company_id
-          });
-        }
-
-        return retryUpdated;
-      }
-      
-      throw error;
-    }
+    await updateDoc(docRef, {
+      ...updateData,
+      updated_at: serverTimestamp()
+    });
+    
+    const updated = { id, ...updateData };
 
     if (user) {
       logAction({
@@ -179,7 +121,7 @@ export const updateProcess = async (id, data, user = null) => {
         entity_id: id,
         entity_name: updated.title,
         changes: { old: oldData, new: updated },
-        user_id: user.id,
+        user_id: user.uid,
         user_email: user.email,
         company_id: updated.company_id
       });
@@ -187,63 +129,63 @@ export const updateProcess = async (id, data, user = null) => {
 
     return updated;
   } catch (error) {
-    console.error('Error in updateProcess:', error);
-    throw error;
+    handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
   }
 };
 
 export const getProcessById = async (id) => {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
-    .eq('id', id)
-    .single();
-    
-  if (error) throw error;
-  return data;
+  try {
+    const docRef = doc(db, collectionName, id);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) throw new Error('Process not found');
+    return { id: snap.id, ...snap.data() };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, `${collectionName}/${id}`);
+  }
 };
 
 export const getProcessByTitle = async (title) => {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
-    .eq('title', title)
-    .maybeSingle();
-    
-  if (error) throw error;
-  return data;
+  try {
+    const q = query(collection(db, collectionName), where('title', '==', title), limit(1));
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    return { id: snap.docs[0].id, ...snap.docs[0].data() };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, collectionName);
+  }
 };
 
 export const deleteProcess = async (id, user = null) => {
-  // Get name and company_id before deleting
-  let entityName = id;
-  let companyId = null;
-  if (user) {
-    const { data } = await supabase.from(tableName).select('title, company_id').eq('id', id).single();
-    if (data) {
-      entityName = data.title;
-      companyId = data.company_id;
+  try {
+    let entityName = id;
+    let companyId = null;
+    const docRef = doc(db, collectionName, id);
+
+    if (user) {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        entityName = data.title;
+        companyId = data.company_id;
+      }
     }
+
+    await deleteDoc(docRef);
+      
+    if (user) {
+      logAction({
+        action: 'DELETE',
+        entity_type: 'PROCESS',
+        entity_id: id,
+        entity_name: entityName,
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: companyId
+      });
+    }
+
+    return { id };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
   }
-
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq('id', id);
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'DELETE',
-      entity_type: 'PROCESS',
-      entity_id: id,
-      entity_name: entityName,
-      user_id: user.id,
-      user_email: user.email,
-      company_id: companyId
-    });
-  }
-
-  return { id };
 };

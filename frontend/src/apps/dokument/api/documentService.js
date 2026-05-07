@@ -1,165 +1,131 @@
-import { supabase } from '../../../supabase';
+import { db, storage } from '../../../firebase';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp,
+  orderBy
+} from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
+
+const collectionName = 'documents';
 
 export const getDocuments = async (companyId) => {
-  const { data, error } = await supabase
-    .from('documents')
-    .select(`
-      *,
-      attachments (*)
-    `)
-    .eq('company_id', companyId)
-    .order('updated_at', { ascending: false });
+  try {
+    const collRef = collection(db, collectionName);
+    const q = query(collRef, where('company_id', '==', companyId), orderBy('updated_at', 'desc'));
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  if (error) throw error;
-  return data;
+    // Fetch attachments for each document (if they are stored in a subcollection or separate collection)
+    // To mirror Supabase join, we'll fetch them from an 'attachments' collection
+    const enrichedDocs = await Promise.all(docs.map(async (document) => {
+      const attColl = collection(db, 'attachments');
+      const attQ = query(attColl, where('document_id', '==', document.id));
+      const attSnap = await getDocs(attQ);
+      return {
+        ...document,
+        attachments: attSnap.docs.map(ad => ({ id: ad.id, ...ad.data() }))
+      };
+    }));
+
+    return enrichedDocs;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collectionName);
+  }
 };
 
 export const getDocumentById = async (id) => {
-  const { data, error } = await supabase
-    .from('documents')
-    .select(`
-      *,
-      attachments (*)
-    `)
-    .eq('id', id)
-    .single();
+  try {
+    const docRef = doc(db, collectionName, id);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) throw new Error('Document not found');
+    const document = { id: snap.id, ...snap.data() };
 
-  if (error) throw error;
-  return data;
+    const attColl = collection(db, 'attachments');
+    const attQ = query(attColl, where('document_id', '==', id));
+    const attSnap = await getDocs(attQ);
+    document.attachments = attSnap.docs.map(ad => ({ id: ad.id, ...ad.data() }));
+
+    return document;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, `${collectionName}/${id}`);
+  }
 };
 
 export const saveDocument = async (documentData) => {
   const { id, attachments, ...rest } = documentData;
-
-  const performSave = async (dataToSave) => {
-    if (id) {
-      const { data, error } = await supabase
-        .from('documents')
-        .update(dataToSave)
-        .eq('id', id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    } else {
-      const { data, error } = await supabase
-        .from('documents')
-        .insert(dataToSave)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    }
-  };
-
   try {
-    return await performSave(rest);
+    if (id) {
+      const docRef = doc(db, collectionName, id);
+      await updateDoc(docRef, { ...rest, updated_at: serverTimestamp() });
+      const snap = await getDoc(docRef);
+      return { id: snap.id, ...snap.data() };
+    } else {
+      const docRef = await addDoc(collection(db, collectionName), {
+        ...rest,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp()
+      });
+      const snap = await getDoc(docRef);
+      return { id: snap.id, ...snap.data() };
+    }
   } catch (error) {
-    console.error('Supabase saveDocument error:', error);
-    
-    // Fallback for missing columns (e.g. if schema is not updated)
-    if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
-      if (error.message.includes('iso_chapter')) {
-        console.warn('Retrying document save without iso_chapter...');
-        const { iso_chapter, ...dataWithoutIso } = rest;
-        try {
-          return await performSave(dataWithoutIso);
-        } catch (retryError) {
-          console.error('Retry without iso_chapter failed:', retryError);
-          throw retryError;
-        }
-      }
-      throw new Error('Databasen saknar nödvändiga kolumner (t.ex. content, company_id). Vänligen kör SQL-skriptet "supabase_schema.sql" i Supabase för att uppdatera databasen.');
-    }
-    
-    // Fallback for not-null constraint on company_id
-    if (error.message && error.message.includes('column "company_id"') && error.message.includes('violates not-null constraint')) {
-      console.warn('Retrying document save with a default company...');
-      try {
-        // Try to fetch any available company
-        const { data: companies } = await supabase.from('companies').select('id').limit(1);
-        if (companies && companies.length > 0) {
-          rest.company_id = companies[0].id;
-          return await performSave(rest);
-        } else {
-          throw new Error('Du måste tillhöra ett företag för att spara dokument.');
-        }
-      } catch (retryError) {
-        console.error('Retry with default company failed:', retryError);
-        throw retryError;
-      }
-    }
-
-    // Fallback for not-null constraint on file_url
-    if (error.message && error.message.includes('column "file_url"') && error.message.includes('violates not-null constraint')) {
-      console.warn('Retrying document save with empty file_url...');
-      try {
-        rest.file_url = ''; // Provide an empty string if it's required but we don't have one
-        return await performSave(rest);
-      } catch (retryError) {
-        console.error('Retry with empty file_url failed:', retryError);
-        throw retryError;
-      }
-    }
-
-    throw error;
+    handleFirestoreError(error, OperationType.WRITE, collectionName);
   }
 };
 
 export const deleteDocument = async (id) => {
-  const { error } = await supabase
-    .from('documents')
-    .delete()
-    .eq('id', id);
-
-  if (error) throw error;
+  try {
+    await deleteDoc(doc(db, collectionName, id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
+  }
 };
 
 export const uploadAttachment = async (file, documentId, userId) => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Math.random()}.${fileExt}`;
-  const filePath = `attachments/${documentId}/${fileName}`;
+  try {
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`;
+    const filePath = `attachments/${documentId}/${fileName}`;
+    const storageRef = ref(storage, filePath);
 
-  const { error: uploadError } = await supabase.storage
-    .from('documents')
-    .upload(filePath, file);
+    await uploadBytes(storageRef, file);
+    const publicUrl = await getDownloadURL(storageRef);
 
-  if (uploadError) throw uploadError;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('documents')
-    .getPublicUrl(filePath);
-
-  const { data, error: dbError } = await supabase
-    .from('attachments')
-    .insert({
+    const docRef = await addDoc(collection(db, 'attachments'), {
       document_id: documentId,
       file_name: file.name,
       file_url: publicUrl,
+      file_path: filePath, // Store path for easy deletion
       file_type: file.type,
       file_size: file.size,
-      uploaded_by: userId
-    })
-    .select()
-    .single();
+      uploaded_by: userId,
+      uploaded_at: serverTimestamp()
+    });
 
-  if (dbError) throw dbError;
-  return data;
+    const snap = await getDoc(docRef);
+    return { id: snap.id, ...snap.data() };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, 'attachments');
+  }
 };
 
 export const deleteAttachment = async (id, filePath) => {
-  // Delete from storage
-  const { error: storageError } = await supabase.storage
-    .from('documents')
-    .remove([filePath]);
-
-  if (storageError) console.error('Storage delete error:', storageError);
-
-  // Delete from DB
-  const { error: dbError } = await supabase
-    .from('attachments')
-    .delete()
-    .eq('id', id);
-
-  if (dbError) throw dbError;
+  try {
+    if (filePath) {
+      const storageRef = ref(storage, filePath);
+      await deleteObject(storageRef).catch(err => console.warn('Storage delete failed or file missing:', err));
+    }
+    await deleteDoc(doc(db, 'attachments', id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `attachments/${id}`);
+  }
 };

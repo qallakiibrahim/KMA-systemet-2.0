@@ -1,5 +1,25 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../../supabase';
+import { auth, db } from '../../firebase';
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  onAuthStateChanged, 
+  signOut,
+  setPersistence,
+  browserLocalPersistence
+} from 'firebase/auth';
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  updateDoc, 
+  query, 
+  collection, 
+  where, 
+  getDocs,
+  deleteDoc,
+  serverTimestamp
+} from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import { logAction } from './auditLog';
 
@@ -11,89 +31,63 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchUserProfile = async (userObj) => {
-    if (!userObj || !userObj.id) {
+    if (!userObj || !userObj.uid) {
       setUserProfile(null);
       return;
     }
 
     const email = userObj.email;
-    const metadata = userObj.user_metadata || {};
-    const nameFromGoogle = metadata.full_name || metadata.name || email.split('@')[0];
+    const nameFromGoogle = userObj.displayName || email.split('@')[0];
 
     try {
-      // 1. Try to get the profile with company name joined
-      let { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*, companies(name, logo_url)')
-        .eq('id', userObj.id)
-        .single();
-        
-      if (error && error.code === 'PGRST116') {
+      // 1. Try to get the profile
+      const profileRef = doc(db, 'profiles', userObj.uid);
+      const profileSnap = await getDoc(profileRef);
+      
+      let profile = null;
+      
+      if (!profileSnap.exists()) {
         // Check for pending invitation
-        const { data: invitation, error: inviteError } = await supabase
-          .from('pending_users')
-          .select('*')
-          .eq('email', email)
-          .single();
-          
+        const invitesRef = collection(db, 'pending_users');
+        const qInvite = query(invitesRef, where('email', '==', email));
+        const inviteSnaps = await getDocs(qInvite);
+        
         let initialRole = email === 'qallakiibrahim@gmail.com' ? 'superadmin' : 'user';
         let initialCompanyId = null;
+        let invitation = null;
         
-        if (!inviteError && invitation) {
+        if (!inviteSnaps.empty) {
+          invitation = { id: inviteSnaps.docs[0].id, ...inviteSnaps.docs[0].data() };
           initialRole = invitation.role || 'user';
           initialCompanyId = invitation.company_id;
         }
 
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert([{ 
-            id: userObj.id, 
-            email: email,
-            display_name: nameFromGoogle,
-            username: nameFromGoogle,
-            role: initialRole,
-            company_id: initialCompanyId,
-            permissions: ['read_write']
-          }])
-          .select('*, companies(name, logo_url)')
-          .single();
-          
-        if (createError) {
-          console.error('Error creating profile:', createError);
-          // Fallback to a mock profile so UI doesn't hang
-          profile = { 
-            id: userObj.id, 
-            email: email, 
-            display_name: nameFromGoogle,
-            username: nameFromGoogle,
-            role: initialRole,
-            company_id: initialCompanyId,
-            permissions: ['read_write']
-          };
-        } else {
-          profile = newProfile;
-          
-          // Delete the invitation if it was used
-          if (invitation) {
-            await supabase.from('pending_users').delete().eq('id', invitation.id);
-          }
-        }
-      } else if (error) {
-        console.error('Error fetching user profile:', error);
         profile = { 
-          id: userObj.id, 
-          email: email, 
+          id: userObj.uid, 
+          email: email,
           display_name: nameFromGoogle,
           username: nameFromGoogle,
-          role: email === 'qallakiibrahim@gmail.com' ? 'superadmin' : 'user',
-          permissions: ['read_write']
+          role: initialRole,
+          company_id: initialCompanyId,
+          permissions: ['read_write'],
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp()
         };
+
+        await setDoc(profileRef, profile);
+          
+        // Delete the invitation if it was used
+        if (invitation) {
+          await deleteDoc(doc(db, 'pending_users', invitation.id));
+        }
+      } else {
+        profile = profileSnap.data();
       }
 
       // Ensure we have at least a basic profile object
       if (!profile) {
         profile = { 
-          id: userObj.id, 
+          id: userObj.uid, 
           email: email, 
           display_name: nameFromGoogle,
           username: nameFromGoogle,
@@ -104,132 +98,74 @@ export const AuthProvider = ({ children }) => {
         profile.permissions = ['read_write'];
       }
 
-      // Flatten company data for easier access
-      let companyData = null;
-      
-      if (profile.companies) {
-        companyData = Array.isArray(profile.companies) ? profile.companies[0] : profile.companies;
-      }
-
-      if (companyData) {
-        profile.company_name = companyData.name || null;
-        profile.company_logo = companyData.logo_url || null;
-      } else if (profile.company_id) {
-        // Fallback: Fetch company directly
-        const { data: directCompany, error: directError } = await supabase
-          .from('companies')
-          .select('name, logo_url')
-          .eq('id', profile.company_id)
-          .single();
-          
-        if (!directError && directCompany) {
-          profile.company_name = directCompany.name || null;
-          profile.company_logo = directCompany.logo_url || null;
-        } else {
-          profile.company_name = null;
-          profile.company_logo = null;
+      // Fetch company data
+      if (profile.company_id) {
+        const companySnap = await getDoc(doc(db, 'companies', profile.company_id));
+        if (companySnap.exists()) {
+          const companyData = companySnap.data();
+          profile.company_name = companyData.name || null;
+          profile.company_logo = companyData.logo_url || null;
         }
-      } else {
-        profile.company_name = null;
-        profile.company_logo = null;
       }
 
       // Set the profile immediately so UI can render
       setUserProfile(profile);
 
-      // 3. Background updates (don't block the main flow)
+      // Background updates (System Owner promotion, SafeQMS linking)
       (async () => {
         try {
           let updates = {};
           let needsUpdate = false;
 
-          // Auto-promote system owner
           if (email === 'qallakiibrahim@gmail.com' && profile.role !== 'superadmin') {
             updates.role = 'superadmin';
             needsUpdate = true;
           }
 
-          // Link to SafeQMS for superadmin if not already linked
           if (email === 'qallakiibrahim@gmail.com' && !profile.company_id) {
-            // First, find or create the SafeQMS company
-            let safeQmsId = null;
-            let safeQmsLogo = null;
-            const { data: companies, error: compError } = await supabase.from('companies').select('id, name, logo_url').eq('name', 'SafeQMS');
+            const companiesRef = collection(db, 'companies');
+            const qSafeQms = query(companiesRef, where('name', '==', 'SafeQMS'));
+            const safeSnaps = await getDocs(qSafeQms);
             
-            if (compError) {
-              console.error('Error finding SafeQMS company:', compError);
-            } else if (companies && companies.length > 0) {
-              safeQmsId = companies[0].id;
-              safeQmsLogo = companies[0].logo_url;
+            let safeQmsId = null;
+            if (!safeSnaps.empty) {
+              safeQmsId = safeSnaps.docs[0].id;
             } else {
-              const { data: newCompany, error: createCompError } = await supabase.from('companies').insert([{ 
-                name: 'SafeQMS', 
-                org_nr: '555555-5555', 
-                plan: 'Premium', 
-                status: 'active' 
-              }]).select().single();
-              
-              if (createCompError) {
-                console.error('Error creating SafeQMS company:', createCompError);
-              } else {
-                safeQmsId = newCompany?.id;
-                safeQmsLogo = newCompany?.logo_url;
-              }
+              const newCompRef = doc(collection(db, 'companies'));
+              safeQmsId = newCompRef.id;
+              await setDoc(newCompRef, {
+                name: 'SafeQMS',
+                org_nr: '555555-5555',
+                plan: 'Premium',
+                status: 'active',
+                created_at: serverTimestamp(),
+                updated_at: serverTimestamp()
+              });
             }
 
             if (safeQmsId) {
               updates.company_id = safeQmsId;
               needsUpdate = true;
-              
-              // Optimistically update the local profile state
-              setUserProfile(prev => ({ 
-                ...prev, 
-                company_id: safeQmsId, 
-                company_name: 'SafeQMS',
-                company_logo: safeQmsLogo 
-              }));
             }
           }
 
-          // Update display name if missing
-          if (!profile.display_name && nameFromGoogle) {
-            updates.display_name = nameFromGoogle;
-            updates.username = nameFromGoogle;
-            needsUpdate = true;
-          }
-
           if (needsUpdate) {
-            const { data: updatedProfile, error: updateErr } = await supabase
-              .from('profiles')
-              .update(updates)
-              .eq('id', userObj.id)
-              .select('*, companies(name, logo_url)')
-              .single();
-            
-            if (updateErr) {
-              console.error('Error updating profile in background:', updateErr);
-            } else if (updatedProfile) {
-              let companyData = null;
-              if (updatedProfile.companies) {
-                companyData = Array.isArray(updatedProfile.companies) ? updatedProfile.companies[0] : updatedProfile.companies;
-              }
-              
-              if (companyData) {
-                updatedProfile.company_name = companyData.name;
-                updatedProfile.company_logo = companyData.logo_url;
-              } else if (updatedProfile.company_id) {
-                const { data: directCompany } = await supabase
-                  .from('companies')
-                  .select('name, logo_url')
-                  .eq('id', updatedProfile.company_id)
-                  .single();
-                  
-                if (directCompany) {
-                  updatedProfile.company_name = directCompany.name;
-                  updatedProfile.company_logo = directCompany.logo_url;
+            await updateDoc(profileRef, {
+              ...updates,
+              updated_at: serverTimestamp()
+            });
+            // Refresh local state if updated
+            const updatedSnap = await getDoc(profileRef);
+            if (updatedSnap.exists()) {
+              const freshProfile = updatedSnap.data();
+              if (freshProfile.company_id) {
+                const cSnap = await getDoc(doc(db, 'companies', freshProfile.company_id));
+                if (cSnap.exists()) {
+                  freshProfile.company_name = cSnap.data().name;
+                  freshProfile.company_logo = cSnap.data().logo_url;
                 }
               }
-              setUserProfile(updatedProfile);
+              setUserProfile(freshProfile);
             }
           }
         } catch (bgErr) {
@@ -240,7 +176,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('Unexpected error in fetchUserProfile:', err);
       setUserProfile({ 
-        id: userObj.id, 
+        id: userObj.uid, 
         email: email, 
         display_name: nameFromGoogle,
         username: nameFromGoogle,
@@ -251,176 +187,39 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // BroadcastChannel for cross-tab/iframe communication
-    const bc = new BroadcastChannel('supabase-auth');
-    bc.onmessage = async (event) => {
-      console.log('BroadcastChannel message received:', event.data?.type);
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS' && event.data.session) {
-        try {
-          const { access_token, refresh_token } = event.data.session;
-          await supabase.auth.setSession({ access_token, refresh_token });
-          console.log('Session set via BroadcastChannel');
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            setUser(session.user);
-            fetchUserProfile(session.user);
-          }
-        } catch (err) {
-          console.error('Error setting session via BroadcastChannel:', err);
-        }
-      }
-    };
-
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      console.log('Initial session check:', currentUser ? 'User found' : 'No user');
-      setUser(currentUser);
-      if (currentUser) {
-        fetchUserProfile(currentUser).finally(() => setLoading(false));
-      } else {
-        // Don't stop loading if we are in the middle of an OAuth callback
-        const isOAuthCallback = window.location.search.includes('code=') || window.location.hash.includes('access_token=');
-        console.log('No session, isOAuthCallback:', isOAuthCallback);
-        if (!isOAuthCallback) {
-          setLoading(false);
-        } else {
-          setTimeout(() => setLoading(false), 5000); // Fallback if auth fails
-        }
-      }
-    });
-
-    // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event);
-      const currentUser = session?.user ?? null;
+    setPersistence(auth, browserLocalPersistence);
+    
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log('Auth state changed:', currentUser ? 'User found' : 'No user');
       setUser(currentUser);
       if (currentUser) {
         fetchUserProfile(currentUser).finally(() => setLoading(false));
       } else {
         setUserProfile(null);
-        const isOAuthCallback = window.location.search.includes('code=') || window.location.hash.includes('access_token=');
-        if (!isOAuthCallback) {
-          setLoading(false);
-        } else {
-          setTimeout(() => setLoading(false), 5000); // Fallback if auth fails
-        }
+        setLoading(false);
       }
     });
 
-    // Refresh session when window gains focus (e.g. after popup closes)
-    const handleFocus = () => {
-      console.log('Window gained focus, checking session...');
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          console.log('User found on focus');
-          setUser(session.user);
-          fetchUserProfile(session.user);
-        }
-      });
-    };
-
-    const handleMessage = async (event) => {
-      console.log('Received message:', event.data?.type);
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-        console.log('OAUTH_AUTH_SUCCESS received in main window');
-        if (event.data.session) {
-          try {
-            const { access_token, refresh_token } = event.data.session;
-            await supabase.auth.setSession({ access_token, refresh_token });
-            console.log('Session set successfully from message tokens');
-          } catch (err) {
-            console.error('Error setting session from message tokens:', err);
-          }
-        }
-        
-        // Final check
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setUser(session.user);
-          fetchUserProfile(session.user);
-        }
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('message', handleMessage);
-
-    return () => {
-      subscription.unsubscribe();
-      bc.close();
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('message', handleMessage);
-    };
+    return () => unsubscribe();
   }, []);
 
   const login = async () => {
-    const url = import.meta.env.VITE_SUPABASE_URL;
-    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    if (!url || !key) {
-      const errorMsg = 'Supabase configuration is missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment variables.';
-      console.error(errorMsg);
-      alert(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    // Use the new server-side callback route
-    const redirectUrl = `${window.location.origin}/api/auth/callback`;
-
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    
     try {
-      // Use popup flow for OAuth to stay within Gemini Studio
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: true,
-          queryParams: {
-            prompt: 'select_account',
-            access_type: 'offline',
-          }
-        },
-      });
-      
-      if (error) throw error;
-
-      if (data?.url) {
-        console.log('Opening OAuth popup with URL:', data.url);
-        const width = 600;
-        const height = 700;
-        const left = window.screen.width / 2 - width / 2;
-        const top = window.screen.height / 2 - height / 2;
-        
-        const popup = window.open(
-          data.url,
-          'google-login',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
-
-        // Fallback: Poll for session if message passing fails
-        const pollTimer = setInterval(async () => {
-          if (popup && popup.closed) {
-            clearInterval(pollTimer);
-            console.log('Popup closed, checking session...');
-            setTimeout(async () => {
-              const { data: { session } } = await supabase.auth.getSession();
-              if (session) {
-                console.log('Session found after popup closed');
-                setUser(session.user);
-                fetchUserProfile(session.user);
-              }
-            }, 1000);
-          }
-        }, 1000);
-      }
+      const result = await signInWithPopup(auth, provider);
+      setUser(result.user);
+      await fetchUserProfile(result.user);
+      return result.user;
     } catch (error) {
-      console.error('Supabase OAuth error:', error);
-      alert(`Inloggning misslyckades: ${error.message || 'Okänt fel'}. Kontrollera att Supabase är korrekt konfigurerat.`);
+      console.error('Firebase Auth error:', error);
+      toast.error(`Inloggning misslyckades: ${error.message || 'Okänt fel'}`);
       throw error;
     }
   };
 
-  const logout = () => supabase.auth.signOut();
+  const logout = () => signOut(auth);
 
   const refreshProfile = async () => {
     if (user) {
@@ -431,31 +230,31 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (updates) => {
     if (!user) return;
     try {
-      // Get old data for logging
-      const { data: oldData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      const profileRef = doc(db, 'profiles', user.uid);
+      const oldSnap = await getDoc(profileRef);
+      const oldData = oldSnap.data() || {};
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id)
-        .select()
-        .single();
-        
-      if (error) throw error;
+      await updateDoc(profileRef, {
+        ...updates,
+        updated_at: serverTimestamp()
+      });
+
+      const newDataSnap = await getDoc(profileRef);
+      const newData = newDataSnap.data();
 
       logAction({
         action: 'UPDATE',
         entity_type: 'USER_PROFILE',
-        entity_id: user.id,
-        entity_name: data.display_name || data.username || user.email,
-        changes: { old: oldData, new: data },
-        user_id: user.id,
+        entity_id: user.uid,
+        entity_name: newData.display_name || newData.username || user.email,
+        changes: { old: oldData, new: newData },
+        user_id: user.uid,
         user_email: user.email,
-        company_id: data.company_id
+        company_id: newData.company_id
       });
 
       await refreshProfile();
-      return data;
+      return newData;
     } catch (error) {
       console.error('Error updating profile:', error);
       throw error;
@@ -470,3 +269,4 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+;

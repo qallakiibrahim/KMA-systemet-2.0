@@ -1,0 +1,194 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. Global safety net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // HELPERS (Eight Pillars)
+    // -------------------------------------------------------------------------
+    
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    // Auth lookup helper (cached per request)
+    function getProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isCompanyMember(companyId) {
+      return isVerified() && getProfile().company_id == companyId;
+    }
+
+    function isAdmin() {
+      return isVerified() && (getProfile().role == 'admin' || getProfile().role == 'superadmin');
+    }
+    
+    function isSuperAdmin() {
+      return isVerified() && getProfile().role == 'superadmin';
+    }
+
+    // -------------------------------------------------------------------------
+    // USERS (userId must match auth.uid or be admin)
+    // -------------------------------------------------------------------------
+    match /users/{userId} {
+      // Identity Protection: Do not allow blanket listing.
+      allow get: if isVerified() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+
+      function isValidUser(data) {
+        return data.keys().hasAll(['email', 'role']) 
+               && data.email is string && data.email.size() <= 200
+               && (data.role == 'user' || data.role == 'admin' || data.role == 'superadmin')
+               && (data.full_name is string ? data.full_name.size() <= 100 : true)
+               && (data.company_id is string ? data.company_id.size() <= 100 : true);
+      }
+
+      allow create: if isVerified() && request.auth.uid == userId && isValidUser(incoming());
+      
+      allow update: if isVerified() && (request.auth.uid == userId || isAdmin()) && (
+        // Only SuperAdmin can escalate roles
+        (isSuperAdmin() && isValidUser(incoming())) ||
+        // Regular user/admin can update other fields but NOT role
+        (incoming().role == existing().role && isValidUser(incoming()))
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // COMPANIES
+    // -------------------------------------------------------------------------
+    match /companies/{companyId} {
+      allow get: if isCompanyMember(companyId) || isSuperAdmin();
+      allow list: if isSuperAdmin();
+      
+      function isValidCompany(data) {
+        return data.name is string && data.name.size() <= 200;
+      }
+
+      allow create: if isSuperAdmin() && isValidCompany(incoming());
+      allow update: if isSuperAdmin() || (isCompanyMember(companyId) && isAdmin());
+    }
+
+    // -------------------------------------------------------------------------
+    // PROCESSES
+    // -------------------------------------------------------------------------
+    match /processes/{processId} {
+      // Must use isValidId on the ID
+      allow get: if isVerified() && (isValidId(processId) && (isCompanyMember(existing().company_id) || existing().is_global == true));
+      allow list: if isVerified() && (resource.data.is_global == true || isCompanyMember(resource.data.company_id));
+
+      function isValidProcess(data) {
+        return data.title is string && data.title.size() <= 200
+               && data.company_id is string && data.company_id.size() <= 100;
+      }
+
+      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidProcess(incoming());
+      
+      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidProcess(incoming()) && (
+        isAdmin() || existing().created_by == request.auth.uid
+      );
+      
+      allow delete: if isVerified() && isCompanyMember(existing().company_id) && (isAdmin() || existing().created_by == request.auth.uid);
+    }
+
+    // -------------------------------------------------------------------------
+    // RISKER
+    // -------------------------------------------------------------------------
+    match /risker/{riskId} {
+      allow read: if isVerified() && isCompanyMember(existing().company_id);
+      
+      function isValidRisk(data) {
+        return data.title is string && data.title.size() <= 200
+               && data.company_id is string && data.company_id.size() <= 100;
+      }
+
+      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidRisk(incoming());
+      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidRisk(incoming());
+      allow delete: if isVerified() && isCompanyMember(existing().company_id) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // TASKS
+    // -------------------------------------------------------------------------
+    match /tasks/{taskId} {
+      allow read: if isVerified() && isCompanyMember(existing().company_id);
+      
+      function isValidTask(data) {
+        return data.title is string && data.title.size() <= 200;
+      }
+
+      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidTask(incoming());
+      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidTask(incoming());
+      allow delete: if isVerified() && isCompanyMember(existing().company_id);
+    }
+
+    // -------------------------------------------------------------------------
+    // AVVIKELSER
+    // -------------------------------------------------------------------------
+    match /avvikelser/{id} {
+      allow read: if isVerified() && isCompanyMember(existing().company_id);
+      
+      function isValidDeviation(data) {
+        return data.titel is string && data.titel.size() <= 200;
+      }
+
+      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidDeviation(incoming());
+      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidDeviation(incoming());
+      allow delete: if isVerified() && isCompanyMember(existing().company_id) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // DOCUMENTS
+    // -------------------------------------------------------------------------
+    match /documents/{id} {
+      allow read: if isVerified() && isCompanyMember(existing().company_id);
+      
+      function isValidDoc(data) {
+        return data.title is string && data.title.size() <= 200;
+      }
+
+      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidDoc(incoming());
+      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidDoc(incoming());
+      allow delete: if isVerified() && isCompanyMember(existing().company_id) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // ATTACHMENTS
+    // -------------------------------------------------------------------------
+    match /attachments/{id} {
+      // Attachments are often read by those who can read the parent deviation/document.
+      // For simplicity, we check if they are in the same company.
+      allow read: if isVerified() && (
+        exists(/databases/$(database)/documents/documents/$(existing().document_id)) && 
+        isCompanyMember(get(/databases/$(database)/documents/documents/$(existing().document_id)).data.company_id)
+      );
+      
+      allow write: if isVerified();
+    }
+
+    // -------------------------------------------------------------------------
+    // AUDIT LOGS (Write only by system, read by admin)
+    // -------------------------------------------------------------------------
+    match /audit_logs/{id} {
+      allow get: if isVerified() && (isCompanyMember(existing().company_id) && isAdmin());
+      allow list: if isVerified() && (resource.data.company_id == getProfile().company_id && isAdmin());
+      allow create: if isVerified() && incoming().user_id == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // NOTIFICATIONS
+    // -------------------------------------------------------------------------
+    match /notifications/{id} {
+      allow read, write: if isVerified() && (existing().user_id == request.auth.uid || incoming().user_id == request.auth.uid);
+    }
+  }
+}

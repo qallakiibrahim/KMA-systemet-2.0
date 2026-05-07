@@ -1,8 +1,23 @@
-import { supabase } from '../../../supabase';
+import { db, storage } from '../../../firebase';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp,
+  orderBy,
+  limit
+} from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { logAction } from '../../../shared/api/auditLog';
+import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
 
-const tableName = 'avvikelser';
-const bucketName = 'avvikelser';
+const collectionName = 'avvikelser';
 
 export const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) => {
   return new Promise((resolve, reject) => {
@@ -59,22 +74,11 @@ export const uploadAttachment = async (file) => {
     const compressedFile = await compressImage(file);
     const timestamp = Date.now();
     const safeName = compressedFile.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const filePath = `${timestamp}_${safeName}`;
+    const filePath = `avvikelser/${timestamp}_${safeName}`;
+    const storageRef = ref(storage, filePath);
 
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, compressedFile);
-
-    if (error) {
-      if (error.message.includes('bucket not found')) {
-        throw new Error('Supabase Storage bucket "avvikelser" saknas. Skapa en publik bucket med namnet "avvikelser" i din Supabase-panel.');
-      }
-      throw error;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(filePath);
+    await uploadBytes(storageRef, compressedFile);
+    const publicUrl = await getDownloadURL(storageRef);
 
     return {
       name: compressedFile.name,
@@ -89,128 +93,132 @@ export const uploadAttachment = async (file) => {
 };
 
 export const getAvvikelser = async (page = 1, pageSize = 20) => {
-  console.log('getAvvikelser called with:', { page, pageSize });
-  let query = supabase
-    .from(tableName)
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false });
+  try {
+    const collRef = collection(db, collectionName);
+    let q = query(collRef, orderBy('created_at', 'desc'));
 
-  if (pageSize !== -1) {
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    query = query.range(from, to);
-  }
+    if (pageSize !== -1) {
+      q = query(q, limit(page * pageSize));
+    }
 
-  const { data, error, count } = await query;
+    const snapshot = await getDocs(q);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
-  if (error) {
-    console.error('getAvvikelser error:', error);
-    throw error;
+    const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
+    const totalCount = (await getDocs(collRef)).size;
+    
+    return pageSize === -1 ? data : { data: pagedData, count: totalCount };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collectionName);
   }
-  
-  console.log('getAvvikelser result:', { count, dataLength: data?.length });
-  return pageSize === -1 ? data : { data, count };
 };
 
 export const getOpenAvvikelser = async () => {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
-    .not('status', 'eq', 'closed')
-    .not('deadline', 'is', null);
-    
-  if (error) throw error;
-  return data;
+  try {
+    const collRef = collection(db, collectionName);
+    const snapshot = await getDocs(collRef);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    return data.filter(r => r.status !== 'closed' && r.deadline);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collectionName);
+  }
 };
 
 export const createAvvikelse = async (data, user = null) => {
-  const { data: inserted, error } = await supabase
-    .from(tableName)
-    .insert([data])
-    .select()
-    .single();
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'CREATE',
-      entity_type: 'ISSUE',
-      entity_id: inserted.id,
-      entity_name: inserted.title,
-      changes: { new: inserted },
-      user_id: user.id,
-      user_email: user.email,
-      company_id: inserted.company_id
+  try {
+    const docRef = await addDoc(collection(db, collectionName), {
+      ...data,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
     });
-  }
+    
+    const inserted = { id: docRef.id, ...data };
+    
+    if (user) {
+      logAction({
+        action: 'CREATE',
+        entity_type: 'ISSUE',
+        entity_id: docRef.id,
+        entity_name: inserted.titel || inserted.title,
+        changes: { new: inserted },
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: inserted.company_id
+      });
+    }
 
-  return inserted;
+    return inserted;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, collectionName);
+  }
 };
 
 export const updateAvvikelse = async (id, data, user = null) => {
-  // Get old data for logging changes
-  let oldData = null;
-  if (user) {
-    const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
-    oldData = existing;
-  }
+  try {
+    const docRef = doc(db, collectionName, id);
+    let oldData = null;
+    if (user) {
+      const snap = await getDoc(docRef);
+      oldData = snap.data();
+    }
 
-  const { data: updated, error } = await supabase
-    .from(tableName)
-    .update(data)
-    .eq('id', id)
-    .select()
-    .single();
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'UPDATE',
-      entity_type: 'ISSUE',
-      entity_id: id,
-      entity_name: updated.title,
-      changes: { old: oldData, new: updated },
-      user_id: user.id,
-      user_email: user.email,
-      company_id: updated.company_id
+    await updateDoc(docRef, {
+      ...data,
+      updated_at: serverTimestamp()
     });
-  }
+    
+    const updated = { id, ...data };
 
-  return updated;
+    if (user) {
+      logAction({
+        action: 'UPDATE',
+        entity_type: 'ISSUE',
+        entity_id: id,
+        entity_name: updated.titel || updated.title,
+        changes: { old: oldData, new: updated },
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: updated.company_id
+      });
+    }
+
+    return updated;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
+  }
 };
 
 export const deleteAvvikelse = async (id, user = null) => {
-  // Get name and company_id before deleting
-  let entityName = id;
-  let companyId = null;
-  if (user) {
-    const { data } = await supabase.from(tableName).select('title, company_id').eq('id', id).single();
-    if (data) {
-      entityName = data.title;
-      companyId = data.company_id;
+  try {
+    let entityName = id;
+    let companyId = null;
+    const docRef = doc(db, collectionName, id);
+
+    if (user) {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        entityName = data.titel || data.title;
+        companyId = data.company_id;
+      }
     }
+
+    await deleteDoc(docRef);
+      
+    if (user) {
+      logAction({
+        action: 'DELETE',
+        entity_type: 'ISSUE',
+        entity_id: id,
+        entity_name: entityName,
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: companyId
+      });
+    }
+
+    return { id };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
   }
-
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq('id', id);
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'DELETE',
-      entity_type: 'ISSUE',
-      entity_id: id,
-      entity_name: entityName,
-      user_id: user.id,
-      user_email: user.email,
-      company_id: companyId
-    });
-  }
-
-  return { id };
 };

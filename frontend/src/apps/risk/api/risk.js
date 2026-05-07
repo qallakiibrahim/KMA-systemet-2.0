@@ -1,147 +1,110 @@
-import { supabase } from '../../../supabase';
+import { db } from '../../../firebase';
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp,
+  orderBy,
+  limit
+} from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
+import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
 
-const tableName = 'risker';
+const collectionName = 'risker';
 
 export const getRisker = async (page = 1, pageSize = 20) => {
-  console.log('getRisker called with:', { page, pageSize });
-  let query = supabase
-    .from(tableName)
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false });
+  try {
+    const collRef = collection(db, collectionName);
+    let q = query(collRef, orderBy('created_at', 'desc'));
 
-  if (pageSize !== -1) {
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    query = query.range(from, to);
-  }
+    if (pageSize !== -1) {
+      q = query(q, limit(page * pageSize));
+    }
 
-  const { data, error, count } = await query;
+    const snapshot = await getDocs(q);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
-  if (error) {
-    console.error('getRisker error:', error);
-    throw error;
+    const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
+    const totalCount = (await getDocs(collRef)).size;
+    
+    return pageSize === -1 ? data : { data: pagedData, count: totalCount };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collectionName);
   }
-  
-  console.log('getRisker result:', { count, dataLength: data?.length });
-  return pageSize === -1 ? data : { data, count };
 };
 
 export const getOpenRisker = async () => {
-  const { data, error } = await supabase
-    .from(tableName)
-    .select('*')
-    .not('status', 'eq', 'closed')
-    .not('deadline', 'is', null);
-    
-  if (error) throw error;
-  return data;
+  try {
+    const collRef = collection(db, collectionName);
+    const snapshot = await getDocs(collRef);
+    const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    return data.filter(r => r.status !== 'closed' && r.deadline);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, collectionName);
+  }
 };
 
 export const getGlobalRisks = async () => {
   try {
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*')
-      .or('is_global.eq.true,company_id.is.null');
-      
-    if (error) {
-      console.warn('Full global risks query failed, trying fallback...', error);
-      const { data: allRisks, error: allRisksError } = await supabase
-        .from(tableName)
-        .select('*');
-        
-      if (allRisksError) throw allRisksError;
-      
-      return allRisks.filter(r => 
-        r.is_global === true || 
-        !r.company_id ||
-        r.is_template === true ||
-        r.title?.toLowerCase().includes('mall')
-      );
-    }
-    return data;
+    const collRef = collection(db, collectionName);
+    const snap = await getDocs(query(collRef, where('is_global', '==', true)));
+    const allGlobal = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return allGlobal.filter(r => r.is_global === true || !r.company_id || r.is_template === true || r.title?.toLowerCase().includes('mall'));
   } catch (error) {
-    console.error('Error fetching global risks:', error);
-    return [];
+    handleFirestoreError(error, OperationType.LIST, collectionName);
   }
 };
 
 export const createRisk = async (data, user = null) => {
-  // Strip out attachments if they are present (they are a relationship, not a column)
-  const { attachments, ...insertData } = data;
-  
-  const { data: inserted, error } = await supabase
-    .from(tableName)
-    .insert([insertData])
-    .select()
-    .single();
-    
-  if (error) {
-    console.error('Supabase createRisk error:', error);
-    // If it's a missing column error, try without SaaS columns
-    if (error.message.includes('column') && error.message.includes('does not exist')) {
-      console.warn('Retrying risk creation without SaaS columns...');
-      const { company_id, is_template, is_global, responsible_uid, creator_uid, created_by, responsible_name, ...minimalData } = data;
-      const { data: retryInserted, error: retryError } = await supabase
-        .from(tableName)
-        .insert([minimalData])
-        .select()
-        .single();
-        
-      if (retryError) throw retryError;
-
-      if (user) {
-        logAction({
-          action: 'CREATE',
-          entity_type: 'RISK',
-          entity_id: retryInserted.id,
-          entity_name: retryInserted.title,
-          changes: { new: retryInserted },
-          user_id: user.id,
-          user_email: user.email,
-          company_id: retryInserted.company_id
-        });
-      }
-
-      return retryInserted;
-    }
-    throw error;
-  }
-
-  if (user) {
-    logAction({
-      action: 'CREATE',
-      entity_type: 'RISK',
-      entity_id: inserted.id,
-      entity_name: inserted.title,
-      changes: { new: inserted },
-      user_id: user.id,
-      user_email: user.email,
-      company_id: inserted.company_id
+  try {
+    const { attachments, ...insertData } = data;
+    const docRef = await addDoc(collection(db, collectionName), {
+      ...insertData,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
     });
-  }
+    
+    const inserted = { id: docRef.id, ...insertData };
+    
+    if (user) {
+      logAction({
+        action: 'CREATE',
+        entity_type: 'RISK',
+        entity_id: docRef.id,
+        entity_name: inserted.title,
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: inserted.company_id
+      });
+    }
 
-  return inserted;
+    return inserted;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, collectionName);
+  }
 };
 
 export const updateRisk = async (id, data, user = null) => {
   try {
-    // Get old data for logging changes
+    const docRef = doc(db, collectionName, id);
     let oldData = null;
     if (user) {
-      const { data: existing } = await supabase.from(tableName).select('*').eq('id', id).single();
-      oldData = existing;
+      const snap = await getDoc(docRef);
+      oldData = snap.data();
     }
 
-    const { data: updated, error } = await supabase
-      .from(tableName)
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) throw error;
+    await updateDoc(docRef, {
+      ...data,
+      updated_at: serverTimestamp()
+    });
+    
+    const updated = { id, ...data };
 
     if (user) {
       logAction({
@@ -150,7 +113,7 @@ export const updateRisk = async (id, data, user = null) => {
         entity_id: id,
         entity_name: updated.title,
         changes: { old: oldData, new: updated },
-        user_id: user.id,
+        user_id: user.uid,
         user_email: user.email,
         company_id: updated.company_id
       });
@@ -158,69 +121,41 @@ export const updateRisk = async (id, data, user = null) => {
 
     return updated;
   } catch (error) {
-    console.error('Supabase updateRisk error:', error);
-    
-    // If it's a missing column error, try without SaaS columns
-    if (error.message && error.message.includes('column') && error.message.includes('does not exist')) {
-      console.warn('Retrying risk update without SaaS columns...');
-      const { company_id, is_template, is_global, responsible_uid, creator_uid, created_by, responsible_name, ...minimalData } = data;
-      const { data: retryUpdated, error: retryError } = await supabase
-        .from(tableName)
-        .update(minimalData)
-        .eq('id', id)
-        .select()
-        .single();
-        
-      if (retryError) throw retryError;
-
-      if (user) {
-        logAction({
-          action: 'UPDATE',
-          entity_type: 'RISK',
-          entity_id: id,
-          entity_name: retryUpdated.title,
-          user_id: user.id,
-          user_email: user.email,
-          company_id: retryUpdated.company_id
-        });
-      }
-
-      return retryUpdated;
-    }
-    throw error;
+    handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
   }
 };
 
 export const deleteRisk = async (id, user = null) => {
-  // Get name and company_id before deleting
-  let entityName = id;
-  let companyId = null;
-  if (user) {
-    const { data } = await supabase.from(tableName).select('title, company_id').eq('id', id).single();
-    if (data) {
-      entityName = data.title;
-      companyId = data.company_id;
+  try {
+    let entityName = id;
+    let companyId = null;
+    const docRef = doc(db, collectionName, id);
+
+    if (user) {
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        entityName = data.title;
+        companyId = data.company_id;
+      }
     }
+
+    await deleteDoc(docRef);
+      
+    if (user) {
+      logAction({
+        action: 'DELETE',
+        entity_type: 'RISK',
+        entity_id: id,
+        entity_name: entityName,
+        user_id: user.uid,
+        user_email: user.email,
+        company_id: companyId
+      });
+    }
+
+    return { id };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
   }
-
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq('id', id);
-    
-  if (error) throw error;
-
-  if (user) {
-    logAction({
-      action: 'DELETE',
-      entity_type: 'RISK',
-      entity_id: id,
-      entity_name: entityName,
-      user_id: user.id,
-      user_email: user.email,
-      company_id: companyId
-    });
-  }
-
-  return { id };
 };

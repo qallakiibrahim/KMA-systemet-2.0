@@ -25,67 +25,8 @@ NODE_ENV: ${process.env.NODE_ENV}
   console.log('GEMINI_API_KEY present:', !!process.env.GEMINI_API_KEY);
   console.log('API_KEY present:', !!process.env.API_KEY);
 
-  // API routes
-  app.get('/api/auth/callback', (req, res) => {
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Autentiserar SafeQMS...</title>
-          <style>
-            body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f4f7f6; color: #333; }
-            .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; max-width: 400px; }
-            .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #0066ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1.5rem; }
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            h2 { margin: 0 0 0.5rem; font-size: 1.25rem; }
-            p { margin: 0; color: #666; line-height: 1.5; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <div class="spinner"></div>
-            <h2>Slutför inloggning</h2>
-            <p>Vi skickar tillbaka dig till SafeQMS i Gemini Studio...</p>
-          </div>
-          <script>
-            // Parse tokens from URL hash (#access_token=...&refresh_token=...)
-            const hash = window.location.hash.substring(1);
-            const params = new URLSearchParams(hash);
-            const accessToken = params.get('access_token');
-            const refreshToken = params.get('refresh_token');
-
-            if (accessToken && window.opener) {
-              console.log('Tokens found, sending to main window');
-              window.opener.postMessage({ 
-                type: 'OAUTH_AUTH_SUCCESS',
-                session: {
-                  access_token: accessToken,
-                  refresh_token: refreshToken
-                }
-              }, '*');
-              
-              // Fallback via BroadcastChannel
-              try {
-                const bc = new BroadcastChannel('supabase-auth');
-                bc.postMessage({ 
-                  type: 'OAUTH_AUTH_SUCCESS',
-                  session: {
-                    access_token: accessToken,
-                    refresh_token: refreshToken
-                  }
-                });
-              } catch (e) {}
-
-              // Close after a short delay to ensure message is sent
-              setTimeout(() => window.close(), 1000);
-            } else if (!window.opener) {
-              // If opened directly, redirect to home
-              window.location.href = '/';
-            }
-          </script>
-        </body>
-      </html>
-    `);
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
   });
 
   // Vite middleware for frontend

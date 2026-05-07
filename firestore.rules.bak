@@ -1,0 +1,142 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // -------------------------------------------------------------------------
+    // GLOBALS & HELPERS
+    // -------------------------------------------------------------------------
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isCompanyMember(companyId) {
+      return isVerified() && getUserData().company_id == companyId;
+    }
+
+    function isAdmin() {
+      let role = getUserData().role;
+      return role == 'admin' || role == 'superadmin';
+    }
+
+    function isSuperAdmin() {
+      return getUserData().role == 'superadmin';
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // USERS
+    // -------------------------------------------------------------------------
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      
+      function isValidUser(data) {
+        return data.email is string && data.email.size() > 5 && data.email.size() < 100
+            && (data.role == 'user' || data.role == 'admin' || data.role == 'superadmin');
+      }
+
+      allow create: if isVerified() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isVerified() && (request.auth.uid == userId || isAdmin()) 
+                    && isValidUser(incoming())
+                    && (isSuperAdmin() || incoming().role == existing().role); // Only superadmin can change roles
+    }
+
+    // -------------------------------------------------------------------------
+    // COMPANIES
+    // -------------------------------------------------------------------------
+    match /companies/{companyId} {
+      allow get: if isCompanyMember(companyId) || isSuperAdmin();
+      allow list: if isSuperAdmin();
+      
+      function isValidCompany(data) {
+        return data.name is string && data.name.size() > 1 && data.name.size() < 100;
+      }
+
+      allow create: if isSuperAdmin() && isValidCompany(incoming());
+      allow update: if (isCompanyMember(companyId) && isAdmin()) || isSuperAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // DATA COLLECTIONS (COMPANY SCOPED)
+    // -------------------------------------------------------------------------
+    
+    // Helper for shared company-scoped logic
+    function canAccessCompanyData(data) {
+      return isCompanyMember(data.company_id);
+    }
+
+    match /processes/{id} {
+      allow read: if isVerified() && (canAccessCompanyData(existing()) || existing().is_global == true);
+      allow write: if isVerified() && (canAccessCompanyData(incoming()) && (isAdmin() || incoming().created_by == request.auth.uid));
+    }
+
+    match /risker/{id} {
+      allow read: if isVerified() && canAccessCompanyData(existing());
+      allow write: if isVerified() && canAccessCompanyData(incoming());
+    }
+
+    match /tasks/{id} {
+      allow read: if isVerified() && canAccessCompanyData(existing());
+      allow write: if isVerified() && canAccessCompanyData(incoming());
+    }
+
+    match /avvikelser/{id} {
+      allow read: if isVerified() && canAccessCompanyData(existing());
+      allow write: if isVerified() && canAccessCompanyData(incoming());
+    }
+
+    match /documents/{id} {
+      allow read: if isVerified() && canAccessCompanyData(existing());
+      allow write: if isVerified() && canAccessCompanyData(incoming());
+    }
+
+    match /attachments/{id} {
+      allow read: if isVerified(); // Usually accessed via parent, but let's allow read if verified for now
+      allow write: if isVerified();
+    }
+
+    match /calendar_events/{id} {
+      allow read: if isVerified() && canAccessCompanyData(existing());
+      allow write: if isVerified() && canAccessCompanyData(incoming());
+    }
+
+    match /notifications/{id} {
+      allow read: if isVerified() && existing().user_id == request.auth.uid;
+      allow write: if isVerified() && incoming().user_id == request.auth.uid;
+    }
+
+    match /audit_logs/{id} {
+      allow read: if isVerified() && (canAccessCompanyData(existing()) && isAdmin());
+      allow create: if isVerified(); // Everyone can log actions
+    }
+
+    match /pending_users/{id} {
+      allow read: if isVerified() && (incoming().company_id == getUserData().company_id && isAdmin());
+      allow write: if isVerified() && isAdmin();
+    }
+  }
+}
