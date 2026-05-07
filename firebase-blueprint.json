@@ -112,7 +112,7 @@
     }
   },
   "firestore": {
-    "users/{userId}": {
+    "profiles/{userId}": {
       "schema": "User",
       "description": "User profiles"
     },

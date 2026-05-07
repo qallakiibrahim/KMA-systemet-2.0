@@ -47,9 +47,10 @@ const RiskList = () => {
 
   // TanStack Query for data fetching
   const { data: riskerData, isLoading: loading, isError, error } = useQuery({
-    queryKey: ['risker', page, pageSize],
-    queryFn: () => getRisker(page, pageSize),
+    queryKey: ['risker', userProfile?.company_id, page, pageSize],
+    queryFn: () => getRisker(userProfile?.company_id, page, pageSize),
     placeholderData: (previousData) => previousData,
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   const risker = riskerData?.data || (Array.isArray(riskerData) ? riskerData : []);
@@ -200,7 +201,7 @@ const RiskList = () => {
       toast.error(`Kunde inte spara risk: ${errorMsg}`);
       
       if (errorMsg.includes('relation "risker" does not exist')) {
-        toast.info('Tabellen "risker" saknas i databasen. Kör SQL-skriptet i Supabase SQL Editor.');
+        toast.info('Tabellen "risker" saknas i databasen.');
       }
     }
   };

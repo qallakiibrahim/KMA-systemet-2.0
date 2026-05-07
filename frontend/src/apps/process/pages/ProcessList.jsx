@@ -112,9 +112,10 @@ const ProcessListContent = () => {
 
   // TanStack Query for data fetching (list view / search)
   const { data: processesData, isLoading: loading, isError, error } = useQuery({
-    queryKey: ['processes', page, pageSize],
-    queryFn: () => getProcesses(page, pageSize),
+    queryKey: ['processes', userProfile?.company_id, page, pageSize],
+    queryFn: () => getProcesses(userProfile?.company_id, page, pageSize),
     placeholderData: (previousData) => previousData,
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   const processes = useMemo(() => {

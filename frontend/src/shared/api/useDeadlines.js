@@ -8,17 +8,18 @@ import { toast } from 'react-toastify';
 import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
 
 export const useDeadlines = () => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [lastCheck, setLastCheck] = useState(null);
 
   const checkDeadlines = async () => {
     if (!user) return;
 
     try {
+      const companyId = userProfile?.company_id;
       const [tasks, risker, avvikelser] = await Promise.all([
-        getOpenTasks(),
-        getOpenRisker(),
-        getOpenAvvikelser()
+        getOpenTasks(companyId),
+        getOpenRisker(companyId),
+        getOpenAvvikelser(companyId)
       ]);
 
       const today = startOfDay(new Date());

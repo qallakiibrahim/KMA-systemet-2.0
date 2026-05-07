@@ -69,26 +69,30 @@ const CalendarPage = () => {
 
   // TanStack Query for tasks
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
-    queryKey: ['tasks', 1, -1],
-    queryFn: () => getTasks(1, -1),
+    queryKey: ['tasks', userProfile?.company_id, 1, -1],
+    queryFn: () => getTasks(userProfile?.company_id, 1, -1),
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   // TanStack Query for events
   const { data: eventsData, isLoading: eventsLoading } = useQuery({
-    queryKey: ['calendarEvents'],
-    queryFn: getEvents,
+    queryKey: ['calendarEvents', userProfile?.company_id],
+    queryFn: () => getEvents(userProfile?.company_id),
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   // TanStack Query for risks
   const { data: riskerData, isLoading: risksLoading } = useQuery({
-    queryKey: ['risker', 1, -1],
-    queryFn: () => getRisker(1, -1),
+    queryKey: ['risker', userProfile?.company_id, 1, -1],
+    queryFn: () => getRisker(userProfile?.company_id, 1, -1),
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   // TanStack Query for deviations
   const { data: avvikelserData, isLoading: avvikelserLoading } = useQuery({
-    queryKey: ['avvikelser', 1, -1],
-    queryFn: () => getAvvikelser(1, -1),
+    queryKey: ['avvikelser', userProfile?.company_id, 1, -1],
+    queryFn: () => getAvvikelser(userProfile?.company_id, 1, -1),
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   const tasks = tasksData?.data || (Array.isArray(tasksData) ? tasksData : []);

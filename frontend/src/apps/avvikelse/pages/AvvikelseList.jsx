@@ -79,9 +79,10 @@ const AvvikelseList = () => {
 
   // TanStack Query for data fetching
   const { data: avvikelserData, isLoading: loading, isError, error } = useQuery({
-    queryKey: ['avvikelser', page, pageSize],
-    queryFn: () => getAvvikelser(page, pageSize),
+    queryKey: ['avvikelser', userProfile?.company_id, page, pageSize],
+    queryFn: () => getAvvikelser(userProfile?.company_id, page, pageSize),
     placeholderData: (previousData) => previousData,
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   const avvikelser = avvikelserData?.data || (Array.isArray(avvikelserData) ? avvikelserData : []);
@@ -390,7 +391,7 @@ const AvvikelseList = () => {
       toast.error(`Kunde inte skapa avvikelse: ${errorMsg}`);
       
       if (errorMsg.includes('relation "avvikelser" does not exist')) {
-        toast.info('Tabellen "avvikelser" saknas i databasen. Kör SQL-skriptet i Supabase SQL Editor.');
+        toast.info('Tabellen "avvikelser" saknas i databasen.');
       }
     } finally {
       setIsSaving(false);
@@ -476,7 +477,7 @@ const AvvikelseList = () => {
         status: stepNumber === 5 ? 'closed' : 'in-progress'
       };
       
-      console.log('Sending updates to Supabase:', updates);
+      console.log('Sending updates:', updates);
       updateMutation.mutate({ id: selectedAvvikelse.id, data: updates });
       
       if (stepNumber < 5) {

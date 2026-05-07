@@ -9,16 +9,18 @@ import {
   updateDoc, 
   deleteDoc, 
   serverTimestamp,
-  orderBy
+  orderBy,
+  where
 } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
 
 const collectionName = 'notifications';
 
-export const getNotifications = async () => {
+export const getNotifications = async (userId) => {
+  if (!userId) return [];
   try {
     const collRef = collection(db, collectionName);
-    const q = query(collRef, orderBy('created_at', 'desc'));
+    const q = query(collRef, where('user_id', '==', userId), orderBy('created_at', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (error) {

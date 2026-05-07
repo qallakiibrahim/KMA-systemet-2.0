@@ -99,15 +99,17 @@ const DokumentList = () => {
 
   // TanStack Query for documents
   const { data: docsData, isLoading: docsLoading, isError: docsError, error: docsErr } = useQuery({
-    queryKey: ['documents', page, pageSize],
-    queryFn: () => getDokuments(page, pageSize),
+    queryKey: ['documents', userProfile?.company_id, page, pageSize],
+    queryFn: () => getDokuments(userProfile?.company_id, page, pageSize),
     placeholderData: (previousData) => previousData,
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   // TanStack Query for processes (fetch all for now to merge)
   const { data: processesData, isLoading: processesLoading } = useQuery({
-    queryKey: ['processes', 1, -1],
-    queryFn: () => getProcesses(1, -1),
+    queryKey: ['processes', userProfile?.company_id, 1, -1],
+    queryFn: () => getProcesses(userProfile?.company_id, 1, -1),
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   // TanStack Query for global templates

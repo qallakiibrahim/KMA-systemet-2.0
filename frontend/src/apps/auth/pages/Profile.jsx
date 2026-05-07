@@ -38,11 +38,11 @@ const Profile = () => {
   }, [activeTab, logPage, showAllLogs, logEntityFilter]);
 
   const fetchNotifications = async () => {
+    if (!user?.id) return;
     setIsLoadingNotifs(true);
     try {
-      const data = await getNotifications();
-      const userNotifs = data.filter(n => n.user_id === user?.id);
-      setNotifications(userNotifs);
+      const data = await getNotifications(user.id);
+      setNotifications(data || []);
     } catch (error) {
       console.error('Failed to fetch notifications', error);
     } finally {

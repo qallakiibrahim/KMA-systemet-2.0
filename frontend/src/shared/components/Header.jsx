@@ -32,19 +32,16 @@ const Header = ({ onMenuClick }) => {
 
   // TanStack Query for tasks
   const { data: tasks } = useQuery({
-    queryKey: ['tasks', 'open'],
-    queryFn: () => getOpenTasks(),
-    enabled: !!user,
+    queryKey: ['tasks', 'open', userProfile?.company_id],
+    queryFn: () => getOpenTasks(userProfile?.company_id),
+    enabled: !!user && (!!userProfile?.company_id || userProfile?.role === 'superadmin'),
     initialData: [],
   });
 
   // TanStack Query for notifications
   const { data: notificationsData } = useQuery({
     queryKey: ['notifications', user?.id],
-    queryFn: async () => {
-      const data = await getNotifications();
-      return data.filter(n => n.user_id === user?.id);
-    },
+    queryFn: () => getNotifications(user?.id),
     enabled: !!user,
   });
 

@@ -18,35 +18,36 @@ import { handleFirestoreError, OperationType } from '../../../shared/utils/fires
 
 const collectionName = 'tasks';
 
-export const getTasks = async (page = 1, pageSize = 20) => {
+export const getTasks = async (companyId, page = 1, pageSize = 20) => {
+  if (!companyId) return pageSize === -1 ? [] : { data: [], count: 0 };
   try {
     const collRef = collection(db, collectionName);
-    let q = query(collRef, orderBy('created_at', 'desc'));
+    let q = query(collRef, where('company_id', '==', companyId), orderBy('created_at', 'desc'));
 
-    if (pageSize !== -1) {
+    if (pageSize > 0 && page > 0) {
       q = query(q, limit(page * pageSize));
     }
 
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
-    // Manual slicing for simple page simulation
-    const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
-    const totalCount = (await getDocs(collRef)).size;
+    // Total count for current company
+    const countQuery = query(collRef, where('company_id', '==', companyId));
+    const totalCountSnap = await getDocs(countQuery);
+    const totalCount = totalCountSnap.size;
     
-    return pageSize === -1 ? data : { data: pagedData, count: totalCount };
+    return pageSize === -1 ? data : { data: data.slice((page - 1) * pageSize, page * pageSize), count: totalCount };
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, collectionName);
   }
 };
 
-export const getOpenTasks = async () => {
+export const getOpenTasks = async (companyId) => {
+  if (!companyId) return [];
   try {
     const collRef = collection(db, collectionName);
-    // Firestore doesn't support 'not in' with multiple values easily without custom queries
-    // We'll fetch and filter if necessary, or use composite queries if permitted.
-    // For now, let's fetch all and filter in JS to avoid complex index requirements.
-    const snapshot = await getDocs(collRef);
+    const q = query(collRef, where('company_id', '==', companyId));
+    const snapshot = await getDocs(q);
     const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
     return data.filter(t => t.status !== 'done' && t.status !== 'closed' && t.due_date);

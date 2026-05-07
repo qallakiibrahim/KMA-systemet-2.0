@@ -63,12 +63,14 @@ Data:
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!userProfile?.company_id && userProfile?.role !== 'superadmin') return;
       try {
+        const companyId = userProfile?.company_id;
         const [avvikelserData, riskerData, tasksData, dokumentData] = await Promise.all([
-          getAvvikelser(1, -1),
-          getRisker(1, -1),
-          getTasks(1, -1),
-          getDokuments(1, -1)
+          getAvvikelser(companyId, 1, -1),
+          getRisker(companyId, 1, -1),
+          getTasks(companyId, 1, -1),
+          getDokuments(companyId, 1, -1)
         ]);
         
         const newStats = {

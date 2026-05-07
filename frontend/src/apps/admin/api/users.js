@@ -21,7 +21,11 @@ const collectionName = 'profiles';
 export const getUsers = async (page = 1, pageSize = 50) => {
   try {
     const collRef = collection(db, collectionName);
-    let q = query(collRef, orderBy('display_name', 'asc'), limit(page * pageSize));
+    let q = query(collRef, orderBy('display_name', 'asc'));
+    
+    if (pageSize > 0 && page > 0) {
+      q = query(q, limit(page * pageSize));
+    }
 
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));

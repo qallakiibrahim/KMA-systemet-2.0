@@ -20,24 +20,26 @@ import { handleFirestoreError, OperationType } from '../../../shared/utils/fires
 
 const collectionName = 'processes';
 
-export const getProcesses = async (page = 1, pageSize = 20) => {
+export const getProcesses = async (companyId, page = 1, pageSize = 20) => {
+  if (!companyId) return pageSize === -1 ? [] : { data: [], count: 0 };
   try {
-    console.log(`Fetching processes from Firestore: page=${page}, pageSize=${pageSize}`);
+    console.log(`Fetching processes from Firestore for company ${companyId}: page=${page}, pageSize=${pageSize}`);
     const collRef = collection(db, collectionName);
-    let q = query(collRef, orderBy('created_at', 'desc'));
+    let q = query(collRef, where('company_id', '==', companyId), orderBy('created_at', 'desc'));
 
-    if (pageSize !== -1) {
-      // For simple pagination without cursor (since we don't have previous doc)
-      // This is less efficient than cursor-based but works for small datasets
+    if (pageSize > 0 && page > 0) {
       q = query(q, limit(page * pageSize));
     }
 
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
-    // Manual slicing for simple page simulation if page > 1
+    // Total count for current company
+    const countQuery = query(collRef, where('company_id', '==', companyId));
+    const totalCountSnap = await getDocs(countQuery);
+    const totalCount = totalCountSnap.size;
+    
     const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
-    const totalCount = (await getDocs(collRef)).size; // Exact count
     
     return pageSize === -1 ? data : { data: pagedData, count: totalCount };
   } catch (error) {

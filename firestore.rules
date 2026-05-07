@@ -13,6 +13,7 @@ service cloud.firestore {
     
     function isSignedIn() { return request.auth != null; }
     function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isSystemOwner() { return isVerified() && request.auth.token.email == 'qallakiibrahim@gmail.com'; }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     
@@ -22,35 +23,41 @@ service cloud.firestore {
 
     // Auth lookup helper (cached per request)
     function getProfile() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let path = /databases/$(database)/documents/profiles/$(request.auth.uid);
+      return exists(path) ? get(path).data : null;
     }
 
     function isCompanyMember(companyId) {
-      return isVerified() && getProfile().company_id == companyId;
+      let profile = getProfile();
+      return isVerified() && profile != null && profile.company_id == companyId;
     }
 
     function isAdmin() {
-      return isVerified() && (getProfile().role == 'admin' || getProfile().role == 'superadmin');
+      let profile = getProfile();
+      return isSystemOwner() || (isVerified() && profile != null && (profile.role == 'admin' || profile.role == 'superadmin'));
     }
     
     function isSuperAdmin() {
-      return isVerified() && getProfile().role == 'superadmin';
+      let profile = getProfile();
+      return isSystemOwner() || (isVerified() && profile != null && profile.role == 'superadmin');
+    }
+
+    function canAccessCompanyData(data) {
+      let profile = getProfile();
+      return isSystemOwner() || (isVerified() && profile != null && data.company_id == profile.company_id);
     }
 
     // -------------------------------------------------------------------------
-    // USERS (userId must match auth.uid or be admin)
+    // PROFILES (userId must match auth.uid or be admin)
     // -------------------------------------------------------------------------
-    match /users/{userId} {
+    match /profiles/{userId} {
       // Identity Protection: Do not allow blanket listing.
-      allow get: if isVerified() && (request.auth.uid == userId || isAdmin());
-      allow list: if isAdmin();
+      allow get: if isVerified() && (request.auth.uid == userId || isAdmin() || isSystemOwner());
+      allow list: if isAdmin() || isSystemOwner();
 
       function isValidUser(data) {
-        return data.keys().hasAll(['email', 'role']) 
-               && data.email is string && data.email.size() <= 200
-               && (data.role == 'user' || data.role == 'admin' || data.role == 'superadmin')
-               && (data.full_name is string ? data.full_name.size() <= 100 : true)
-               && (data.company_id is string ? data.company_id.size() <= 100 : true);
+        return data.email is string && data.email.size() <= 200
+               && (data.role == 'user' || data.role == 'admin' || data.role == 'superadmin');
       }
 
       allow create: if isVerified() && request.auth.uid == userId && isValidUser(incoming());
@@ -78,13 +85,18 @@ service cloud.firestore {
       allow update: if isSuperAdmin() || (isCompanyMember(companyId) && isAdmin());
     }
 
+    match /pending_users/{id} {
+      allow read: if isVerified() && (resource.data.email == request.auth.token.email || isAdmin());
+      allow write: if isVerified() && isAdmin();
+    }
+
     // -------------------------------------------------------------------------
     // PROCESSES
     // -------------------------------------------------------------------------
     match /processes/{processId} {
       // Must use isValidId on the ID
-      allow get: if isVerified() && (isValidId(processId) && (isCompanyMember(existing().company_id) || existing().is_global == true));
-      allow list: if isVerified() && (resource.data.is_global == true || isCompanyMember(resource.data.company_id));
+      allow get: if isVerified() && (isValidId(processId) && (isSystemOwner() || canAccessCompanyData(existing()) || existing().is_global == true));
+      allow list: if isVerified() && (isSystemOwner() || resource.data.is_global == true || isCompanyMember(resource.data.company_id));
 
       function isValidProcess(data) {
         return data.title is string && data.title.size() <= 200
@@ -104,7 +116,7 @@ service cloud.firestore {
     // RISKER
     // -------------------------------------------------------------------------
     match /risker/{riskId} {
-      allow read: if isVerified() && isCompanyMember(existing().company_id);
+      allow read: if isVerified() && (isSystemOwner() || isCompanyMember(existing().company_id));
       
       function isValidRisk(data) {
         return data.title is string && data.title.size() <= 200
@@ -120,7 +132,7 @@ service cloud.firestore {
     // TASKS
     // -------------------------------------------------------------------------
     match /tasks/{taskId} {
-      allow read: if isVerified() && isCompanyMember(existing().company_id);
+      allow read: if isVerified() && (isSystemOwner() || isCompanyMember(existing().company_id));
       
       function isValidTask(data) {
         return data.title is string && data.title.size() <= 200;
@@ -135,7 +147,7 @@ service cloud.firestore {
     // AVVIKELSER
     // -------------------------------------------------------------------------
     match /avvikelser/{id} {
-      allow read: if isVerified() && isCompanyMember(existing().company_id);
+      allow read: if isVerified() && (isSystemOwner() || isCompanyMember(existing().company_id));
       
       function isValidDeviation(data) {
         return data.titel is string && data.titel.size() <= 200;
@@ -150,7 +162,7 @@ service cloud.firestore {
     // DOCUMENTS
     // -------------------------------------------------------------------------
     match /documents/{id} {
-      allow read: if isVerified() && isCompanyMember(existing().company_id);
+      allow read: if isVerified() && (isSystemOwner() || isCompanyMember(existing().company_id));
       
       function isValidDoc(data) {
         return data.title is string && data.title.size() <= 200;
@@ -180,7 +192,7 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     match /audit_logs/{id} {
       allow get: if isVerified() && (isCompanyMember(existing().company_id) && isAdmin());
-      allow list: if isVerified() && (resource.data.company_id == getProfile().company_id && isAdmin());
+      allow list: if isVerified() && canAccessCompanyData(resource.data) && isAdmin();
       allow create: if isVerified() && incoming().user_id == request.auth.uid;
     }
 
@@ -188,7 +200,15 @@ service cloud.firestore {
     // NOTIFICATIONS
     // -------------------------------------------------------------------------
     match /notifications/{id} {
-      allow read, write: if isVerified() && (existing().user_id == request.auth.uid || incoming().user_id == request.auth.uid);
+      allow read, write: if isVerified() && (isSystemOwner() || existing().user_id == request.auth.uid || incoming().user_id == request.auth.uid);
+    }
+
+    // -------------------------------------------------------------------------
+    // CALENDAR EVENTS
+    // -------------------------------------------------------------------------
+    match /calendar_events/{id} {
+      allow read: if isVerified() && (isSystemOwner() || isCompanyMember(existing().company_id));
+      allow write: if isVerified() && isCompanyMember(incoming().company_id);
     }
   }
 }

@@ -14,16 +14,12 @@ const Login = () => {
   }, [user, navigate]);
 
   const handleLogin = async () => {
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      alert('Supabase configuration is missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment variables.');
-      return;
-    }
-
     try {
       await login();
     } catch (error) {
       console.error('Login failed', error);
-      alert('Inloggning misslyckades. Kontrollera att Supabase är korrekt konfigurerat.');
+      // toast is already used inside AuthContext.login, but we can add a local alert or just let toast handle it.
+      // Since Login component doesn't import toast, let's just use alert for now or import toast if wanted.
     }
   };
 

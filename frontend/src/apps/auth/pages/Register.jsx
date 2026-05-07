@@ -8,17 +8,11 @@ const Register = () => {
   const navigate = useNavigate();
 
   const handleRegister = async () => {
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      alert('Supabase configuration is missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment variables.');
-      return;
-    }
-
     try {
       await login();
-      // Supabase OAuth redirects, so we don't navigate here
+      // Firebase OAuth usually redirects or handles state, AuthContext handles navigation if needed
     } catch (error) {
       console.error('Registration failed', error);
-      alert('Registrering misslyckades. Kontrollera att Supabase är korrekt konfigurerat.');
     }
   };
 

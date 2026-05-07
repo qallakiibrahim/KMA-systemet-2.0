@@ -26,9 +26,9 @@ const LibraryList = () => {
     setLoading(true);
     try {
       const results = await Promise.allSettled([
-        getProcesses(1, -1),
-        getDokuments(1, -1),
-        getRisker(1, -1),
+        getProcesses(userProfile?.company_id, 1, -1),
+        getDokuments(userProfile?.company_id, 1, -1),
+        getRisker(userProfile?.company_id, 1, -1),
         getGlobalProcesses(),
         getGlobalTemplates(),
         getGlobalRisks()

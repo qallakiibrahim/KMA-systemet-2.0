@@ -51,7 +51,9 @@ export const getAuditLogs = async (page = 1, pageSize = 20, filters = {}) => {
       q = query(q, where('company_id', '==', filters.company_id));
     }
 
-    q = query(q, limit(page * pageSize));
+    if (pageSize > 0 && page > 0) {
+      q = query(q, limit(page * pageSize));
+    }
 
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -72,12 +74,15 @@ export const getAuditLogs = async (page = 1, pageSize = 20, filters = {}) => {
  */
 export const getCompanyAuditLogs = async (companyId, limitCount = 10) => {
   try {
-    const q = query(
+    let q = query(
       collection(db, collectionName),
       where('company_id', '==', companyId),
-      orderBy('created_at', 'desc'),
-      limit(limitCount)
+      orderBy('created_at', 'desc')
     );
+
+    if (limitCount > 0) {
+      q = query(q, limit(limitCount));
+    }
 
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

@@ -9,17 +9,19 @@ import {
   updateDoc, 
   deleteDoc, 
   serverTimestamp,
-  orderBy
+  orderBy,
+  where
 } from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
 import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
 
 const collectionName = 'calendar_events';
 
-export const getEvents = async () => {
+export const getEvents = async (companyId) => {
+  if (!companyId) return [];
   try {
     const collRef = collection(db, collectionName);
-    const q = query(collRef, orderBy('created_at', 'desc'));
+    const q = query(collRef, where('company_id', '==', companyId), orderBy('created_at', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (error) {

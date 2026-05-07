@@ -41,9 +41,10 @@ const TaskDashboard = () => {
 
   // TanStack Query for data fetching
   const { data: tasksData, isLoading: loading, isError, error } = useQuery({
-    queryKey: ['tasks', page, pageSize],
-    queryFn: () => getTasks(page, pageSize),
+    queryKey: ['tasks', userProfile?.company_id, page, pageSize],
+    queryFn: () => getTasks(userProfile?.company_id, page, pageSize),
     placeholderData: (previousData) => previousData,
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   const tasks = tasksData?.data || (Array.isArray(tasksData) ? tasksData : []);

@@ -20,7 +20,11 @@ const collectionName = 'companies';
 export const getCompanies = async (page = 1, pageSize = 50) => {
   try {
     const collRef = collection(db, collectionName);
-    const q = query(collRef, orderBy('name', 'asc'), limit(page * pageSize));
+    let q = query(collRef, orderBy('name', 'asc'));
+
+    if (pageSize > 0 && page > 0) {
+      q = query(q, limit(page * pageSize));
+    }
 
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));

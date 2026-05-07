@@ -440,8 +440,8 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     const fetchData = async () => {
       try {
         const [docsData, procsData] = await Promise.all([
-          getDokuments(1, -1),
-          getProcesses(1, -1)
+          getDokuments(userProfile?.company_id, 1, -1),
+          getProcesses(userProfile?.company_id, 1, -1)
         ]);
         const docs = docsData?.data || (Array.isArray(docsData) ? docsData : []);
         const procs = procsData?.data || (Array.isArray(procsData) ? procsData : []);

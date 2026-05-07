@@ -19,20 +19,24 @@ import { handleFirestoreError, OperationType } from '../../../shared/utils/fires
 
 const collectionName = 'documents';
 
-export const getDokuments = async (page = 1, pageSize = 20) => {
+export const getDokuments = async (companyId, page = 1, pageSize = 20) => {
+  if (!companyId) return pageSize === -1 ? [] : { data: [], count: 0 };
   try {
     const collRef = collection(db, collectionName);
-    let q = query(collRef, orderBy('created_at', 'desc'));
+    let q = query(collRef, where('company_id', '==', companyId), orderBy('created_at', 'desc'));
 
-    if (pageSize !== -1) {
-      q = query(q, limit(page * pageSize));
+    if (pageSize > 0 && page > 0) {
+      q = query(collRef, where('company_id', '==', companyId), orderBy('created_at', 'desc'), limit(page * pageSize));
     }
 
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
     const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
-    const totalCount = (await getDocs(collRef)).size;
+    
+    // Count total for this company
+    const countQuery = query(collRef, where('company_id', '==', companyId));
+    const totalCount = (await getDocs(countQuery)).size;
     
     return pageSize === -1 ? data : { data: pagedData, count: totalCount };
   } catch (error) {
