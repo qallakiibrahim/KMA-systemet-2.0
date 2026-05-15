@@ -77,7 +77,7 @@ export const createDokument = async (data, user = null) => {
       updated_at: serverTimestamp()
     });
     
-    const inserted = { id: docRef.id, ...insertData };
+    const inserted = { id: docRef.id, ...sanitizedData };
     
     if (user) {
       logAction({
@@ -85,7 +85,6 @@ export const createDokument = async (data, user = null) => {
         entity_type: 'DOCUMENT',
         entity_id: docRef.id,
         entity_name: inserted.title,
-        changes: { new: inserted },
         user_id: user.uid,
         user_email: user.email,
         company_id: inserted.company_id
@@ -113,7 +112,7 @@ export const updateDokument = async (id, data, user = null) => {
       updated_at: serverTimestamp()
     });
     
-    const updated = { id, ...data };
+    const updated = { id, ...sanitizedData };
 
     if (user) {
       logAction({

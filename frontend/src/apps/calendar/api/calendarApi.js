@@ -13,7 +13,7 @@ import {
   where
 } from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
-import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
+import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../../../shared/utils/firestoreError';
 
 const collectionName = 'calendar_events';
 
@@ -31,13 +31,14 @@ export const getEvents = async (companyId) => {
 
 export const createEvent = async (data, user = null) => {
   try {
+    const sanitizedData = sanitizeFirestoreData(data);
     const docRef = await addDoc(collection(db, collectionName), {
-      ...data,
+      ...sanitizedData,
       created_at: serverTimestamp(),
       updated_at: serverTimestamp()
     });
     
-    const inserted = { id: docRef.id, ...data };
+    const inserted = { id: docRef.id, ...sanitizedData };
     
     if (user) {
       logAction({
@@ -59,6 +60,7 @@ export const createEvent = async (data, user = null) => {
 
 export const updateEvent = async (id, data, user = null) => {
   try {
+    const sanitizedData = sanitizeFirestoreData(data);
     const docRef = doc(db, collectionName, id);
     let oldData = null;
     if (user) {
@@ -66,7 +68,7 @@ export const updateEvent = async (id, data, user = null) => {
       oldData = snap.data();
     }
 
-    await updateDoc(docRef, { ...data, updated_at: serverTimestamp() });
+    await updateDoc(docRef, { ...sanitizedData, updated_at: serverTimestamp() });
     const freshSnap = await getDoc(docRef);
     const updated = { id: freshSnap.id, ...freshSnap.data() };
 
