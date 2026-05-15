@@ -13,7 +13,7 @@ import {
   orderBy
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
+import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../../../shared/utils/firestoreError';
 
 const collectionName = 'documents';
 
@@ -63,14 +63,15 @@ export const getDocumentById = async (id) => {
 export const saveDocument = async (documentData) => {
   const { id, attachments, ...rest } = documentData;
   try {
+    const sanitizedData = sanitizeFirestoreData(rest);
     if (id) {
       const docRef = doc(db, collectionName, id);
-      await updateDoc(docRef, { ...rest, updated_at: serverTimestamp() });
+      await updateDoc(docRef, { ...sanitizedData, updated_at: serverTimestamp() });
       const snap = await getDoc(docRef);
       return { id: snap.id, ...snap.data() };
     } else {
       const docRef = await addDoc(collection(db, collectionName), {
-        ...rest,
+        ...sanitizedData,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp()
       });

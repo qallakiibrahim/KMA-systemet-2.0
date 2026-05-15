@@ -16,7 +16,7 @@ import {
   getDocsFromServer
 } from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
-import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
+import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../../../shared/utils/firestoreError';
 
 const collectionName = 'processes';
 
@@ -71,9 +71,10 @@ export const getGlobalProcesses = async () => {
 export const createProcess = async (data, user = null) => {
   try {
     const { attachments, ...insertData } = data;
-    
+    const sanitizedData = sanitizeFirestoreData(insertData);
+
     const docRef = await addDoc(collection(db, collectionName), {
-      ...insertData,
+      ...sanitizedData,
       created_at: serverTimestamp(),
       updated_at: serverTimestamp()
     });
@@ -101,6 +102,8 @@ export const createProcess = async (data, user = null) => {
 export const updateProcess = async (id, data, user = null) => {
   try {
     const { attachments, ...updateData } = data;
+    const sanitizedData = sanitizeFirestoreData(updateData);
+
     const docRef = doc(db, collectionName, id);
 
     let oldData = null;
@@ -110,7 +113,7 @@ export const updateProcess = async (id, data, user = null) => {
     }
 
     await updateDoc(docRef, {
-      ...updateData,
+      ...sanitizedData,
       updated_at: serverTimestamp()
     });
     

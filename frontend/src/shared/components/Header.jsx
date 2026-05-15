@@ -40,8 +40,8 @@ const Header = ({ onMenuClick }) => {
 
   // TanStack Query for notifications
   const { data: notificationsData } = useQuery({
-    queryKey: ['notifications', user?.id],
-    queryFn: () => getNotifications(user?.id),
+    queryKey: ['notifications', user?.uid],
+    queryFn: () => getNotifications(user?.uid),
     enabled: !!user,
   });
 
@@ -50,7 +50,7 @@ const Header = ({ onMenuClick }) => {
   const markAsReadMutation = useMutation({
     mutationFn: ({ id, data }) => updateNotification(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.uid] });
     }
   });
 

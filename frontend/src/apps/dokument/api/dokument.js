@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { logAction } from '../../../shared/api/auditLog';
-import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
+import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../../../shared/utils/firestoreError';
 
 const collectionName = 'documents';
 
@@ -70,8 +70,9 @@ export const getDokumentById = async (id) => {
 export const createDokument = async (data, user = null) => {
   try {
     const { attachments, ...insertData } = data;
+    const sanitizedData = sanitizeFirestoreData(insertData);
     const docRef = await addDoc(collection(db, collectionName), {
-      ...insertData,
+      ...sanitizedData,
       created_at: serverTimestamp(),
       updated_at: serverTimestamp()
     });
@@ -99,6 +100,7 @@ export const createDokument = async (data, user = null) => {
 
 export const updateDokument = async (id, data, user = null) => {
   try {
+    const sanitizedData = sanitizeFirestoreData(data);
     const docRef = doc(db, collectionName, id);
     let oldData = null;
     if (user) {
@@ -107,7 +109,7 @@ export const updateDokument = async (id, data, user = null) => {
     }
 
     await updateDoc(docRef, {
-      ...data,
+      ...sanitizedData,
       updated_at: serverTimestamp()
     });
     

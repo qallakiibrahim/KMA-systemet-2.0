@@ -225,8 +225,8 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
         is_template: isTemplate,
         is_global: userProfile?.role === 'superadmin' && isTemplate,
         external_links: externalLinks,
-        company_id: userProfile?.company_id,
-        creator_uid: currentUser?.uid,
+        company_id: userProfile?.company_id || null,
+        creator_uid: currentUser?.uid || null,
       };
 
       const savedDoc = await saveDocument(docData);

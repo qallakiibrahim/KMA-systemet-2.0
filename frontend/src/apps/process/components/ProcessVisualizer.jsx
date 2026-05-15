@@ -605,7 +605,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
         description: `Underprocess till ${process.title} (${selectedNode.data.label})`,
         status: 'active',
         parent_id: process.id,
-        created_by: currentUser?.uid,
+        created_by: currentUser?.uid || null,
         company_id: userProfile?.company_id || null,
         is_template: userProfile?.role === 'superadmin',
         is_global: userProfile?.role === 'superadmin'
@@ -645,7 +645,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
     } finally {
       setIsSaving(false);
     }
-  }, [currentUser?.id, edges, getViewport, nodes, onUpdate, process, selectedNode, userProfile?.company_id, userProfile?.role]);
+  }, [currentUser?.uid, edges, getViewport, nodes, onUpdate, process, selectedNode, userProfile?.company_id, userProfile?.role]);
 
   const deleteSelectedNode = useCallback(() => {
     if (selectedEdge) {
