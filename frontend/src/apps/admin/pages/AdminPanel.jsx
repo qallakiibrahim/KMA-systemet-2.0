@@ -90,13 +90,14 @@ const AdminPanel = ({ isEmbedded = false }) => {
           getCompanies(companiesPage, 20),
           getPendingInvitations()
         ]);
-        setUsers(usersRes.data);
-        setUsersCount(usersRes.count);
-        setCompanies(companiesRes.data);
-        setCompaniesCount(companiesRes.count);
-        setInvitations(invitesData);
+        setUsers(usersRes?.data || []);
+        setUsersCount(usersRes?.count || 0);
+        setCompanies(companiesRes?.data || []);
+        setCompaniesCount(companiesRes?.count || 0);
+        setInvitations(invitesData || []);
       } catch (error) {
         console.error('Failed to fetch admin data', error);
+        toast.error(`Kunde inte ladda admin-data: ${error.message || 'Okänt fel'}`);
       } finally {
         setLoading(false);
       }
@@ -249,10 +250,11 @@ const AdminPanel = ({ isEmbedded = false }) => {
       }, currentUser);
       // Update local state
       setUsers(users.map(u => u.id === editingUser.id ? editingUser : u));
+      toast.success('Användare uppdaterad');
       setIsModalOpen(false);
     } catch (error) {
       console.error('Failed to update user', error);
-      alert('Kunde inte uppdatera användaren.');
+      toast.error(`Kunde inte uppdatera användaren: ${error.message || 'Okänt fel'}`);
     }
   };
 
@@ -338,7 +340,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
       });
     } catch (error) {
       console.error('Failed to save company', error);
-      alert('Kunde inte spara företaget.');
+      toast.error(`Kunde inte spara företaget: ${error.message || 'Okänt fel'}`);
     }
   };
 

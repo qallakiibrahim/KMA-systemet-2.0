@@ -65,7 +65,7 @@ export const createTask = async (data, user = null) => {
       updated_at: serverTimestamp()
     });
     
-    const inserted = { id: docRef.id, ...data };
+    const inserted = { id: docRef.id, ...sanitizedData };
     
     if (user) {
       logAction({
@@ -101,7 +101,7 @@ export const updateTask = async (id, data, user = null) => {
       updated_at: serverTimestamp()
     });
     
-    const updated = { id, ...data };
+    const updated = { id, ...sanitizedData };
 
     if (user) {
       logAction({

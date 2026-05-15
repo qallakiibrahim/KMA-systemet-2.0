@@ -83,7 +83,10 @@ service cloud.firestore {
       allow list: if isSuperAdmin();
       
       function isValidCompany(data) {
-        return data.name is string && data.name.size() <= 200;
+        return data.name is string && data.name.size() <= 200
+               && (data.org_nr == null || data.org_nr is string)
+               && (data.plan == null || data.plan is string)
+               && (data.status == null || data.status is string);
       }
 
       allow create: if isSuperAdmin() && isValidCompany(incoming());
@@ -96,7 +99,7 @@ service cloud.firestore {
     }
 
     function isAuthorizedToWrite(companyId) {
-      return isVerified() && (isSystemOwner() || isCompanyMember(companyId));
+      return isVerified() && (isSuperAdmin() || isCompanyMember(companyId));
     }
 
     // -------------------------------------------------------------------------

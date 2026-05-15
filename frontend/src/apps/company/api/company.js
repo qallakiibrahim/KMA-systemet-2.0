@@ -13,7 +13,7 @@ import {
   limit
 } from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
-import { handleFirestoreError, OperationType } from '../../../shared/utils/firestoreError';
+import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../../../shared/utils/firestoreError';
 
 const collectionName = 'companies';
 
@@ -40,13 +40,14 @@ export const getCompanies = async (page = 1, pageSize = 50) => {
 
 export const createCompany = async (data, user = null) => {
   try {
+    const sanitizedData = sanitizeFirestoreData(data);
     const docRef = await addDoc(collection(db, collectionName), {
-      ...data,
+      ...sanitizedData,
       created_at: serverTimestamp(),
       updated_at: serverTimestamp()
     });
     
-    const inserted = { id: docRef.id, ...data };
+    const inserted = { id: docRef.id, ...sanitizedData };
     
     if (user) {
       logAction({
@@ -54,7 +55,6 @@ export const createCompany = async (data, user = null) => {
         entity_type: 'COMPANY',
         entity_id: docRef.id,
         entity_name: inserted.name,
-        changes: { new: inserted },
         user_id: user.uid,
         user_email: user.email,
         company_id: docRef.id
@@ -69,6 +69,7 @@ export const createCompany = async (data, user = null) => {
 
 export const updateCompany = async (id, data, user = null) => {
   try {
+    const sanitizedData = sanitizeFirestoreData(data);
     const docRef = doc(db, collectionName, id);
     let oldData = null;
     if (user) {
@@ -76,7 +77,7 @@ export const updateCompany = async (id, data, user = null) => {
       oldData = snap.data();
     }
 
-    await updateDoc(docRef, { ...data, updated_at: serverTimestamp() });
+    await updateDoc(docRef, { ...sanitizedData, updated_at: serverTimestamp() });
     
     const freshSnap = await getDoc(docRef);
     const updated = { id: freshSnap.id, ...freshSnap.data() };

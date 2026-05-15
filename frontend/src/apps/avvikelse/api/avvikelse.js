@@ -138,7 +138,7 @@ export const createAvvikelse = async (data, user = null) => {
       updated_at: serverTimestamp()
     });
     
-    const inserted = { id: docRef.id, ...data };
+    const inserted = { id: docRef.id, ...sanitizedData };
     
     if (user) {
       logAction({
@@ -146,7 +146,6 @@ export const createAvvikelse = async (data, user = null) => {
         entity_type: 'ISSUE',
         entity_id: docRef.id,
         entity_name: inserted.titel || inserted.title,
-        changes: { new: inserted },
         user_id: user.uid,
         user_email: user.email,
         company_id: inserted.company_id
@@ -174,7 +173,7 @@ export const updateAvvikelse = async (id, data, user = null) => {
       updated_at: serverTimestamp()
     });
     
-    const updated = { id, ...data };
+    const updated = { id, ...sanitizedData };
 
     if (user) {
       logAction({

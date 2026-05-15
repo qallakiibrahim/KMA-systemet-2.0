@@ -25,12 +25,15 @@ export const getProcesses = async (companyId, page = 1, pageSize = 20, isSuperAd
     console.log(`Fetching processes. Company: ${companyId}, Page: ${page}, Super: ${isSuperAdmin}`);
     const collRef = collection(db, collectionName);
     let q;
+    let countQuery;
     
     if (companyId) {
       q = query(collRef, where('company_id', '==', companyId), orderBy('created_at', 'desc'));
+      countQuery = query(collRef, where('company_id', '==', companyId));
     } else if (isSuperAdmin) {
       // Superadmins without company see global/template processes
       q = query(collRef, where('is_global', '==', true), orderBy('created_at', 'desc'));
+      countQuery = query(collRef, where('is_global', '==', true));
     } else {
       return pageSize === -1 ? [] : { data: [], count: 0 };
     }
@@ -42,8 +45,7 @@ export const getProcesses = async (companyId, page = 1, pageSize = 20, isSuperAd
     const snapshot = await getDocs(q);
     const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
-    // Total count for current company
-    const countQuery = query(collRef, where('company_id', '==', companyId));
+    // Total count for current filter
     const totalCountSnap = await getDocs(countQuery);
     const totalCount = totalCountSnap.size;
     

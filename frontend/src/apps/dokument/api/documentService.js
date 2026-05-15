@@ -18,6 +18,7 @@ import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../.
 const collectionName = 'documents';
 
 export const getDocuments = async (companyId) => {
+  if (!companyId) return [];
   try {
     const collRef = collection(db, collectionName);
     const q = query(collRef, where('company_id', '==', companyId), orderBy('updated_at', 'desc'));
