@@ -33,8 +33,9 @@ const CompanyList = ({ isEmbedded = false }) => {
         return;
       }
       try {
-        const allCompanies = await getCompanies();
-        const myCompany = allCompanies.find(c => c.id === userProfile.company_id);
+        const response = await getCompanies();
+        const allCompanies = response?.data || [];
+        const myCompany = Array.isArray(allCompanies) ? allCompanies.find(c => c.id === userProfile.company_id) : null;
         if (myCompany) {
           setCompany(myCompany);
           setFormData({

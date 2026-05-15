@@ -13,7 +13,12 @@ service cloud.firestore {
     
     function isSignedIn() { return request.auth != null; }
     function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
-    function isSystemOwner() { return isVerified() && request.auth.token.email == 'qallakiibrahim@gmail.com'; }
+    function isSystemOwner() { 
+      return isVerified() && (
+        request.auth.token.email == 'qallakiibrahim@gmail.com' || 
+        request.auth.token.email == 'ibrahim.qallaki@gmail.com'
+      ); 
+    }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
     
@@ -90,6 +95,10 @@ service cloud.firestore {
       allow write: if isVerified() && isAdmin();
     }
 
+    function isAuthorizedToWrite(companyId) {
+      return isVerified() && (isSystemOwner() || isCompanyMember(companyId));
+    }
+
     // -------------------------------------------------------------------------
     // PROCESSES
     // -------------------------------------------------------------------------
@@ -103,13 +112,13 @@ service cloud.firestore {
                && data.company_id is string && data.company_id.size() <= 100;
       }
 
-      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidProcess(incoming());
+      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidProcess(incoming());
       
-      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidProcess(incoming()) && (
+      allow update: if isAuthorizedToWrite(existing().company_id) && isValidProcess(incoming()) && (
         isAdmin() || existing().created_by == request.auth.uid
       );
       
-      allow delete: if isVerified() && isCompanyMember(existing().company_id) && (isAdmin() || existing().created_by == request.auth.uid);
+      allow delete: if isAuthorizedToWrite(existing().company_id) && (isAdmin() || existing().created_by == request.auth.uid);
     }
 
     // -------------------------------------------------------------------------
@@ -123,9 +132,9 @@ service cloud.firestore {
                && data.company_id is string && data.company_id.size() <= 100;
       }
 
-      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidRisk(incoming());
-      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidRisk(incoming());
-      allow delete: if isVerified() && isCompanyMember(existing().company_id) && isAdmin();
+      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidRisk(incoming());
+      allow update: if isAuthorizedToWrite(existing().company_id) && isValidRisk(incoming());
+      allow delete: if isAuthorizedToWrite(existing().company_id) && isAdmin();
     }
 
     // -------------------------------------------------------------------------
@@ -138,9 +147,9 @@ service cloud.firestore {
         return data.title is string && data.title.size() <= 200;
       }
 
-      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidTask(incoming());
-      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidTask(incoming());
-      allow delete: if isVerified() && isCompanyMember(existing().company_id);
+      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidTask(incoming());
+      allow update: if isAuthorizedToWrite(existing().company_id) && isValidTask(incoming());
+      allow delete: if isAuthorizedToWrite(existing().company_id);
     }
 
     // -------------------------------------------------------------------------
@@ -153,9 +162,9 @@ service cloud.firestore {
         return data.titel is string && data.titel.size() <= 200;
       }
 
-      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidDeviation(incoming());
-      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidDeviation(incoming());
-      allow delete: if isVerified() && isCompanyMember(existing().company_id) && isAdmin();
+      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidDeviation(incoming());
+      allow update: if isAuthorizedToWrite(existing().company_id) && isValidDeviation(incoming());
+      allow delete: if isAuthorizedToWrite(existing().company_id) && isAdmin();
     }
 
     // -------------------------------------------------------------------------
@@ -168,9 +177,9 @@ service cloud.firestore {
         return data.title is string && data.title.size() <= 200;
       }
 
-      allow create: if isVerified() && isCompanyMember(incoming().company_id) && isValidDoc(incoming());
-      allow update: if isVerified() && isCompanyMember(existing().company_id) && isValidDoc(incoming());
-      allow delete: if isVerified() && isCompanyMember(existing().company_id) && isAdmin();
+      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidDoc(incoming());
+      allow update: if isAuthorizedToWrite(existing().company_id) && isValidDoc(incoming());
+      allow delete: if isAuthorizedToWrite(existing().company_id) && isAdmin();
     }
 
     // -------------------------------------------------------------------------
@@ -208,7 +217,7 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     match /calendar_events/{id} {
       allow read: if isVerified() && (isSystemOwner() || isCompanyMember(existing().company_id));
-      allow write: if isVerified() && isCompanyMember(incoming().company_id);
+      allow write: if isAuthorizedToWrite(incoming().company_id) || isAuthorizedToWrite(existing().company_id);
     }
   }
 }

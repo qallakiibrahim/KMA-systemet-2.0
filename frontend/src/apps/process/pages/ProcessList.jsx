@@ -105,9 +105,10 @@ const ProcessListContent = () => {
 
   // Fetch the Root Map directly (smarter scaling)
   const { data: rootMapData, isLoading: loadingRoot } = useQuery({
-    queryKey: ['process-root-map'],
-    queryFn: () => getProcessByTitle('Huvudprocesskarta'),
+    queryKey: ['process-root-map', userProfile?.company_id],
+    queryFn: () => getProcessByTitle('Huvudprocesskarta', userProfile?.company_id),
     staleTime: 1000 * 60 * 10, // 10 minutes
+    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
   });
 
   // TanStack Query for data fetching (list view / search)

@@ -52,7 +52,8 @@ export const AuthProvider = ({ children }) => {
         const qInvite = query(invitesRef, where('email', '==', email));
         const inviteSnaps = await getDocs(qInvite);
         
-        let initialRole = email === 'qallakiibrahim@gmail.com' ? 'superadmin' : 'user';
+        const isOwnerEmail = email === 'qallakiibrahim@gmail.com' || email === 'ibrahim.qallaki@gmail.com';
+        let initialRole = isOwnerEmail ? 'superadmin' : 'user';
         let initialCompanyId = null;
         let invitation = null;
         
@@ -86,12 +87,13 @@ export const AuthProvider = ({ children }) => {
 
       // Ensure we have at least a basic profile object
       if (!profile) {
+        const isOwnerEmail = email === 'qallakiibrahim@gmail.com' || email === 'ibrahim.qallaki@gmail.com';
         profile = { 
           id: userObj.uid, 
           email: email, 
           display_name: nameFromGoogle,
           username: nameFromGoogle,
-          role: email === 'qallakiibrahim@gmail.com' ? 'superadmin' : 'user',
+          role: isOwnerEmail ? 'superadmin' : 'user',
           permissions: ['read_write']
         };
       } else if (!profile.permissions) {
@@ -117,12 +119,13 @@ export const AuthProvider = ({ children }) => {
           let updates = {};
           let needsUpdate = false;
 
-          if (email === 'qallakiibrahim@gmail.com' && profile.role !== 'superadmin') {
+          const isOwnerEmail = email === 'qallakiibrahim@gmail.com' || email === 'ibrahim.qallaki@gmail.com';
+          if (isOwnerEmail && profile.role !== 'superadmin') {
             updates.role = 'superadmin';
             needsUpdate = true;
           }
 
-          if (email === 'qallakiibrahim@gmail.com' && !profile.company_id) {
+          if (isOwnerEmail && !profile.company_id) {
             const companiesRef = collection(db, 'companies');
             const qSafeQms = query(companiesRef, where('name', '==', 'SafeQMS'));
             const safeSnaps = await getDocs(qSafeQms);
@@ -175,12 +178,13 @@ export const AuthProvider = ({ children }) => {
 
     } catch (err) {
       console.error('Unexpected error in fetchUserProfile:', err);
+      const isOwnerEmail = email === 'qallakiibrahim@gmail.com' || email === 'ibrahim.qallaki@gmail.com';
       setUserProfile({ 
         id: userObj.uid, 
         email: email, 
         display_name: nameFromGoogle,
         username: nameFromGoogle,
-        role: email === 'qallakiibrahim@gmail.com' ? 'superadmin' : 'user',
+        role: isOwnerEmail ? 'superadmin' : 'user',
         permissions: ['read_write']
       });
     }

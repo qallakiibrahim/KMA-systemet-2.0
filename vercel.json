@@ -1,5 +1,4 @@
 {
-  "public": false,
   "buildCommand": "cd frontend && vite build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
