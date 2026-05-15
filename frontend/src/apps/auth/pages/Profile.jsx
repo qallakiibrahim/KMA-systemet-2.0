@@ -41,7 +41,7 @@ const Profile = () => {
     if (!user?.id) return;
     setIsLoadingNotifs(true);
     try {
-      const data = await getNotifications(user.id);
+      const data = await getNotifications(user.uid);
       setNotifications(data || []);
     } catch (error) {
       console.error('Failed to fetch notifications', error);

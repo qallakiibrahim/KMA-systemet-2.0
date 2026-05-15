@@ -99,24 +99,32 @@ const ProcessListContent = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showMobileAddMenu, setShowMobileAddMenu] = useState(false);
   
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, refreshProfile } = useAuth();
   const { searchQuery } = useSearch();
   const { getViewport, getNodes, getEdges, setViewport } = useReactFlow();
 
+  // If superadmin has no company_id, try to refresh profile once
+  useEffect(() => {
+    if (userProfile?.role === 'superadmin' && !userProfile?.company_id) {
+      console.log('Superadmin missing company_id, refreshing profile...');
+      refreshProfile();
+    }
+  }, [userProfile?.role, userProfile?.company_id, refreshProfile]);
+
   // Fetch the Root Map directly (smarter scaling)
   const { data: rootMapData, isLoading: loadingRoot } = useQuery({
-    queryKey: ['process-root-map', userProfile?.company_id],
-    queryFn: () => getProcessByTitle('Huvudprocesskarta', userProfile?.company_id),
+    queryKey: ['process-root-map', userProfile?.company_id, userProfile?.role],
+    queryFn: () => getProcessByTitle('Huvudprocesskarta', userProfile?.company_id || null),
     staleTime: 1000 * 60 * 10, // 10 minutes
-    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
+    enabled: !!userProfile?.id,
   });
 
   // TanStack Query for data fetching (list view / search)
   const { data: processesData, isLoading: loading, isError, error } = useQuery({
-    queryKey: ['processes', userProfile?.company_id, page, pageSize],
-    queryFn: () => getProcesses(userProfile?.company_id, page, pageSize),
+    queryKey: ['processes', userProfile?.company_id, page, pageSize, userProfile?.role],
+    queryFn: () => getProcesses(userProfile?.company_id, page, pageSize, userProfile?.role === 'superadmin'),
     placeholderData: (previousData) => previousData,
-    enabled: !!userProfile?.company_id || userProfile?.role === 'superadmin',
+    enabled: !!userProfile?.id,
   });
 
   const processes = useMemo(() => {
@@ -309,16 +317,19 @@ const ProcessListContent = () => {
       // Ensure we have a company_id if the user is a superadmin but not linked yet
       let companyId = userProfile?.company_id;
       
+      console.log('Creating process node. Initial companyId:', companyId);
+
       if (!companyId && userProfile?.role === 'superadmin') {
         const companiesRef = collection(db, 'companies');
-        const qComp = query(companiesRef, where('name', '==', 'SafeQMS'), limit(1));
+        const qComp = query(companiesRef, where('name', '>=', 'SafeQMS'), limit(1));
         const companiesSnap = await getDocs(qComp);
         if (!companiesSnap.empty) {
           companyId = companiesSnap.docs[0].id;
+          console.log('Superadmin fallback: Found companyId from SafeQMS query:', companyId);
         }
       }
 
-      const newProcess = await createProcess({
+      const processPayload = {
         title,
         description: '',
         status: 'active',
@@ -326,7 +337,11 @@ const ProcessListContent = () => {
         company_id: companyId || null,
         is_template: userProfile?.role === 'superadmin',
         is_global: userProfile?.role === 'superadmin'
-      }, currentUser);
+      };
+
+      console.log('Sending createProcess payload:', processPayload);
+      const newProcess = await createProcess(processPayload, currentUser);
+      console.log('Process created successfully:', newProcess.id);
 
       const newNode = {
         id: newProcess.id,

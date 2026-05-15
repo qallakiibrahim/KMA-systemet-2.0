@@ -20,12 +20,20 @@ import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../.
 
 const collectionName = 'processes';
 
-export const getProcesses = async (companyId, page = 1, pageSize = 20) => {
-  if (!companyId) return pageSize === -1 ? [] : { data: [], count: 0 };
+export const getProcesses = async (companyId, page = 1, pageSize = 20, isSuperAdmin = false) => {
   try {
-    console.log(`Fetching processes from Firestore for company ${companyId}: page=${page}, pageSize=${pageSize}`);
+    console.log(`Fetching processes. Company: ${companyId}, Page: ${page}, Super: ${isSuperAdmin}`);
     const collRef = collection(db, collectionName);
-    let q = query(collRef, where('company_id', '==', companyId), orderBy('created_at', 'desc'));
+    let q;
+    
+    if (companyId) {
+      q = query(collRef, where('company_id', '==', companyId), orderBy('created_at', 'desc'));
+    } else if (isSuperAdmin) {
+      // Superadmins without company see global/template processes
+      q = query(collRef, where('is_global', '==', true), orderBy('created_at', 'desc'));
+    } else {
+      return pageSize === -1 ? [] : { data: [], count: 0 };
+    }
 
     if (pageSize > 0 && page > 0) {
       q = query(q, limit(page * pageSize));

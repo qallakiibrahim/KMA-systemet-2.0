@@ -37,7 +37,7 @@ export const useDeadlines = () => {
         await createNotification({
           title,
           message,
-          user_id: user.id,
+          user_id: user.uid,
           is_read: false,
           created_at: new Date().toISOString()
         });

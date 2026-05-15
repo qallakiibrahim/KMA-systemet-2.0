@@ -109,12 +109,12 @@ service cloud.firestore {
 
       function isValidProcess(data) {
         return data.title is string && data.title.size() <= 200
-               && data.company_id is string && data.company_id.size() <= 100;
+               && (data.company_id == null || (data.company_id is string && data.company_id.size() <= 100));
       }
 
-      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidProcess(incoming());
+      allow create: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(incoming().company_id)) && isValidProcess(incoming());
       
-      allow update: if isAuthorizedToWrite(existing().company_id) && isValidProcess(incoming()) && (
+      allow update: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(existing().company_id)) && isValidProcess(incoming()) && (
         isAdmin() || existing().created_by == request.auth.uid
       );
       
@@ -129,11 +129,11 @@ service cloud.firestore {
       
       function isValidRisk(data) {
         return data.title is string && data.title.size() <= 200
-               && data.company_id is string && data.company_id.size() <= 100;
+               && (data.company_id == null || (data.company_id is string && data.company_id.size() <= 100));
       }
 
-      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidRisk(incoming());
-      allow update: if isAuthorizedToWrite(existing().company_id) && isValidRisk(incoming());
+      allow create: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(incoming().company_id)) && isValidRisk(incoming());
+      allow update: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(existing().company_id)) && isValidRisk(incoming());
       allow delete: if isAuthorizedToWrite(existing().company_id) && isAdmin();
     }
 
@@ -144,11 +144,12 @@ service cloud.firestore {
       allow read: if isVerified() && (isSystemOwner() || isCompanyMember(existing().company_id));
       
       function isValidTask(data) {
-        return data.title is string && data.title.size() <= 200;
+        return data.title is string && data.title.size() <= 200
+               && (data.company_id == null || (data.company_id is string && data.company_id.size() <= 100));
       }
 
-      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidTask(incoming());
-      allow update: if isAuthorizedToWrite(existing().company_id) && isValidTask(incoming());
+      allow create: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(incoming().company_id)) && isValidTask(incoming());
+      allow update: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(existing().company_id)) && isValidTask(incoming());
       allow delete: if isAuthorizedToWrite(existing().company_id);
     }
 
@@ -159,11 +160,12 @@ service cloud.firestore {
       allow read: if isVerified() && (isSystemOwner() || isCompanyMember(existing().company_id));
       
       function isValidDeviation(data) {
-        return data.titel is string && data.titel.size() <= 200;
+        return data.titel is string && data.titel.size() <= 200
+               && (data.company_id == null || (data.company_id is string && data.company_id.size() <= 100));
       }
 
-      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidDeviation(incoming());
-      allow update: if isAuthorizedToWrite(existing().company_id) && isValidDeviation(incoming());
+      allow create: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(incoming().company_id)) && isValidDeviation(incoming());
+      allow update: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(existing().company_id)) && isValidDeviation(incoming());
       allow delete: if isAuthorizedToWrite(existing().company_id) && isAdmin();
     }
 
@@ -174,11 +176,12 @@ service cloud.firestore {
       allow read: if isVerified() && (isSystemOwner() || isCompanyMember(existing().company_id));
       
       function isValidDoc(data) {
-        return data.title is string && data.title.size() <= 200;
+        return data.title is string && data.title.size() <= 200
+               && (data.company_id == null || (data.company_id is string && data.company_id.size() <= 100));
       }
 
-      allow create: if isAuthorizedToWrite(incoming().company_id) && isValidDoc(incoming());
-      allow update: if isAuthorizedToWrite(existing().company_id) && isValidDoc(incoming());
+      allow create: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(incoming().company_id)) && isValidDoc(incoming());
+      allow update: if isVerified() && (isSystemOwner() || isAuthorizedToWrite(existing().company_id)) && isValidDoc(incoming());
       allow delete: if isAuthorizedToWrite(existing().company_id) && isAdmin();
     }
 
