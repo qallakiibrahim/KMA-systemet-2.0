@@ -226,7 +226,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
         is_global: userProfile?.role === 'superadmin' && isTemplate,
         external_links: externalLinks,
         company_id: userProfile?.company_id,
-        creator_uid: currentUser?.id,
+        creator_uid: currentUser?.uid,
       };
 
       const savedDoc = await saveDocument(docData);
@@ -249,7 +249,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
 
     setIsUploading(true);
     try {
-      const newAttachment = await uploadAttachment(file, document.id, currentUser.id);
+      const newAttachment = await uploadAttachment(file, document.id, currentUser.uid);
       setAttachments([...attachments, newAttachment]);
       toast.success('Bilaga uppladdad');
     } catch (error) {

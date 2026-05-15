@@ -115,7 +115,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
         status: 'utkast',
         version: '1.0',
         company_id: userProfile?.company_id,
-        creator_uid: currentUser?.id,
+        creator_uid: currentUser?.uid,
         is_template: false,
         is_global: false,
         file_url: '' // Ensure file_url is present to satisfy not-null constraint
@@ -161,7 +161,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
 
       if (isProcess) {
         // Processes use 'created_by'
-        newItem.created_by = currentUser?.id;
+        newItem.created_by = currentUser?.uid;
         console.log('Creating process from template...', newItem);
         const created = await createProcess(newItem, currentUser);
         toast.success('Processmall importerad!');
@@ -169,7 +169,7 @@ const CreateDocumentModal = ({ isOpen, onClose, onCreated, templates = [], proce
         navigate(`/process?id=${created.id}`);
       } else {
         // Documents use 'creator_uid'
-        newItem.creator_uid = currentUser?.id;
+        newItem.creator_uid = currentUser?.uid;
         console.log('Creating document from template...', newItem);
         const created = await createDokument(newItem, currentUser);
         onCreated(created);

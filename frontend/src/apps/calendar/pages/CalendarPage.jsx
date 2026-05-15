@@ -260,7 +260,7 @@ const CalendarPage = () => {
         // Create new event
         const newEvent = {
           ...formData,
-          created_by: currentUser?.id || 'anonymous',
+          created_by: currentUser?.uid || 'anonymous',
           company_id: userProfile?.company_id || null
         };
         await createEvent(newEvent, currentUser);

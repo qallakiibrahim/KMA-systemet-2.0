@@ -605,7 +605,7 @@ const ProcessVisualizerContent = ({ process, onBack, onUpdate, onDelete, onDrill
         description: `Underprocess till ${process.title} (${selectedNode.data.label})`,
         status: 'active',
         parent_id: process.id,
-        created_by: currentUser?.id,
+        created_by: currentUser?.uid,
         company_id: userProfile?.company_id || null,
         is_template: userProfile?.role === 'superadmin',
         is_global: userProfile?.role === 'superadmin'

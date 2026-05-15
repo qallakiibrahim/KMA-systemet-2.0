@@ -378,7 +378,7 @@ const AvvikelseList = () => {
         severity: parseInt(formData.severity) || 1,
         probability: parseInt(formData.probability) || 1,
         status: 'open',
-        author_uid: currentUser?.id || null,
+        author_uid: currentUser?.uid || null,
         company_id: companyId,
         deadline: formData.deadline || null,
         attachments: formData.attachments || []

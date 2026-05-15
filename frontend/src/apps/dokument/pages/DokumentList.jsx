@@ -224,7 +224,7 @@ const DokumentList = () => {
     try {
       const updates = { 
         status: 'godkänd',
-        approved_by: currentUser.id,
+        approved_by: currentUser.uid,
         approved_at: new Date().toISOString()
       };
       await updateDokument(editingDokument.id, updates, currentUser);
@@ -379,7 +379,7 @@ const DokumentList = () => {
       } else {
         const newDoc = {
           ...formData,
-          creator_uid: currentUser?.id || null,
+          creator_uid: currentUser?.uid || null,
           company_id: companyId,
           is_global: userProfile?.role === 'superadmin' && formData.is_template,
           file_url: formData.file_url || '' // Ensure file_url is present

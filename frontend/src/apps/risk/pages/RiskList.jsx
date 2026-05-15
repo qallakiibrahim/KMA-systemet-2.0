@@ -183,7 +183,7 @@ const RiskList = () => {
         impact: parseInt(formData.impact),
         risk_score: parseInt(formData.likelihood) * parseInt(formData.impact),
         deadline: formData.deadline || null,
-        creator_uid: currentUser?.id || null,
+        creator_uid: currentUser?.uid || null,
         responsible_name: formData.responsible_name || userProfile?.full_name || currentUser?.email || 'Okänd',
         company_id: companyId,
         is_template: userProfile?.role === 'superadmin',

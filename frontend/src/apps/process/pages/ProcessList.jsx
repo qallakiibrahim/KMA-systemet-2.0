@@ -322,8 +322,8 @@ const ProcessListContent = () => {
         title,
         description: '',
         status: 'active',
-        created_by: currentUser?.id,
-        company_id: companyId,
+        created_by: currentUser?.uid || userProfile?.id || null,
+        company_id: companyId || null,
         is_template: userProfile?.role === 'superadmin',
         is_global: userProfile?.role === 'superadmin'
       }, currentUser);
@@ -349,7 +349,7 @@ const ProcessListContent = () => {
       console.error('Failed to create process node', error);
       toast.error('Kunde inte skapa process');
     }
-  }, [currentUser?.id, queryClient, userProfile]);
+  }, [currentUser?.uid, queryClient, userProfile]);
 
   const saveMap = useCallback(async () => {
     setIsSaving(true);
@@ -382,7 +382,7 @@ const ProcessListContent = () => {
         await createProcess({
           description: 'Systemets övergripande processkarta',
           status: 'active',
-          created_by: currentUser?.id,
+          created_by: currentUser?.uid || userProfile?.id || null,
           company_id: userProfile?.company_id || null,
           is_template: userProfile?.role === 'superadmin',
           is_global: userProfile?.role === 'superadmin',
@@ -400,7 +400,7 @@ const ProcessListContent = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [currentUser?.id, getEdges, getNodes, getViewport, processes, queryClient, userProfile]);
+  }, [currentUser?.uid, getEdges, getNodes, getViewport, processes, queryClient, userProfile]);
 
   const handleDeleteProcess = async (id, title) => {
     setDeleteConfirm({ isOpen: true, id, title, type: 'process' });

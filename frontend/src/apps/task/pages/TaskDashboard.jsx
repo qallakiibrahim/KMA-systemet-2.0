@@ -79,7 +79,7 @@ const TaskDashboard = () => {
         await createNotification({
           title: `Ny uppgift skapad: ${created.title}`,
           message: `Du har skapat en ny uppgift: ${created.title}`,
-          user_id: currentUser.id,
+          user_id: currentUser.uid,
           is_read: false
         });
 
@@ -116,7 +116,7 @@ const TaskDashboard = () => {
           await createNotification({
             title: `Uppgift slutförd: ${updated.title}`,
             message: `Bra jobbat! Du har markerat uppgiften ${updated.title} som klar.`,
-            user_id: currentUser.id,
+            user_id: currentUser.uid,
             is_read: false
           });
 
@@ -197,7 +197,7 @@ const TaskDashboard = () => {
           dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
           status: newTask.status,
           priority: newTask.priority,
-          created_by: currentUser.id,
+          created_by: currentUser.uid,
           company_id: userProfile?.company_id
         },
         user: currentUser
