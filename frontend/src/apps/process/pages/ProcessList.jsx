@@ -16,6 +16,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { getProcesses, createProcess, updateProcess, deleteProcess, getProcessByTitle } from '../api/process';
+import { createCompany } from '../../company/api/company';
 import { useAuth } from '../../../shared/api/AuthContext';
 import { db } from '../../../firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
