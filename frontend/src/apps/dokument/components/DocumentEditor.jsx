@@ -20,6 +20,7 @@ import {
 import { toast } from 'react-toastify';
 import { saveDocument, uploadAttachment, deleteAttachment } from '../api/documentService';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { parseSafeDate } from '../../../shared/utils/dateUtils';
 import '../styles/DocumentEditor.css';
 
 const MenuBar = ({ editor }) => {
@@ -165,6 +166,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
   const [category, setCategory] = useState(document?.category || 'general');
   const [isoChapter, setIsoChapter] = useState(document?.iso_chapter || '');
   const [status, setStatus] = useState(document?.status || 'utkast');
+  const [version, setVersion] = useState(document?.version || '1.0');
   const [isTemplate, setIsTemplate] = useState(document?.is_template || false);
   const [attachments, setAttachments] = useState(document?.attachments || []);
   const [externalLinks, setExternalLinks] = useState(document?.external_links || []);
@@ -214,6 +216,13 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
 
     setIsSaving(true);
     try {
+      let finalStatus = status;
+      if (document?.status === 'godkänd' && status === 'godkänd') {
+        finalStatus = 'utkast';
+        setStatus('utkast');
+        toast.info('Ändring av ett godkänt dokument återställer status till "Utkast" för ny granskning.');
+      }
+
       const docData = {
         id: document?.id,
         title,
@@ -221,7 +230,8 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
         description: editor.getText().substring(0, 200),
         category,
         iso_chapter: isoChapter,
-        status,
+        status: finalStatus,
+        version,
         is_template: isTemplate,
         is_global: userProfile?.role === 'superadmin' && isTemplate,
         external_links: externalLinks,
@@ -229,7 +239,7 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
         creator_uid: currentUser?.uid || null,
       };
 
-      const savedDoc = await saveDocument(docData);
+      const savedDoc = await saveDocument(docData, currentUser);
       toast.success('Dokument sparat!');
       if (onSave) onSave(savedDoc);
     } catch (error) {
@@ -319,19 +329,22 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
         <div className="header-right">
           {canEdit && (
             <>
-              <div className="status-toggle">
-                <button 
-                  className={`status-btn ${status === 'utkast' ? 'active' : ''}`}
-                  onClick={() => setStatus('utkast')}
+              <div className="status-toggle-wrapper flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status:</span>
+                <select 
+                  value={status} 
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="bg-transparent border-none text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-0 cursor-pointer"
                 >
-                  Utkast
-                </button>
-                <button 
-                  className={`status-btn ${status === 'godkänd' ? 'active' : ''}`}
-                  onClick={() => setStatus('godkänd')}
-                >
-                  Publicerad
-                </button>
+                  <option value="utkast">Utkast</option>
+                  <option value="granskning">Granskning</option>
+                  {(userProfile?.role === 'admin' || userProfile?.role === 'superadmin') && (
+                    <>
+                      <option value="godkänd">Godkänd / Publicerad</option>
+                      <option value="arkiverad">Arkiverad</option>
+                    </>
+                  )}
+                </select>
               </div>
               <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
                 <Save size={18} />
@@ -436,8 +449,45 @@ const DocumentEditor = ({ document, onSave, onClose }) => {
                   </optgroup>
                 </select>
               </div>
-              <div className="metadata-info">
-                <p><strong>Skapad:</strong> {new Date(document?.created_at || new Date()).toLocaleDateString()}</p>
+              <div className="form-group border-t pt-3 mt-3">
+                <label className="flex justify-between items-center text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                  <span>Versionskontroll</span>
+                  <span className="text-[10px] text-slate-400 font-normal normal-case">Nuvarande: {document?.version || '1.0'}</span>
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <input 
+                    type="text" 
+                    value={version} 
+                    onChange={(e) => setVersion(e.target.value)}
+                    className="w-full p-2 border border-slate-200 dark:border-slate-700 rounded text-sm bg-white dark:bg-slate-800"
+                    placeholder="t.ex. 1.0"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="text-[10px] bg-slate-50 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 font-medium cursor-pointer transition-colors"
+                    onClick={() => {
+                      const curr = parseFloat(version || '1.0') || 1.0;
+                      setVersion((curr + 0.1).toFixed(1));
+                    }}
+                  >
+                    Minor bump (+0.1)
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[10px] bg-slate-50 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 font-medium cursor-pointer transition-colors"
+                    onClick={() => {
+                      const curr = parseFloat(version || '1.0') || 1.0;
+                      setVersion((Math.floor(curr) + 1).toFixed(1));
+                    }}
+                  >
+                    Major bump (+1.0)
+                  </button>
+                </div>
+              </div>
+              <div className="metadata-info pt-3">
+                <p><strong>Skapad:</strong> {parseSafeDate(document?.created_at).toLocaleDateString()}</p>
                 <p><strong>Ägare:</strong> {userProfile?.display_name}</p>
               </div>
 

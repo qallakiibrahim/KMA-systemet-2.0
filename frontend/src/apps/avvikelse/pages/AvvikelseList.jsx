@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAvvikelser, createAvvikelse, updateAvvikelse, deleteAvvikelse, uploadAttachment } from '../api/avvikelse';
+import { getProcesses } from '../../process/api/process';
 import { getAuditLogs } from '../../../shared/api/auditLog';
 import { sendEmailNotification } from '../../../shared/api/sendEmailNotification';
 import { useAuth } from '../../../shared/api/AuthContext';
@@ -9,10 +10,12 @@ import { useSearch } from '../../../shared/context/SearchContext';
 import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
 import { db } from '../../../firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { Plus, Edit2, Trash2, X, AlertTriangle, CheckCircle, Clock, Lock, Bot, Paperclip, FileText, Image as ImageIcon, UploadCloud, Loader, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, AlertTriangle, CheckCircle, Clock, Lock, Bot, Paperclip, FileText, Image as ImageIcon, UploadCloud, Loader, ChevronLeft, ChevronRight, GitMerge } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { GoogleGenAI } from '@google/genai';
 import { getAiInstance } from '../../../shared/utils/aiUtils';
+import { motion, AnimatePresence } from 'motion/react';
+import { parseSafeDate } from '../../../shared/utils/dateUtils';
 import '../styles/AvvikelseList.css';
 
 const AvvikelseList = () => {
@@ -40,7 +43,8 @@ const AvvikelseList = () => {
     beskrivning: '',
     problemdefinition: '',
     deadline: '',
-    attachments: []
+    attachments: [],
+    process_id: ''
   });
   const [followUpData, setFollowUpData] = useState({
     kortsiktiga: '',
@@ -77,6 +81,159 @@ const AvvikelseList = () => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState(null);
+  const [activeQuickAddColumnId, setActiveQuickAddColumnId] = useState(null);
+  const [quickAddTitle, setQuickAddTitle] = useState('');
+  const [quickAddPriority, setQuickAddPriority] = useState('Medium');
+
+  const handleDragStart = (e, id) => {
+    setDraggingId(id);
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverColumnId(null);
+  };
+
+  const handleDragOver = (e, columnId) => {
+    e.preventDefault();
+    if (dragOverColumnId !== columnId) {
+      setDragOverColumnId(columnId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumnId(null);
+  };
+
+  const handleDrop = async (e, targetColumnId) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain') || draggingId;
+    setDraggingId(null);
+    setDragOverColumnId(null);
+
+    if (!id) return;
+
+    // Find the deviation being dragged
+    const avvikelse = avvikelser.find(a => a.id === id);
+    if (!avvikelse) return;
+
+    const oldStep = getAvvikelseStep(avvikelse);
+    if (oldStep === targetColumnId) return; // No change
+
+    try {
+      // Determine new status based on target column ID
+      let newStatus = 'open';
+      if (targetColumnId === 5) {
+        newStatus = 'closed';
+      } else if (targetColumnId > 1) {
+        newStatus = 'in-progress';
+      }
+
+      // Prepare uppföljning updates
+      let currentUppfoljning = { ...avvikelse.uppfoljning };
+      if (typeof currentUppfoljning === 'string') {
+        try {
+          currentUppfoljning = JSON.parse(currentUppfoljning);
+        } catch (err) {
+          currentUppfoljning = {};
+        }
+      }
+
+      if (targetColumnId === 5) {
+        currentUppfoljning.godkand = true;
+      } else {
+        currentUppfoljning.godkand = false;
+      }
+
+      // Set placeholder/empty strings for required texts of dragged steps so automatic logic agrees
+      if (targetColumnId >= 2 && !currentUppfoljning.kortsiktiga) {
+        currentUppfoljning.kortsiktiga = "Initierad via processtavla";
+      }
+      if (targetColumnId >= 3 && !currentUppfoljning.rotorsak) {
+        currentUppfoljning.rotorsak = "Initierad via processtavla";
+      }
+      if (targetColumnId >= 4 && !currentUppfoljning.langsiktiga) {
+        currentUppfoljning.langsiktiga = "Initierad via processtavla";
+      }
+
+      const updates = {
+        current_step: targetColumnId,
+        status: newStatus,
+        uppfoljning: currentUppfoljning
+      };
+
+      await updateMutation.mutateAsync({ id, data: updates });
+      toast.success(`Avvikelse flyttad till ${kanbanColumns.find(c => c.id === targetColumnId)?.title}`);
+    } catch (err) {
+      console.error('Failed to update stage on drag drop:', err);
+      toast.error('Kunde inte uppdatera avvikelsens status.');
+    }
+  };
+
+  const handleQuickAddSubmit = async (e, columnId) => {
+    e.preventDefault();
+    if (!quickAddTitle.trim()) return;
+
+    if (!userProfile?.company_id && userProfile?.role !== 'superadmin') {
+      toast.error('Du måste vara kopplad till ett företag för att skapa en avvikelse. Kontakta en administratör.');
+      return;
+    }
+
+    try {
+      let companyId = userProfile?.company_id;
+      
+      if (!companyId && userProfile?.role === 'superadmin') {
+        const companiesRef = collection(db, 'companies');
+        const qComp = query(companiesRef, where('name', '==', 'SafeQMS'), limit(1));
+        const companiesSnap = await getDocs(qComp);
+        if (!companiesSnap.empty) {
+          companyId = companiesSnap.docs[0].id;
+        }
+      }
+
+      let newStatus = 'open';
+      if (columnId === 5) {
+        newStatus = 'closed';
+      } else if (columnId > 1) {
+        newStatus = 'in-progress';
+      }
+
+      const currentUppfoljning = {
+        kortsiktiga: columnId >= 2 ? 'Kortsiktig åtgärd initierad' : '',
+        rotorsak: columnId >= 3 ? 'Rotorsaksanalys påbörjad' : '',
+        langsiktiga: columnId >= 4 ? 'Långsiktig åtgärd initierad' : '',
+        godkand: columnId === 5
+      };
+
+      const newAvvikelse = {
+        titel: quickAddTitle.trim(),
+        beskrivning: '',
+        problemdefinition: `Vem: \nVad: ${quickAddTitle.trim()}\nNär: \nVar: \nVarför: \nHur: \nHur mycket: `,
+        priority: quickAddPriority,
+        severity: 1,
+        probability: 1,
+        status: newStatus,
+        current_step: columnId,
+        uppfoljning: currentUppfoljning,
+        author_uid: currentUser?.uid || null,
+        company_id: companyId,
+        deadline: null,
+        attachments: []
+      };
+
+      await createMutation.mutateAsync(newAvvikelse);
+      setQuickAddTitle('');
+      setActiveQuickAddColumnId(null);
+    } catch (err) {
+      console.error('Failed to quick-create avvikelse:', err);
+      toast.error('Kunde inte snabbregistrera avvikelse.');
+    }
+  };
+
   // TanStack Query for data fetching
   const { data: avvikelserData, isLoading: loading, isError, error } = useQuery({
     queryKey: ['avvikelser', userProfile?.company_id, page, pageSize],
@@ -87,6 +244,16 @@ const AvvikelseList = () => {
 
   const avvikelser = avvikelserData?.data || (Array.isArray(avvikelserData) ? avvikelserData : []);
   
+  // Fetch processes for connecting deviations (ISO 9001 / ISO/IEC 27001)
+  const { data: processesData } = useQuery({
+    queryKey: ['processes', userProfile?.company_id, 1, -1, userProfile?.role],
+    queryFn: () => getProcesses(userProfile?.company_id, 1, -1, userProfile?.role === 'superadmin'),
+    enabled: !!userProfile?.company_id,
+  });
+  const processesList = useMemo(() => {
+    return Array.isArray(processesData) ? processesData : processesData?.data || [];
+  }, [processesData]);
+
   const filteredAvvikelser = avvikelser.filter(a => 
     searchQuery === '' || 
     a.titel.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -111,16 +278,25 @@ const AvvikelseList = () => {
 
   // Mutations
   const resetForm = () => {
-    setFormData({
-      titel: '',
-      beskrivning: '',
-      plats: '',
-      kategori: 'Arbetsmiljö',
+    setFormData({ 
+      titel: '', 
+      priority: 'Medium', 
       severity: 1,
       probability: 1,
-      deadline: ''
+      status: 'open',
+      vem: '',
+      vad: '',
+      nar: '',
+      var: '',
+      varfor: '',
+      hur: '',
+      hur_mycket: '',
+      beskrivning: '',
+      problemdefinition: '',
+      deadline: '',
+      attachments: [],
+      process_id: ''
     });
-    setAttachments([]);
   };
 
   const createMutation = useMutation({
@@ -381,7 +557,8 @@ const AvvikelseList = () => {
         author_uid: currentUser?.uid || null,
         company_id: companyId,
         deadline: formData.deadline || null,
-        attachments: formData.attachments || []
+        attachments: formData.attachments || [],
+        process_id: formData.process_id || null
       };
       
       createMutation.mutate(newAvvikelse);
@@ -433,7 +610,8 @@ const AvvikelseList = () => {
       hur_mycket: hurMycketMatch ? hurMycketMatch[1] : '',
       beskrivning: avvikelse.beskrivning || '',
       deadline: avvikelse.deadline || '',
-      attachments: avvikelse.attachments || []
+      attachments: avvikelse.attachments || [],
+      process_id: avvikelse.process_id || ''
     });
 
     let u = avvikelse.uppfoljning || {};
@@ -504,6 +682,7 @@ const AvvikelseList = () => {
         beskrivning: formData.beskrivning,
         problemdefinition: problemdefinition,
         deadline: formData.deadline || null,
+        process_id: formData.process_id || null,
       };
       
       updateMutation.mutate({ id: selectedAvvikelse.id, data: updates });
@@ -573,6 +752,7 @@ const AvvikelseList = () => {
 
   const getAvvikelseStep = (a) => {
     if (!a) return 1;
+    if (a.current_step !== undefined && a.current_step !== null) return Number(a.current_step);
     let u = a.uppfoljning || {};
     if (typeof u === 'string') {
       try { u = JSON.parse(u); } catch (e) { u = {}; }
@@ -609,7 +789,13 @@ const AvvikelseList = () => {
         {kanbanColumns.map(col => {
           const columnAvvikelser = filteredAvvikelser.filter(a => getAvvikelseStep(a) === col.id);
           return (
-            <div key={col.id} className="kanban-column">
+            <div 
+              key={col.id} 
+              className={`kanban-column ${dragOverColumnId === col.id ? 'drag-over' : ''}`}
+              onDragOver={(e) => handleDragOver(e, col.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, col.id)}
+            >
               <div className="kanban-column-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <h3>{col.title}</h3>
@@ -627,45 +813,125 @@ const AvvikelseList = () => {
                   <span className="kanban-count">{columnAvvikelser.length}</span>
                 </div>
               </div>
-              <div className="kanban-cards">
-                {columnAvvikelser.map(a => {
-                  const score = (a.severity || 1) * (a.probability || 1);
-                  const riskLevel = getRiskLevel(score);
-                  return (
-                    <div key={a.id} className={`kanban-card border-${riskLevel.className}`} onClick={() => openFollowUp(a)}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                        <h4 className="kanban-card-title truncate" title={a.titel} style={{ flex: 1 }}>{a.titel}</h4>
-                        {a.deadline && (
-                          <span className="deadline-badge-mini" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                            📅 {new Date(a.deadline).toLocaleDateString('sv-SE')}
-                          </span>
-                        )}
+
+              {/* Inline Quick Add Block */}
+              {col.id === 1 && (
+                <div className="quick-add-container">
+                  {activeQuickAddColumnId === col.id ? (
+                    <form onSubmit={(e) => handleQuickAddSubmit(e, col.id)} className="quick-add-form">
+                      <input
+                        type="text"
+                        className="quick-add-input"
+                        value={quickAddTitle}
+                        onChange={(e) => setQuickAddTitle(e.target.value)}
+                        placeholder="Vad har hänt? (Enter)"
+                        required
+                        autoFocus
+                      />
+                      <div className="quick-add-footer">
+                        <select 
+                          className="quick-add-priority"
+                          value={quickAddPriority}
+                          onChange={(e) => setQuickAddPriority(e.target.value)}
+                        >
+                          <option value="Low">Låg</option>
+                          <option value="Medium">Medium</option>
+                          <option value="High">Hög</option>
+                          <option value="Critical">Kritisk</option>
+                        </select>
+                        <div className="quick-add-buttons">
+                          <button type="submit" className="quick-add-btn-add">Skapa</button>
+                          <button 
+                            type="button" 
+                            className="quick-add-btn-cancel"
+                            onClick={() => {
+                              setActiveQuickAddColumnId(null);
+                              setQuickAddTitle('');
+                            }}
+                          >
+                            Avbryt
+                          </button>
+                        </div>
                       </div>
-                      
-                      <div className="kanban-card-meta" style={{ marginTop: '0.25rem' }}>
-                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                          <span className="kanban-card-id">#{a.id.substring(0, 4).toUpperCase()}</span>
-                          <span className="kanban-card-date" style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                            {new Date(a.created_at).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          {a.severity && a.probability && (
-                            <span className={`risk-badge-mini ${riskLevel.className}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>
-                              {score}
-                            </span>
-                          )}
-                          {a.attachments && a.attachments.length > 0 && (
-                            <span className="attachment-badge">
-                              <Paperclip size={10} /> {a.attachments.length}
+                    </form>
+                  ) : (
+                    <button 
+                      className="quick-add-trigger"
+                      onClick={() => {
+                        setActiveQuickAddColumnId(col.id);
+                        setQuickAddTitle('');
+                        setQuickAddPriority('Medium');
+                      }}
+                    >
+                      <Plus size={12} /> <span>Snabbregistrera mindre avvikelse</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="kanban-cards">
+                <AnimatePresence>
+                  {columnAvvikelser.map(a => {
+                    const score = (a.severity || 1) * (a.probability || 1);
+                    const riskLevel = getRiskLevel(score);
+                    const linkedProcess = a.process_id ? processesList.find(p => p.id === a.process_id) : null;
+                    return (
+                      <motion.div 
+                        key={a.id} 
+                        layoutId={`card-${a.id}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className={`kanban-card border-${riskLevel.className} ${draggingId === a.id ? 'is-dragging' : ''}`} 
+                        onClick={() => openFollowUp(a)}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, a.id)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                          <h4 className="kanban-card-title truncate" title={a.titel} style={{ flex: 1 }}>{a.titel}</h4>
+                          {a.deadline && (
+                            <span className="deadline-badge-mini" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', flexShrink: 0 }}>
+                              📅 {parseSafeDate(a.deadline).toLocaleDateString('sv-SE')}
                             </span>
                           )}
                         </div>
-                        <span className="priority-badge">
-                          {a.priority || 'Medium'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+
+                        {linkedProcess && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: '0.25rem 0 0.15rem 0', fontSize: '0.7rem', color: 'var(--primary-color)', fontWeight: '500' }}>
+                            <GitMerge size={12} style={{ color: 'var(--primary-color)', flexShrink: 0 }} />
+                            <span className="truncate" style={{ maxWidth: '180px' }} title={linkedProcess.title}>
+                              {linkedProcess.title}
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div className="kanban-card-meta" style={{ marginTop: '0.25rem' }}>
+                          <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                            <span className="kanban-card-id">#{a.id.substring(0, 4).toUpperCase()}</span>
+                            <span className="kanban-card-date" style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                              {parseSafeDate(a.skapad_datum || a.created_at).toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' })}
+                            </span>
+                            {a.severity && a.probability && (
+                              <span className={`risk-badge-mini ${riskLevel.className}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>
+                                {score}
+                              </span>
+                            )}
+                            {a.attachments && a.attachments.length > 0 && (
+                              <span className="attachment-badge">
+                                <Paperclip size={10} /> {a.attachments.length}
+                              </span>
+                            )}
+                          </div>
+                          <span className="priority-badge">
+                            {a.priority || 'Medium'}
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
               </div>
             </div>
           );
@@ -716,6 +982,23 @@ const AvvikelseList = () => {
                   required
                   placeholder="Kort sammanfattning av avvikelsen"
                 />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="process_id">Relaterad Process (ISO 9001/ISO 27001)</label>
+                <select
+                  id="process_id"
+                  name="process_id"
+                  value={formData.process_id}
+                  onChange={handleInputChange}
+                >
+                  <option value="">-- Välj en process (ej kopplad) --</option>
+                  {processesList.map(proc => (
+                    <option key={proc.id} value={proc.id}>
+                      {proc.title} {proc.is_global ? '(Global Mall)' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="form-row">
@@ -963,7 +1246,24 @@ const AvvikelseList = () => {
                   />
                 </div>
 
-                <p className="info-date">Rapporterad: {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Relaterad Process:</label>
+                  <select 
+                    name="process_id" 
+                    value={formData.process_id} 
+                    onChange={handleInputChange}
+                    style={{ width: '100%', border: 'none', borderBottom: '1px solid var(--line)', padding: '2px', fontSize: '0.875rem', backgroundColor: 'transparent' }}
+                  >
+                    <option value="">-- Ingen process kopplad --</option>
+                    {processesList.map(proc => (
+                      <option key={proc.id} value={proc.id}>
+                        {proc.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <p className="info-date">Rapporterad: {parseSafeDate(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
                 
                 <div className="info-desc">
                   <strong>Beskrivning:</strong>
@@ -1071,7 +1371,7 @@ const AvvikelseList = () => {
                       <div className="timeline-marker"><CheckCircle size={16} /></div>
                       <div className="timeline-content">
                         <h4>1. Registrerad</h4>
-                        <p className="text-muted">Avvikelsen skapades {new Date(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at || new Date()).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                        <p className="text-muted">Avvikelsen skapades {parseSafeDate(selectedAvvikelse.skapad_datum || selectedAvvikelse.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
                       </div>
                     </div>
                     {/* ... rest of timeline items ... */}
@@ -1206,7 +1506,7 @@ const AvvikelseList = () => {
                           <div key={log.id} className="history-item">
                             <div className="history-header">
                               <span className="history-user">{log.user_email?.split('@')[0]}</span>
-                              <span className="history-date">{new Date(log.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                              <span className="history-date">{parseSafeDate(log.created_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</span>
                             </div>
                             <div className="history-body">
                               <span className={`action-badge ${log.action.toLowerCase()}`}>{log.action}</span>

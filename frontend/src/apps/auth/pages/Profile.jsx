@@ -8,6 +8,7 @@ import { getAuditLogs } from '../../../shared/api/auditLog';
 import { getNotifications, deleteNotification, updateNotification } from '../../notification/api/notification';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { parseSafeDate } from '../../../shared/utils/dateUtils';
 import '../styles/Profile.css';
 
 const Profile = () => {
@@ -288,7 +289,7 @@ const Profile = () => {
                       <div className="notification-content">
                         <p className="notification-text">{n.message}</p>
                         <span className="notification-time">
-                          {format(new Date(n.created_at), 'yyyy-MM-dd HH:mm', { locale: sv })}
+                          {format(parseSafeDate(n.created_at), 'yyyy-MM-dd HH:mm', { locale: sv })}
                         </span>
                       </div>
                       <button className="btn-icon-mini delete" onClick={() => handleClearNotification(n.id)}>
@@ -369,7 +370,7 @@ const Profile = () => {
                               {log.action}
                             </span>
                             <span className="audit-time">
-                              {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm', { locale: sv })}
+                              {format(parseSafeDate(log.created_at), 'yyyy-MM-dd HH:mm', { locale: sv })}
                             </span>
                           </div>
                           <div className="audit-entity" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -594,7 +595,7 @@ const Profile = () => {
                   <label>När</label>
                   <div className="value">
                     <Clock size={14} />
-                    <span>{selectedLog.created_at ? format(new Date(selectedLog.created_at), 'PPPP p', { locale: sv }) : 'Okänt datum'}</span>
+                    <span>{selectedLog.created_at ? format(parseSafeDate(selectedLog.created_at), 'PPPP p', { locale: sv }) : 'Okänt datum'}</span>
                   </div>
                 </div>
                 <div className="iso-audit-item">
@@ -630,7 +631,7 @@ const Profile = () => {
 
               <div className="iso-audit-summary" style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid var(--primary-color)' }}>
                 <p style={{ margin: 0, fontSize: '0.95rem', color: '#334155' }}>
-                  <strong>Händelse:</strong> {selectedLog.user_email || 'Systemet'} {(getActionText(selectedLog.action) || '').toLowerCase()} {(translateEntityType(selectedLog.entity_type) || 'objektet').toLowerCase()} <em>"{selectedLog.entity_name || 'Okänt'}"</em> den {selectedLog.created_at ? format(new Date(selectedLog.created_at), 'd MMMM yyyy', { locale: sv }) : 'okänt datum'}.
+                  <strong>Händelse:</strong> {selectedLog.user_email || 'Systemet'} {(getActionText(selectedLog.action) || '').toLowerCase()} {(translateEntityType(selectedLog.entity_type) || 'objektet').toLowerCase()} <em>"{selectedLog.entity_name || 'Okänt'}"</em> den {selectedLog.created_at ? format(parseSafeDate(selectedLog.created_at), 'd MMMM yyyy', { locale: sv }) : 'okänt datum'}.
                 </p>
               </div>
 

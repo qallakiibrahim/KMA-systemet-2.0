@@ -7,9 +7,11 @@ import { sendEmailNotification } from '../../../shared/api/sendEmailNotification
 import { useAuth } from '../../../shared/api/AuthContext';
 import { useSearch } from '../../../shared/context/SearchContext';
 import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
-import { Plus, Clock, CheckCircle, Circle, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertOctagon, History } from 'lucide-react';
+import { Plus, Clock, CheckCircle, Circle, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, AlertOctagon, History, ShieldAlert } from 'lucide-react';
+import { getRisker } from '../../risk/api/risk';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { parseSafeDate } from '../../../shared/utils/dateUtils';
 import { toast } from 'react-toastify';
 import { getAuditLogs } from '../../../shared/api/auditLog';
 import '../styles/TaskDashboard.css';
@@ -37,7 +39,18 @@ const TaskDashboard = () => {
 
   useRegisterHeaderActions(headerActions);
   const [editingTask, setEditingTask] = useState(null);
-  const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium' });
+  const [newTask, setNewTask] = useState({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium', risk_id: '' });
+
+  // Fetch risks for linking
+  const { data: risksData } = useQuery({
+    queryKey: ['risker', userProfile?.company_id, 1, -1],
+    queryFn: () => getRisker(userProfile?.company_id, 1, -1),
+    enabled: !!userProfile?.company_id,
+  });
+  const risksList = useMemo(() => {
+    const rawData = risksData?.data || (Array.isArray(risksData) ? risksData : []);
+    return rawData;
+  }, [risksData]);
 
   // TanStack Query for data fetching
   const { data: tasksData, isLoading: loading, isError, error } = useQuery({
@@ -90,7 +103,7 @@ const TaskDashboard = () => {
             `<h3>Du har skapat en ny uppgift</h3>
              <p><strong>Titel:</strong> ${created.title}</p>
              <p><strong>Beskrivning:</strong> ${created.description || 'Ingen beskrivning'}</p>
-             <p><strong>Förfallodatum:</strong> ${created.dueDate ? new Date(created.dueDate).toLocaleDateString('sv-SE') : 'Inget datum satt'}</p>`
+             <p><strong>Förfallodatum:</strong> ${created.dueDate ? parseSafeDate(created.dueDate).toLocaleDateString('sv-SE') : 'Inget datum satt'}</p>`
           );
         }
       } catch (err) {
@@ -185,7 +198,8 @@ const TaskDashboard = () => {
           description: newTask.description,
           dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
           status: newTask.status,
-          priority: newTask.priority
+          priority: newTask.priority,
+          risk_id: newTask.risk_id || null
         },
         user: currentUser
       });
@@ -197,6 +211,7 @@ const TaskDashboard = () => {
           dueDate: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
           status: newTask.status,
           priority: newTask.priority,
+          risk_id: newTask.risk_id || null,
           created_by: currentUser.uid,
           company_id: userProfile?.company_id
         },
@@ -204,7 +219,7 @@ const TaskDashboard = () => {
       });
     }
     
-    setNewTask({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium' });
+    setNewTask({ title: '', description: '', dueDate: '', status: 'todo', priority: 'Medium', risk_id: '' });
     setIsAdding(false);
     setEditingTask(null);
     setActiveTab('info');
@@ -217,7 +232,8 @@ const TaskDashboard = () => {
       description: task.description || '',
       dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
       status: task.status,
-      priority: task.priority || 'Medium'
+      priority: task.priority || 'Medium',
+      risk_id: task.risk_id || ''
     });
     setActiveTab('info');
     setIsAdding(true);
@@ -226,6 +242,7 @@ const TaskDashboard = () => {
 
   const renderTaskCard = (task) => {
     const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
+    const linkedRisk = task.risk_id ? risksList.find(r => r.id === task.risk_id) : null;
     
     return (
       <div key={task.id} className={`task-card ${isOverdue ? 'overdue' : ''}`} onClick={() => openEditModal(task)}>
@@ -238,7 +255,7 @@ const TaskDashboard = () => {
             {task.dueDate && (
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: isOverdue ? 'var(--danger-color)' : 'var(--text-secondary)', fontWeight: isOverdue ? 500 : 'normal' }}>
                 <CalendarIcon size={12} />
-                {format(new Date(task.dueDate), 'd MMM', { locale: sv })}
+                {format(parseSafeDate(task.dueDate), 'd MMM', { locale: sv })}
               </span>
             )}
             <button onClick={(e) => { e.stopPropagation(); deleteMutation.mutate({ id: task.id, user: currentUser }); }} className="delete-btn" title="Ta bort">
@@ -246,6 +263,14 @@ const TaskDashboard = () => {
             </button>
           </div>
         </div>
+
+        {linkedRisk && (
+          <div className="task-linked-risk-badge p-1 px-2 rounded bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40 flex items-center gap-1 mb-2 text-[10px] text-rose-700 dark:text-rose-450 font-semibold" style={{ borderRadius: '0.625rem' }}>
+            <ShieldAlert size={12} className="shrink-0 text-rose-500" />
+            <span className="truncate">Risk: {linkedRisk.title}</span>
+          </div>
+        )}
+
         <div className="task-meta-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           {task.description ? (
             <p className="task-desc-mini" title={task.description} style={{ flex: 1, marginRight: '0.5rem' }}>
@@ -362,6 +387,20 @@ const TaskDashboard = () => {
                     </select>
                   </div>
                   <div className="form-group">
+                    <label>Kopplad Risk (ISO 31000)</label>
+                    <select 
+                      value={newTask.risk_id || ''} 
+                      onChange={(e) => setNewTask({...newTask, risk_id: e.target.value})}
+                    >
+                      <option value="">-- Ingen koppling --</option>
+                      {risksList.map(risk => (
+                        <option key={risk.id} value={risk.id}>
+                          {risk.title} ({risk.category})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
                     <label>Status</label>
                     <select 
                       value={newTask.status} 
@@ -391,7 +430,7 @@ const TaskDashboard = () => {
                       <div key={log.id} className="audit-log-item">
                         <div className="log-meta">
                           <span className="log-action">{log.action}</span>
-                          <span className="log-date">{format(new Date(log.created_at), 'yyyy-MM-dd HH:mm')}</span>
+                          <span className="log-date">{format(parseSafeDate(log.created_at), 'yyyy-MM-dd HH:mm')}</span>
                         </div>
                         <div className="log-user">
                           {log.user_email}

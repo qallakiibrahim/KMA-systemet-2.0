@@ -8,7 +8,8 @@ import {
   getDocs, 
   serverTimestamp,
   where,
-  getDocsFromServer
+  getDocsFromServer,
+  getCountFromServer
 } from 'firebase/firestore';
 
 const collectionName = 'audit_logs';
@@ -18,8 +19,28 @@ const collectionName = 'audit_logs';
  */
 export const logAction = async (actionData) => {
   try {
+    const sanitizedData = {};
+    Object.keys(actionData || {}).forEach(key => {
+      const val = actionData[key];
+      if (val === undefined) {
+        sanitizedData[key] = null;
+      } else if (val !== null && typeof val === 'object') {
+        try {
+          sanitizedData[key] = JSON.parse(JSON.stringify(val, (k, v) => v === undefined ? null : v));
+        } catch (e) {
+          sanitizedData[key] = null;
+        }
+      } else {
+        sanitizedData[key] = val;
+      }
+    });
+
+    if (!sanitizedData.entity_name) {
+      sanitizedData.entity_name = sanitizedData.entity_id || 'System';
+    }
+
     const docRef = await addDoc(collection(db, collectionName), {
-      ...actionData,
+      ...sanitizedData,
       timestamp: serverTimestamp(),
       created_at: serverTimestamp()
     });
@@ -51,6 +72,9 @@ export const getAuditLogs = async (page = 1, pageSize = 20, filters = {}) => {
       q = query(q, where('company_id', '==', filters.company_id));
     }
 
+    // Capture the unpaginated query for counting
+    const countQuery = q;
+
     if (pageSize > 0 && page > 0) {
       q = query(q, limit(page * pageSize));
     }
@@ -60,7 +84,8 @@ export const getAuditLogs = async (page = 1, pageSize = 20, filters = {}) => {
     
     // Manual slicing for simple page simulation
     const pagedData = data.slice((page - 1) * pageSize, page * pageSize);
-    const totalCount = (await getDocs(collRef)).size;
+    const countSnapshot = await getCountFromServer(countQuery);
+    const totalCount = countSnapshot.data().count;
 
     return { data: pagedData, count: totalCount };
   } catch (error) {

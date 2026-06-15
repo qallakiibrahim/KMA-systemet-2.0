@@ -848,3 +848,101 @@
     border-radius: 1.5rem 1.5rem 0 0;
   }
 }
+
+/* Drag and drop support */
+.kanban-column.drag-over {
+  background-color: var(--bg-secondary);
+  border-color: var(--avvikelse-blue);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.kanban-card.is-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+/* Quick Add Styled Box */
+.quick-add-container {
+  padding: 0.5rem;
+  border-bottom: 1px dashed var(--line);
+  background-color: var(--bg-secondary);
+}
+
+.quick-add-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  border: 1px dashed var(--line);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-add-trigger:hover {
+  background: var(--bg-primary);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.quick-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.quick-add-input {
+  font-size: 0.8rem !important;
+  padding: 0.35rem 0.5rem !important;
+  border-radius: 0.375rem !important;
+  border: 1px solid var(--line) !important;
+}
+
+.quick-add-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quick-add-priority {
+  font-size: 0.7rem !important;
+  padding: 0.2rem !important;
+  border-radius: 0.25rem !important;
+  width: auto !important;
+}
+
+.quick-add-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.quick-add-btn-add {
+  background: var(--avvikelse-blue) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 0.375rem !important;
+  padding: 0.25rem 0.6rem !important;
+  font-size: 0.7rem !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+}
+
+.quick-add-btn-cancel {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.7rem !important;
+  cursor: pointer !important;
+}

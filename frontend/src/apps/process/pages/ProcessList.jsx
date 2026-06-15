@@ -320,12 +320,27 @@ const ProcessListContent = () => {
       console.log('Creating process node. Initial companyId:', companyId);
 
       if (!companyId && userProfile?.role === 'superadmin') {
-        const companiesRef = collection(db, 'companies');
-        const qComp = query(companiesRef, where('name', '>=', 'SafeQMS'), limit(1));
-        const companiesSnap = await getDocs(qComp);
-        if (!companiesSnap.empty) {
-          companyId = companiesSnap.docs[0].id;
-          console.log('Superadmin fallback: Found companyId from SafeQMS query:', companyId);
+        try {
+          const companiesRef = collection(db, 'companies');
+          const qComp = query(companiesRef, where('name', '==', 'SafeQMS'), limit(1));
+          const companiesSnap = await getDocs(qComp);
+          if (!companiesSnap.empty) {
+            companyId = companiesSnap.docs[0].id;
+            console.log('Superadmin fallback: Found companyId for SafeQMS:', companyId);
+          } else {
+            console.log('Superadmin fallback: SafeQMS company not found, trying to create it...');
+            const newComp = await createCompany({
+              name: 'SafeQMS',
+              status: 'active',
+              plan: 'Premium',
+              org_nr: 'SYSTEM-001'
+            }, currentUser);
+            companyId = newComp.id;
+            console.log('Superadmin fallback: Created SafeQMS company:', companyId);
+            if (refreshProfile) refreshProfile();
+          }
+        } catch (err) {
+          console.error('Failed in superadmin company fallback:', err);
         }
       }
 

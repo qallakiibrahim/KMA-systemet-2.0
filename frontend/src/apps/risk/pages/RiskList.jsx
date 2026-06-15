@@ -6,9 +6,11 @@ import { sendEmailNotification } from '../../../shared/api/sendEmailNotification
 import { useAuth } from '../../../shared/api/AuthContext';
 import { db } from '../../../firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { Plus, Trash2, X, AlertOctagon, ShieldAlert, Activity, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, X, AlertOctagon, ShieldAlert, Activity, CheckCircle, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { getTasks, createTask, updateTask, deleteTask } from '../../task/api/tasksApi';
 import { toast } from 'react-toastify';
 import { useRegisterHeaderActions } from '../../../shared/context/HeaderActionsContext';
+import { parseSafeDate } from '../../../shared/utils/dateUtils';
 import '../styles/RiskList.css';
 
 const RiskList = () => {
@@ -17,6 +19,11 @@ const RiskList = () => {
   const [pageSize] = useState(50);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
+  
+  // Linked task states for ISO 31000 risk mitigation
+  const [taskFormTitle, setTaskFormTitle] = useState('');
+  const [taskFormPriority, setTaskFormPriority] = useState('Medium');
+  const [taskFormDueDate, setTaskFormDueDate] = useState('');
   const [formData, setFormData] = useState({ 
     title: '', 
     description: '', 
@@ -56,6 +63,50 @@ const RiskList = () => {
   const risker = riskerData?.data || (Array.isArray(riskerData) ? riskerData : []);
   const totalCount = riskerData?.count || (Array.isArray(riskerData) ? riskerData.length : 0);
   const totalPages = Math.ceil(totalCount / pageSize);
+
+  // Fetch tasks for risk pairing
+  const { data: tasksData } = useQuery({
+    queryKey: ['tasks', userProfile?.company_id, 1, -1],
+    queryFn: () => getTasks(userProfile?.company_id, 1, -1),
+    enabled: !!userProfile?.company_id,
+  });
+  const allTasks = useMemo(() => {
+    return Array.isArray(tasksData) ? tasksData : tasksData?.data || [];
+  }, [tasksData]);
+
+  const linkedTasks = useMemo(() => {
+    if (!selectedRisk) return [];
+    return allTasks.filter(task => task.risk_id === selectedRisk.id);
+  }, [allTasks, selectedRisk]);
+
+  const createLinkedTaskMutation = useMutation({
+    mutationFn: (tData) => createTask(tData, currentUser),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success('Förebyggande åtgärd (uppgift) kopplad och skapad!');
+      setTaskFormTitle('');
+      setTaskFormDueDate('');
+    },
+    onError: (err) => {
+      console.error(err);
+      toast.error('Kunde inte skapa åtgärd.');
+    }
+  });
+
+  const handleCreateLinkedTask = (e) => {
+    e.preventDefault();
+    if (!taskFormTitle.trim() || !selectedRisk) return;
+    createLinkedTaskMutation.mutate({
+      title: taskFormTitle,
+      description: `Riskreducerande åtgärd för risk: "${selectedRisk.title}" (System-genererad integration)`,
+      status: 'todo',
+      priority: taskFormPriority,
+      dueDate: taskFormDueDate ? new Date(taskFormDueDate).toISOString() : null,
+      risk_id: selectedRisk.id,
+      company_id: userProfile?.company_id,
+      created_by: currentUser.uid
+    });
+  };
 
   if (isError) {
     return (
@@ -315,7 +366,7 @@ const RiskList = () => {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
                         <h3 className="card-title-mini" title={r.title}>{r.title}</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                          {r.deadline && <span className="deadline-mini" style={{fontSize: '0.65rem', color: 'var(--text-muted)'}}>📅 {new Date(r.deadline).toLocaleDateString('sv-SE')}</span>}
+                          {r.deadline && <span className="deadline-mini" style={{fontSize: '0.65rem', color: 'var(--text-muted)'}}>📅 {parseSafeDate(r.deadline).toLocaleDateString('sv-SE')}</span>}
                           <button 
                             className="btn-icon-mini delete" 
                             onClick={(e) => {
@@ -397,12 +448,20 @@ const RiskList = () => {
                   {selectedRisk ? (canEdit ? 'Redigera risk' : 'Visa risk') : 'Registrera ny risk'}
                 </button>
                 {selectedRisk && (
-                  <button 
-                    className={`modal-tab ${activeTab === 'history' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('history')}
-                  >
-                    Historik
-                  </button>
+                  <>
+                    <button 
+                      className={`modal-tab ${activeTab === 'tasks' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('tasks')}
+                    >
+                      Förebyggande Åtgärder ({linkedTasks.length})
+                    </button>
+                    <button 
+                      className={`modal-tab ${activeTab === 'history' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('history')}
+                    >
+                      Historik
+                    </button>
+                  </>
                 )}
               </div>
               <button className="close-btn" onClick={handleCloseModal}>
@@ -545,6 +604,97 @@ const RiskList = () => {
                   )}
                 </div>
               </form>
+            ) : activeTab === 'tasks' ? (
+              <div className="tasks-tab-content p-6 flex flex-col gap-6 overflow-y-auto" style={{ maxHeight: '70vh' }}>
+                <div className="flex flex-col gap-4 border-b border-gray-100 pb-6">
+                  <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-1.5" style={{ margin: 0 }}>
+                    <Activity size={16} className="text-emerald-500" />
+                    Koppla ny förebyggande åtgärd (ISO 31000)
+                  </h3>
+                  <form onSubmit={handleCreateLinkedTask} className="flex flex-col gap-3 bg-gray-50/60 p-4 rounded-xl border border-gray-200" style={{ borderRadius: '0.625rem' }}>
+                    <div className="flex flex-col gap-1.5" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                      <label className="text-xs font-semibold text-gray-600">Korrigerande åtgärd (titel)</label>
+                      <input 
+                        type="text" 
+                        placeholder="T.ex. Utbilda säljteamet, Sätt upp automatisk säkerhetskopiering..." 
+                        value={taskFormTitle} 
+                        onChange={(e) => setTaskFormTitle(e.target.value)}
+                        required
+                        className="p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                        style={{ borderRadius: '0.625rem', padding: '0.5rem', border: '1px solid #e5e7eb' }}
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <div className="flex flex-col gap-1.5" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                        <label className="text-xs font-semibold text-gray-600">Prioritet</label>
+                        <select 
+                          value={taskFormPriority} 
+                          onChange={(e) => setTaskFormPriority(e.target.value)}
+                          className="p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                          style={{ borderRadius: '0.625rem', padding: '0.5rem', border: '1px solid #e5e7eb' }}
+                        >
+                          <option value="Low">Låg</option>
+                          <option value="Medium">Medium</option>
+                          <option value="High">Hög</option>
+                          <option value="Critical">Kritisk</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1.5" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                        <label className="text-xs font-semibold text-gray-600">Deadline</label>
+                        <input 
+                          type="date" 
+                          value={taskFormDueDate} 
+                          onChange={(e) => setTaskFormDueDate(e.target.value)}
+                          className="p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                          style={{ borderRadius: '0.625rem', padding: '0.5rem', border: '1px solid #e5e7eb' }}
+                        />
+                      </div>
+                    </div>
+                    <button 
+                      type="submit" 
+                      disabled={createLinkedTaskMutation.isPending}
+                      className="btn btn-primary self-start mt-2 px-4 py-2 text-xs flex items-center gap-1"
+                      style={{ borderRadius: '0.625rem', width: 'fit-content', padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 500 }}
+                    >
+                      <Plus size={14} />
+                      {createLinkedTaskMutation.isPending ? 'Sparar...' : 'Skapa & Koppla'}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="flex flex-col gap-3" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <h3 className="font-semibold text-gray-800 text-sm flex items-center gap-1.5" style={{ margin: 0 }}>
+                    <CheckCircle size={16} className="text-rose-500" />
+                    Kopplade Åtgärder ({linkedTasks.length})
+                  </h3>
+                  {linkedTasks.length === 0 ? (
+                    <div className="text-center py-6 bg-rose-50/20 rounded-xl border border-dashed border-rose-100 flex flex-col items-center gap-2" style={{ textAlign: 'center', padding: '1.5rem', backgroundColor: '#fef2f2', borderRadius: '0.625rem', border: '1px dashed #fecaca', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                      <ShieldAlert size={28} className="text-rose-300" />
+                      <p className="text-xs text-rose-800/80 font-medium" style={{ margin: 0 }}>Inga aktiva åtgärder är kopplade till denna risk än.</p>
+                      <p className="text-[10px] text-gray-400" style={{ margin: 0 }}>Använd formuläret ovan för att lägga till förebyggande mitigering.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {linkedTasks.map(task => (
+                        <div key={task.id} className="p-3 bg-white border border-gray-150/70 rounded-xl hover:border-gray-300 transition-all flex justify-between items-center" style={{ borderRadius: '0.625rem', padding: '0.75rem', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <span className="text-sm font-semibold text-gray-800" style={{ fontWeight: 600 }}>{task.title}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '10px', color: '#9ca3af' }}>
+                              <span style={{ fontSize: '9px', padding: '0.125rem 0.25rem', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '0.25rem', fontWeight: 500 }}>
+                                {task.priority || 'Medium'}
+                              </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
+                                <Clock size={10} />
+                                Status: {task.status === 'done' ? 'Klar' : task.status === 'in-progress' ? 'Pågår' : 'Att göra'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="history-tab-content">
                 {isLogsLoading ? (
@@ -565,7 +715,7 @@ const RiskList = () => {
                               {log.action === 'CREATE' ? 'Skapad' : log.action === 'UPDATE' ? 'Uppdaterad' : 'Raderad'}
                             </span>
                             <span className="audit-time">
-                              {new Date(log.created_at).toLocaleString('sv-SE')}
+                              {parseSafeDate(log.created_at).toLocaleString('sv-SE')}
                             </span>
                           </div>
                           <div className="audit-user">

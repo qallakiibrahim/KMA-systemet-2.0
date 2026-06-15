@@ -4,6 +4,7 @@ import { getAuditLogs } from '../api/auditLog';
 import { Clock, User, Tag, Info, ChevronLeft, ChevronRight, Search, Filter, Eye, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { parseSafeDate } from '../utils/dateUtils';
 
 const AuditTrailPage = () => {
   const [page, setPage] = useState(1);
@@ -39,7 +40,7 @@ const AuditTrailPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mb-6 flex flex-wrap gap-4 items-center">
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-[0.625rem] shadow-sm border border-gray-200 dark:border-slate-700 mb-6 flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
           <Filter size={18} className="text-gray-400" />
           <select 
@@ -62,7 +63,7 @@ const AuditTrailPage = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-[0.625rem] shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 dark:bg-slate-900/50 border-bottom border-gray-200 dark:border-slate-700">
@@ -84,7 +85,7 @@ const AuditTrailPage = () => {
                   <td className="p-4">
                     <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                       <Clock size={14} className="text-gray-400" />
-                      {format(new Date(log.created_at), 'yyyy-MM-dd HH:mm:ss', { locale: sv })}
+                      {format(parseSafeDate(log.created_at), 'yyyy-MM-dd HH:mm:ss', { locale: sv })}
                     </div>
                   </td>
                   <td className="p-4">
@@ -141,7 +142,7 @@ const AuditTrailPage = () => {
       {/* Detail Modal */}
       {selectedLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-[0.625rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Händelsedetaljer</h3>
               <button onClick={() => setSelectedLog(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -152,7 +153,7 @@ const AuditTrailPage = () => {
               <div className="grid grid-cols-2 gap-6 mb-8">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Tidpunkt</label>
-                  <p className="text-gray-900 dark:text-white">{format(new Date(selectedLog.created_at), 'PPPP p', { locale: sv })}</p>
+                  <p className="text-gray-900 dark:text-white">{format(parseSafeDate(selectedLog.created_at), 'PPPP p', { locale: sv })}</p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Användare</label>
@@ -174,7 +175,7 @@ const AuditTrailPage = () => {
               {selectedLog.changes && selectedLog.changes.old && selectedLog.changes.new && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Ändringar</label>
-                  <div className="bg-gray-50 dark:bg-slate-900 rounded-xl p-4 overflow-x-auto">
+                  <div className="bg-gray-50 dark:bg-slate-900 rounded-[0.625rem] p-4 overflow-x-auto">
                     <div className="space-y-2">
                       {Object.keys(selectedLog.changes.new).map(key => {
                         const oldVal = selectedLog.changes.old[key];
@@ -231,7 +232,7 @@ const AuditTrailPage = () => {
               {selectedLog.changes && (!selectedLog.changes.old || !selectedLog.changes.new) && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Data</label>
-                  <div className="bg-gray-50 dark:bg-slate-900 rounded-xl p-4 overflow-x-auto">
+                  <div className="bg-gray-50 dark:bg-slate-900 rounded-[0.625rem] p-4 overflow-x-auto">
                     <pre className="text-xs text-gray-700 dark:text-gray-300 font-mono">
                       {JSON.stringify(selectedLog.changes, null, 2)}
                     </pre>
@@ -242,7 +243,7 @@ const AuditTrailPage = () => {
             <div className="p-6 bg-gray-50 dark:bg-slate-900/50 flex justify-end">
               <button 
                 onClick={() => setSelectedLog(null)}
-                className="px-6 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 transition-colors"
+                className="px-6 py-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-[0.625rem] text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 transition-colors"
               >
                 Stäng
               </button>

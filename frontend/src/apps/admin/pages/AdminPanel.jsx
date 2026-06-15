@@ -4,6 +4,7 @@ import { getUsers, updateUser, getPendingInvitations, inviteUser, deleteInvitati
 import { getCompanies, createCompany, updateCompany, deleteCompany } from '../../company/api/company';
 import { getAuditLogs } from '../../../shared/api/auditLog';
 import { useAuth } from '../../../shared/api/AuthContext';
+import { parseSafeDate } from '../../../shared/utils/dateUtils';
 import { toast } from 'react-toastify';
 import '../styles/AdminPanel.css';
 
@@ -510,7 +511,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
                       <td>{company.plan || 'Basic'}</td>
                       <td>{renderStatusBadge(company.status || 'active')}</td>
                       <td>-</td>
-                      <td className="text-muted">{company.expires_at ? new Date(company.expires_at).toLocaleDateString() : '-'}</td>
+                      <td className="text-muted">{company.expires_at ? parseSafeDate(company.expires_at).toLocaleDateString() : '-'}</td>
                       <td className="actions-cell">
                         <button className="btn btn-secondary btn-sm" onClick={() => openEditCompanyModal(company)}>Redigera</button>
                         <button 
@@ -694,7 +695,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
                     auditLogs.map((log) => (
                       <tr key={log.id}>
                         <td className="text-muted" style={{ fontSize: '0.8rem' }}>
-                          {new Date(log.created_at).toLocaleString('sv-SE')}
+                          {parseSafeDate(log.created_at).toLocaleString('sv-SE')}
                         </td>
                         <td>
                           <div className="font-medium">{log.user_email?.split('@')[0]}</div>
@@ -785,7 +786,7 @@ const AdminPanel = ({ isEmbedded = false }) => {
                           {invite.role === 'admin' ? 'Administratör' : 'Användare'}
                         </span>
                       </td>
-                      <td className="text-muted">{new Date(invite.created_at).toLocaleDateString()}</td>
+                      <td className="text-muted">{parseSafeDate(invite.created_at).toLocaleDateString()}</td>
                       <td className="actions-cell">
                         <button className="action-btn delete" onClick={() => handleDeleteInvite(invite.id)} title="Ta bort inbjudan">
                           <XCircle size={18} />

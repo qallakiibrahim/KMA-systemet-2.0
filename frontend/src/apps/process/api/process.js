@@ -13,7 +13,8 @@ import {
   orderBy,
   limit,
   startAfter,
-  getDocsFromServer
+  getDocsFromServer,
+  getCountFromServer
 } from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
 import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../../../shared/utils/firestoreError';
@@ -27,7 +28,7 @@ export const getProcesses = async (companyId, page = 1, pageSize = 20, isSuperAd
     let q;
     let countQuery;
     
-    if (companyId) {
+    if (companyId && companyId !== 'undefined') {
       q = query(collRef, where('company_id', '==', companyId), orderBy('created_at', 'desc'));
       countQuery = query(collRef, where('company_id', '==', companyId));
     } else if (isSuperAdmin) {
@@ -46,8 +47,8 @@ export const getProcesses = async (companyId, page = 1, pageSize = 20, isSuperAd
     const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     
     // Total count for current filter
-    const totalCountSnap = await getDocs(countQuery);
-    const totalCount = totalCountSnap.size;
+    const countSnapshot = await getCountFromServer(countQuery);
+    const totalCount = countSnapshot.data().count;
     
     const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
     

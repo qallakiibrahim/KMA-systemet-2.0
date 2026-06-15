@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../api/AuthContext';
+import { parseSafeDate } from '../utils/dateUtils';
 import { getOpenTasks } from '../../apps/task/api/tasksApi';
 import { getNotifications, updateNotification } from '../../apps/notification/api/notification';
 import { Bell, User, Search, Menu, X } from 'lucide-react';
@@ -157,7 +158,7 @@ const Header = ({ onMenuClick }) => {
                       <div className="notification-content">
                         <strong>{n.title}</strong>
                         <p>{n.message}</p>
-                        <span className="notification-time">{new Date(n.created_at || new Date()).toLocaleDateString('sv-SE')}</span>
+                        <span className="notification-time">{parseSafeDate(n.created_at).toLocaleDateString('sv-SE')}</span>
                       </div>
                       {!n.is_read && <div className="unread-dot"></div>}
                     </div>

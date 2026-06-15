@@ -13,6 +13,7 @@ import {
   orderBy
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { logAction } from '../../../shared/api/auditLog';
 import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../../../shared/utils/firestoreError';
 
 const collectionName = 'documents';
@@ -61,15 +62,38 @@ export const getDocumentById = async (id) => {
   }
 };
 
-export const saveDocument = async (documentData) => {
+export const saveDocument = async (documentData, user = null) => {
   const { id, attachments, ...rest } = documentData;
   try {
     const sanitizedData = sanitizeFirestoreData(rest);
+    let oldData = null;
+    if (id && user) {
+      const docRef = doc(db, collectionName, id);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        oldData = snap.data();
+      }
+    }
+
     if (id) {
       const docRef = doc(db, collectionName, id);
       await updateDoc(docRef, { ...sanitizedData, updated_at: serverTimestamp() });
       const snap = await getDoc(docRef);
-      return { id: snap.id, ...snap.data() };
+      const updated = { id: snap.id, ...snap.data() };
+
+      if (user) {
+        logAction({
+          action: 'UPDATE',
+          entity_type: 'DOCUMENT',
+          entity_id: id,
+          entity_name: updated.title,
+          changes: { old: oldData, new: updated },
+          user_id: user.uid,
+          user_email: user.email,
+          company_id: updated.company_id
+        });
+      }
+      return updated;
     } else {
       const docRef = await addDoc(collection(db, collectionName), {
         ...sanitizedData,
@@ -77,7 +101,20 @@ export const saveDocument = async (documentData) => {
         updated_at: serverTimestamp()
       });
       const snap = await getDoc(docRef);
-      return { id: snap.id, ...snap.data() };
+      const inserted = { id: snap.id, ...snap.data() };
+
+      if (user) {
+        logAction({
+          action: 'CREATE',
+          entity_type: 'DOCUMENT',
+          entity_id: inserted.id,
+          entity_name: inserted.title,
+          user_id: user.uid,
+          user_email: user.email,
+          company_id: inserted.company_id
+        });
+      }
+      return inserted;
     }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, collectionName);

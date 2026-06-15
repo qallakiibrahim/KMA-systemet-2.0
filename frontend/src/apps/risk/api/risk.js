@@ -11,7 +11,8 @@ import {
   deleteDoc, 
   serverTimestamp,
   orderBy,
-  limit
+  limit,
+  getCountFromServer
 } from 'firebase/firestore';
 import { logAction } from '../../../shared/api/auditLog';
 import { handleFirestoreError, OperationType, sanitizeFirestoreData } from '../../../shared/utils/firestoreError';
@@ -33,8 +34,8 @@ export const getRisker = async (companyId, page = 1, pageSize = 20) => {
     
     // Total count for current company
     const countQuery = query(collRef, where('company_id', '==', companyId));
-    const totalCountSnap = await getDocs(countQuery);
-    const totalCount = totalCountSnap.size;
+    const countSnapshot = await getCountFromServer(countQuery);
+    const totalCount = countSnapshot.data().count;
     
     const pagedData = pageSize === -1 ? data : data.slice((page - 1) * pageSize, page * pageSize);
     

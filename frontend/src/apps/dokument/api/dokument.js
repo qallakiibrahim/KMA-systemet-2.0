@@ -11,7 +11,8 @@ import {
   deleteDoc, 
   serverTimestamp,
   orderBy,
-  limit
+  limit,
+  getCountFromServer
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { logAction } from '../../../shared/api/auditLog';
@@ -36,7 +37,8 @@ export const getDokuments = async (companyId, page = 1, pageSize = 20) => {
     
     // Count total for this company
     const countQuery = query(collRef, where('company_id', '==', companyId));
-    const totalCount = (await getDocs(countQuery)).size;
+    const countSnapshot = await getCountFromServer(countQuery);
+    const totalCount = countSnapshot.data().count;
     
     return pageSize === -1 ? data : { data: pagedData, count: totalCount };
   } catch (error) {

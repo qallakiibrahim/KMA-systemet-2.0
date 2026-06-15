@@ -79,8 +79,8 @@ service cloud.firestore {
     // COMPANIES
     // -------------------------------------------------------------------------
     match /companies/{companyId} {
-      allow get: if isCompanyMember(companyId) || isSuperAdmin();
-      allow list: if isSuperAdmin();
+      allow get: if isVerified();
+      allow list: if isVerified();
       
       function isValidCompany(data) {
         return data.name is string && data.name.size() <= 200
@@ -89,7 +89,7 @@ service cloud.firestore {
                && (data.status == null || data.status is string);
       }
 
-      allow create: if isSuperAdmin() && isValidCompany(incoming());
+      allow create: if isVerified() && isValidCompany(incoming());
       allow update: if isSuperAdmin() || (isCompanyMember(companyId) && isAdmin());
     }
 
